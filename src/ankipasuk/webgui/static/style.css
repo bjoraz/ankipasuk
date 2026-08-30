@@ -134,7 +134,15 @@ button:disabled { opacity: 0.6; cursor: default; }
 
 .text-box.viz {
     max-height: 320px;
-    font-size: 16px;
+    font-size: 14px;
+}
+
+.viz-verse {
+    margin-bottom: 10px;
+}
+
+.viz-verse:last-child {
+    margin-bottom: 0;
 }
 
 .viz-row {
@@ -148,9 +156,10 @@ button:disabled { opacity: 0.6; cursor: default; }
 
 .viz-line {
     text-align: right;
-    padding: 3px 6px;
+    padding: 1px 6px;
     border-radius: 2px;
     flex: 1;
+    line-height: 1.3;
 }
 
 .viz-line .conj {

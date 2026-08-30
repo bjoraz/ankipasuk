@@ -51,6 +51,20 @@ def test_generate_cloze_matches_verse_to_nested_cloze(genesis_1_1):
     assert "viz-line" in result["viz_html"]
 
 
+def test_generate_cloze_wraps_each_verse_for_spacing(genesis_1_1, genesis_1_2):
+    """Each verse's rows must be wrapped in its own container so CSS can
+    put a gap between verses without affecting the (smaller) gap between
+    rows within the same verse."""
+    api = Api()
+    api._current_verse_data = [
+        {"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
+        {"ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": genesis_1_2},
+    ]
+    result = api.generate_cloze(2, True)
+    assert result["ok"] is True
+    assert result["viz_html"].count('class="viz-verse"') == 2
+
+
 def test_generate_cloze_skips_blank_lines(genesis_1_1):
     api = Api()
     api._current_verse_data = [

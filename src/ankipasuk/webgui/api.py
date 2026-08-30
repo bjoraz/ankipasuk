@@ -159,7 +159,7 @@ class Api:
             )
             lines.append(cl)
             unit_debug_lines.append(format_units(units))
-            viz_html_blocks.append(tree_to_html(tree))
+            viz_html_blocks.append(f'<div class="viz-verse">{tree_to_html(tree)}</div>')
 
             if not reset_per_line:
                 next_start = last + 1
