@@ -25,7 +25,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check src tests
+        run: ruff check src tests scripts
 
       - name: Run tests
         # The core package (config/cache/sefaria/text_processing/cloze/stats)

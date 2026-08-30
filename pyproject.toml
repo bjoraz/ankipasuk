@@ -30,6 +30,9 @@ dev = [
 
 [project.scripts]
 ankipasuk = "ankipasuk.gui.app:main"
+ankipasuk-check-connection = "ankipasuk.anki_connect.cli:_console_check_connection"
+ankipasuk-init-stems = "ankipasuk.anki_connect.cli:_console_init_stems"
+ankipasuk-sync-scheduling = "ankipasuk.anki_connect.cli:_console_sync_scheduling"
 
 [project.urls]
 Homepage = "https://github.com/bjoraz/ankipasuk"

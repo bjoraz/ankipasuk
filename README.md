@@ -26,6 +26,10 @@ grammatical break down to individual words.
 - **Persistent local cache**: verse text and parashah structure fetched from
   Sefaria are cached to disk, so re-running the app (or re-fetching an
   overlapping range) never re-downloads the same data.
+- **Anki scheduling automation** (optional, via AnkiConnect): once a note's
+  full-verse cloze is well-memorized, automatically suspend its easier
+  partial-clue clozes, and bring them back if the full verse later lapses.
+  See [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
 
 ## Installation
 
@@ -80,14 +84,31 @@ src/ankipasuk/
 ├── text_processing.py   # Trope tokenization, disjunctive grouping, tree splitting
 ├── cloze.py              # Nested cloze markup generation from the split tree
 ├── stats.py               # Corpus statistics computation (no GUI dependency)
+├── anki_connect/            # Optional: AnkiConnect scheduling automation
+│   ├── client.py             #   raw JSON-RPC client
+│   ├── notes.py               #   pure stem/leaf identification (no network)
+│   ├── operations.py           #   AnkiConnect-backed card operations
+│   ├── scheduling.py            #   promotion / lapse-recovery policy
+│   └── cli.py                    #   console-friendly wrappers
 └── gui/
     ├── app.py            # Main window (AnkiPasukApp)
     ├── stats_window.py   # "Corpus statistics" window
     └── charts.py         # Clickable canvas bar/scatter charts + verse popup
+
+scripts/                  # Double-click-friendly wrappers around anki_connect
+├── test_anki_connect.py
+├── flag_stem_cards.py
+└── update_mature_cards.py
+
+docs/
+└── anki-scheduling.md    # Anki scheduling automation: how it works, how to run it
 ```
 
 Only `gui/` depends on `tkinter`; everything else is pure Python + `requests`,
-which is what makes the test suite able to run headless / in CI.
+which is what makes the test suite able to run headless / in CI. `anki_connect/`
+depends on nothing but the standard library (`urllib`, `json`) plus a running
+Anki + AnkiConnect instance, and is entirely optional -- the cloze generator
+works without it.
 
 ## Development
 
@@ -101,7 +122,9 @@ Tests focus on the core logic (`text_processing`, `cloze`, `stats`, `cache`)
 using small, hand-built verses with real trope Unicode combining marks, so
 they don't depend on network access to Sefaria. `tests/test_cache.py`
 specifically verifies that a repeat fetch of the same reference is served
-from disk instead of hitting the network again.
+from disk instead of hitting the network again. `tests/test_anki_connect/`
+exercises the promotion/lapse-recovery scheduling logic end-to-end against
+an in-memory fake AnkiConnect backend, so it runs without Anki installed.
 
 ## Acknowledgments
 

@@ -60,6 +60,16 @@ BOOK_HEBREW_NAMES = {
     "Deuteronomy": "Devarim",
 }
 
+# Anki deck names for the "Leyning" scheduling automation (ankipasuk.anki_connect),
+# one per Torah book, in reading order.
+LEYNING_DECK_NAMES = {
+    "Genesis": "Leyning::1-Bereshit",
+    "Exodus": "Leyning::2-Shemot",
+    "Leviticus": "Leyning::3-Vayikra",
+    "Numbers": "Leyning::4-Bamidbar",
+    "Deuteronomy": "Leyning::5-Devarim",
+}
+
 # =============================================================
 #  ANKI EXPORT
 # =============================================================
