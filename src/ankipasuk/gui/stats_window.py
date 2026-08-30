@@ -6,6 +6,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
+from ..structure import (
+    format_structure,
+    group_verses_by_disj_count_and_structure,
+    group_verses_by_word_count_and_structure,
+)
 from .charts import draw_bar_chart, draw_chapter_bar_chart, draw_scatter_chart, show_verse_list_popup
 
 
@@ -34,6 +39,53 @@ def build_trope_frequency_widget(parent: tk.Misc, stats: dict) -> tk.Text:
         )
         text.tag_bind(tag, "<Enter>", lambda e: text.config(cursor="hand2"))
         text.tag_bind(tag, "<Leave>", lambda e: text.config(cursor="arrow"))
+
+    text.config(state="disabled")
+    return text
+
+
+def build_structure_breakdown_widget(
+    parent: tk.Misc, axis_label: str, grouped: dict, verse_lookup: dict
+) -> tk.Text:
+    """Text widget listing, for each value of some axis (word count or
+    disjunctive-group count), every distinct verse nesting-structure that
+    occurs at that value and how many verses share it. Click a structure
+    line to see its verses.
+
+    ``grouped`` is ``{axis_value: {structure_signature: [verse_labels]}}``
+    -- see :func:`ankipasuk.structure.group_verses_by_word_count_and_structure`
+    / :func:`ankipasuk.structure.group_verses_by_disj_count_and_structure`.
+    """
+    text = tk.Text(parent, wrap=tk.WORD, font=("Courier", 10), cursor="arrow")
+    text.pack(fill="both", expand=True)
+
+    if not grouped:
+        text.insert("1.0", "No data.")
+        text.config(state="disabled")
+        return text
+
+    text.insert(tk.END, "Click a structure to see its verses.\n\n")
+    tag_counter = 0
+    for axis_value in sorted(grouped):
+        structs = grouped[axis_value]
+        total = sum(len(labels) for labels in structs.values())
+        text.insert(tk.END, f"{axis_label} = {axis_value}  ({total} verse{'s' if total != 1 else ''})\n")
+
+        for sig, labels in sorted(structs.items(), key=lambda kv: (-len(kv[1]), format_structure(kv[0]))):
+            tag_counter += 1
+            tag = f"struct_{tag_counter}"
+            text.insert(tk.END, f"    {format_structure(sig)}   x{len(labels)}\n", (tag,))
+            text.tag_configure(tag, foreground="#1565c0")
+            text.tag_bind(
+                tag, "<Button-1>",
+                lambda e, s=sig, lbls=labels, av=axis_value: show_verse_list_popup(
+                    text, f"{axis_label} = {av}, structure {format_structure(s)}", lbls, verse_lookup
+                )
+            )
+            text.tag_bind(tag, "<Enter>", lambda e: text.config(cursor="hand2"))
+            text.tag_bind(tag, "<Leave>", lambda e: text.config(cursor="arrow"))
+
+        text.insert(tk.END, "\n")
 
     text.config(state="disabled")
     return text
@@ -181,6 +233,20 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     trope_frame = tk.Frame(notebook)
     notebook.add(trope_frame, text="Trope frequency")
     build_trope_frequency_widget(trope_frame, stats)
+
+    # --- Verse structure by word count ---
+    struct_wc_frame = tk.Frame(notebook)
+    notebook.add(struct_wc_frame, text="Structure by word count")
+    struct_by_wc = group_verses_by_word_count_and_structure(verse_data)
+    build_structure_breakdown_widget(struct_wc_frame, "Words in verse", struct_by_wc, stats["verse_lookup"])
+
+    # --- Verse structure by disjunctive group count ---
+    struct_dc_frame = tk.Frame(notebook)
+    notebook.add(struct_dc_frame, text="Structure by disjunctive groups")
+    struct_by_dc = group_verses_by_disj_count_and_structure(verse_data)
+    build_structure_breakdown_widget(
+        struct_dc_frame, "Disjunctive groups in verse", struct_by_dc, stats["verse_lookup"]
+    )
 
     tk.Button(
         win, text="Export per-verse stats to CSV",

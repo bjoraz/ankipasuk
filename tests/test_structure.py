@@ -111,6 +111,67 @@ def test_structure_summary_orders_by_frequency_then_signature(
     assert len(summary) == 3
 
 
+def test_signature_leaf_count_matches_tree_leaf_count(genesis_1_1, genesis_1_2, munach_legarmeh_verse):
+    from ankipasuk.cloze import tree_leaf_count, verse_to_nested_cloze
+
+    for verse in (genesis_1_1, genesis_1_2, munach_legarmeh_verse):
+        _markup, _last, tree, *_ = verse_to_nested_cloze(verse, max_leaf_disj=1)
+        sig = st.verse_structure_signature(verse)
+        assert st.signature_leaf_count(sig) == tree_leaf_count(tree)
+
+
+def test_group_verses_by_word_count_and_structure(genesis_1_1, genesis_1_2):
+    verse_data = _verse_data([
+        (1, 1, genesis_1_1),   # 7 words
+        (5, 3, genesis_1_1),   # same text/shape, still 7 words
+        (1, 2, genesis_1_2),   # 12 words, different shape
+    ])
+    grouped = st.group_verses_by_word_count_and_structure(verse_data)
+
+    assert set(grouped.keys()) == {7, 12}
+    bereshit_sig = st.verse_structure_signature(genesis_1_1)
+    assert sorted(grouped[7][bereshit_sig]) == ["1:1", "5:3"]
+    assert len(grouped[7]) == 1  # only one distinct shape among the 7-word verses here
+
+    other_sig = st.verse_structure_signature(genesis_1_2)
+    assert grouped[12] == {other_sig: ["1:2"]}
+
+
+def test_group_verses_by_word_count_and_structure_skips_blank_verses(genesis_1_1):
+    verse_data = _verse_data([(1, 1, genesis_1_1), (1, 2, "   ")])
+    grouped = st.group_verses_by_word_count_and_structure(verse_data)
+    assert sum(len(labels) for structs in grouped.values() for labels in structs.values()) == 1
+
+
+def test_group_verses_by_disj_count_and_structure(genesis_1_1, genesis_1_2):
+    verse_data = _verse_data([
+        (1, 1, genesis_1_1),
+        (5, 3, genesis_1_1),
+        (1, 2, genesis_1_2),
+    ])
+    grouped = st.group_verses_by_disj_count_and_structure(verse_data)
+
+    bereshit_sig = st.verse_structure_signature(genesis_1_1)
+    bereshit_leaves = st.signature_leaf_count(bereshit_sig)
+    assert sorted(grouped[bereshit_leaves][bereshit_sig]) == ["1:1", "5:3"]
+
+    other_sig = st.verse_structure_signature(genesis_1_2)
+    other_leaves = st.signature_leaf_count(other_sig)
+    assert grouped[other_leaves] == {other_sig: ["1:2"]}
+
+
+def test_group_verses_by_disj_count_and_structure_separates_different_shapes_with_same_count():
+    """Two structurally different verses that happen to have the same
+    number of disjunctive groups must appear as two separate entries
+    under the same group-count bin, not merged."""
+    # A 3-leaf, right-branching shape: (1, (2, 3))
+    right_branching = (1, (2, 3))
+    # A 3-leaf, left-branching shape: ((1, 2), 3)
+    left_branching = ((1, 2), 3)
+    assert st.signature_leaf_count(right_branching) == st.signature_leaf_count(left_branching) == 3
+    assert right_branching != left_branching  # same size, different shape -- the whole point
+
+
 def test_format_structure_leaf():
     assert st.format_structure(3) == "L3"
 

@@ -40,6 +40,29 @@ def verse_structure_signature(pointed: str):
     return structure_signature(tree)
 
 
+def _word_count_and_structure(pointed: str) -> tuple[int, object]:
+    """Both the word count and structure signature of one verse, computed
+    from a single tokenization pass (shared by
+    :func:`group_verses_by_word_count_and_structure`, rather than
+    tokenizing twice)."""
+    tokens = tokenize_pasuk(pointed)
+    units = group_into_units(tokens)
+    tree = split_segment(units, max_leaf_disj=_STRUCTURE_MAX_LEAF_DISJ)
+    return len(tokens), structure_signature(tree)
+
+
+def signature_leaf_count(signature) -> int:
+    """The number of leaves in a structure signature -- equivalently, the
+    verse's minimum-disjunctive-group count. These are the same number
+    for any real, complete verse: at ``max_leaf_disj=1``, splitting stops
+    exactly when each leaf holds one disjunctive unit, so counting a
+    signature's leaves *is* counting disjunctive groups -- no separate
+    computation needed."""
+    if isinstance(signature, tuple):
+        return signature_leaf_count(signature[0]) + signature_leaf_count(signature[1])
+    return 1
+
+
 def group_verses_by_structure(verse_data: list[dict]) -> dict[tuple, list[str]]:
     """Group every verse in ``verse_data`` by its structure signature.
 
@@ -54,6 +77,40 @@ def group_verses_by_structure(verse_data: list[dict]) -> dict[tuple, list[str]]:
         sig = verse_structure_signature(pointed)
         groups[sig].append(f"{item['ch']}:{item['vs']}")
     return dict(groups)
+
+
+def group_verses_by_word_count_and_structure(verse_data: list[dict]) -> dict[int, dict[tuple, list[str]]]:
+    """Two-level grouping: word count -> structure signature -> verse
+    labels sharing that (word count, structure) combination -- "which
+    shapes occur among 7-word verses", etc."""
+    out: dict[int, dict[tuple, list[str]]] = defaultdict(lambda: defaultdict(list))
+    for item in verse_data:
+        pointed = item["pointed"].strip()
+        if not pointed:
+            continue
+        word_count, sig = _word_count_and_structure(pointed)
+        out[word_count][sig].append(f"{item['ch']}:{item['vs']}")
+    return {wc: dict(structs) for wc, structs in out.items()}
+
+
+def group_verses_by_disj_count_and_structure(verse_data: list[dict]) -> dict[int, dict[tuple, list[str]]]:
+    """Two-level grouping: minimum-disjunctive-group count -> structure
+    signature -> verse labels sharing that combination -- "which shapes
+    occur among verses with 5 disjunctive groups", etc.
+
+    The group count is exactly a structure's leaf count (see
+    :func:`signature_leaf_count`), so -- unlike the word-count grouping,
+    where word count and structure are independent -- every structure
+    that appears here appears under exactly one group-count bin. This
+    still isn't a 1:1 mapping the other way: several *different*
+    structures can share the same leaf count (e.g. ``((1, 2), 3)`` and
+    ``(1, (2, 3))`` both have 3 leaves), which is exactly what makes this
+    grouping useful on its own.
+    """
+    out: dict[int, dict[tuple, list[str]]] = defaultdict(dict)
+    for sig, labels in group_verses_by_structure(verse_data).items():
+        out[signature_leaf_count(sig)][sig] = labels
+    return dict(out)
 
 
 def verses_matching_structure(verse_data: list[dict], signature) -> list[str]:
