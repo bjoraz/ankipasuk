@@ -34,12 +34,21 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     text_frame.grid_rowconfigure(0, weight=1)
     text_frame.grid_columnconfigure(0, weight=1)
 
-    text = tk.Text(text_frame, wrap=tk.WORD, font=(hebrew_font, 12))
+    # wrap=NONE + horizontal scroll, not wrap=WORD: Tk's word-wrap can
+    # visibly scramble word order within a Hebrew line when it splits that
+    # line across multiple display lines -- it applies bidi reordering to
+    # the logical line as a whole and then chops the result for display,
+    # rather than reordering per visual line.
+    text = tk.Text(text_frame, wrap=tk.NONE, font=(hebrew_font, 12))
     text.grid(row=0, column=0, sticky="nsew")
 
-    scroll = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
-    scroll.grid(row=0, column=1, sticky="ns")
-    text.configure(yscrollcommand=scroll.set)
+    scroll_y = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
+    scroll_y.grid(row=0, column=1, sticky="ns")
+    text.configure(yscrollcommand=scroll_y.set)
+
+    scroll_x = tk.Scrollbar(text_frame, orient="horizontal", command=text.xview)
+    scroll_x.grid(row=1, column=0, sticky="ew")
+    text.configure(xscrollcommand=scroll_x.set)
 
     text.tag_configure("ref", font=("Arial", 10, "bold"), foreground="#37474f", spacing1=10, spacing3=2)
     text.tag_configure("verse", font=(hebrew_font, 13), spacing3=4, justify="right")
