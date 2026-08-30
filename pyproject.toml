@@ -9,7 +9,7 @@ description = "Generate nested Anki cloze cards from Torah cantillation (trope) 
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Your Name" }]
+authors = [{ name = "Alexis Fonjallaz" }]
 keywords = ["anki", "torah", "hebrew", "trope", "cantillation", "sefaria"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -32,7 +32,7 @@ dev = [
 ankipasuk = "ankipasuk.gui.app:main"
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/anki-pasuk"
+Homepage = "https://github.com/bjoraz/ankipasuk"
 
 [tool.setuptools.packages.find]
 where = ["src"]

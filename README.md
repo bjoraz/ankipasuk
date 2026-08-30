@@ -33,8 +33,8 @@ Requires Python 3.10+. Tkinter must be available (it ships with most Python
 installers; on Debian/Ubuntu you may need `sudo apt install python3-tk`).
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/anki-pasuk.git
-cd anki-pasuk
+git clone https://github.com/bjoraz/ankipasuk.git
+cd ankipasuk
 pip install -e .
 ```
 
