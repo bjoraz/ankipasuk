@@ -58,6 +58,40 @@ def test_compute_maftir_range_crosses_chapter_boundary():
     assert ln.compute_maftir_range("Genesis", (32, 2), 3) == (31, 55, 32, 2)
 
 
+def test_chapter_counts_override_changes_verse_index():
+    """Regression test: verse_index/verse_from_index must actually use a
+    passed-in chapter_counts override rather than silently falling back to
+    the static table, since production tagging relies on this to stay
+    correct if Sefaria's live chapter structure ever differs from the
+    static snapshot (this is exactly what happened at Genesis 31/32)."""
+    static_idx = ln.verse_index("Genesis", 32, 1)  # uses the static table (31 has 55 verses)
+
+    # A live count where chapter 31 has only 54 verses instead of 55.
+    live_counts = list(ln.TORAH_VERSE_COUNTS["Genesis"])
+    live_counts[30] = 54  # chapter 31 (0-indexed)
+    live_idx = ln.verse_index("Genesis", 32, 1, chapter_counts=live_counts)
+
+    assert live_idx == static_idx - 1
+    # And the round trip works with the override too.
+    assert ln.verse_from_index("Genesis", live_idx, chapter_counts=live_counts) == (32, 1)
+
+
+def test_compute_maftir_range_uses_chapter_counts_override():
+    """Regression test: if the live chapter-31 count differs from the
+    static table, the Maftir backward-walk must reflect the live value,
+    not silently compute an off-by-one range."""
+    live_counts = list(ln.TORAH_VERSE_COUNTS["Genesis"])
+    live_counts[30] = 54  # chapter 31 has 54 verses in this (hypothetical) live count
+
+    # With the override, verse_index for (32, 2) is one less than with the
+    # static table, so walking back the same 3 verses lands one verse
+    # earlier throughout -- but still correctly straddles the boundary.
+    result = ln.compute_maftir_range("Genesis", (32, 2), 3, chapter_counts=live_counts)
+    static_result = ln.compute_maftir_range("Genesis", (32, 2), 3)
+    assert result != static_result
+    assert result == (31, 54, 32, 2)  # one verse earlier than the static-table answer
+
+
 def test_parasha_table_genesis_matches_known_slugs():
     table = ln.parasha_table("Genesis")
     assert len(table) == 12

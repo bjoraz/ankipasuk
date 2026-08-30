@@ -13,7 +13,7 @@ import re
 import requests
 
 from .cache import SefariaCache
-from .config import REQUEST_TIMEOUT, SEFARIA_API_BASE, SEFARIA_INDEX_BASE, TORAH_BOOKS
+from .config import POINTED_VERSION, REQUEST_TIMEOUT, SEFARIA_API_BASE, SEFARIA_INDEX_BASE, TORAH_BOOKS
 from .text_processing import strip_vowels_and_trope
 
 
@@ -196,3 +196,26 @@ def get_aliyah_ref(book: str, parasha_name: str, aliyah_num: int, cache: Sefaria
                 return refs[aliyah_num - 1]
             raise ValueError(f"{parasha_name} does not have aliyah {aliyah_num}.")
     raise ValueError(f"Parashah {parasha_name} not found in {book}.")
+
+
+def get_chapter_lengths(book: str, cache: SefariaCache, version_param: str = POINTED_VERSION) -> list[int]:
+    """The number of verses in each chapter of ``book``, derived from
+    Sefaria's actual current text (the same source used for cloze
+    generation) rather than a static, hand-maintained table.
+
+    ``config.TORAH_VERSE_COUNTS`` is a hardcoded snapshot that can drift
+    out of sync with what Sefaria's API actually returns -- this has
+    happened in practice at contested chapter boundaries (e.g. Genesis
+    31/32, where different textual traditions place the boundary a verse
+    apart). Since :mod:`ankipasuk.leyning`'s Maftir computation walks
+    backward from a live-fetched aliyah-7 endpoint using per-chapter verse
+    counts, a stale count anywhere silently shifts every subsequent
+    chapter's indexing. Deriving the counts live -- cached afterward, same
+    as everything else -- eliminates that entire class of bug rather than
+    just correcting one hardcoded number.
+    """
+    lengths = []
+    for ch in range(1, TORAH_BOOKS[book] + 1):
+        chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
+        lengths.append(len(chapter_text))
+    return lengths

@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from ..cache import SefariaCache
 from ..config import BOOK_HEBREW_NAMES
 from ..leyning import build_holiday_intervals, build_parasha_intervals, tags_for_verse
-from ..sefaria import get_parasha_structure
+from ..sefaria import get_chapter_lengths, get_parasha_structure
 from .operations import add_tags, find_notes, notes_info
 
 HEBREW_TO_BOOK = {v: k for k, v in BOOK_HEBREW_NAMES.items()}
@@ -108,15 +108,21 @@ def compute_tagging_plan(deck: str, *, url: str, cache: SefariaCache, log=lambda
 
     books_needed = {book for _nid, _src, book, _ch, _vs, _tags in parsed}
     parasha_intervals_by_book = {}
+    chapter_counts_by_book = {}
     for book in books_needed:
+        log(f"Fetching current chapter structure for {book} (cached after first run)...")
+        chapter_counts_by_book[book] = get_chapter_lengths(book, cache)
         sefaria_parashot = get_parasha_structure(book, cache)
-        parasha_intervals_by_book[book] = build_parasha_intervals(book, sefaria_parashot)
-    holiday_intervals = build_holiday_intervals()
+        parasha_intervals_by_book[book] = build_parasha_intervals(
+            book, sefaria_parashot, chapter_counts_by_book[book]
+        )
+    holiday_intervals = build_holiday_intervals(chapter_counts_by_book)
 
     plans = []
     for note_id, source, book, ch, vs, existing_tags in parsed:
         computed = tags_for_verse(
-            book, ch, vs, parasha_intervals_by_book[book], holiday_intervals
+            book, ch, vs, parasha_intervals_by_book[book], holiday_intervals,
+            chapter_counts_by_book[book],
         )
         existing_set = set(existing_tags)
         missing = [t for t in computed if t not in existing_set]

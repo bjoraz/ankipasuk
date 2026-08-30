@@ -31,8 +31,13 @@ before the tags exist.
 - Each note's **Source** field must look like `"Bereshit 1:1"` (Hebrew book
   name + chapter:verse), which is what the main app's CSV export already
   produces.
-- Network access to Sefaria for the aliyah 1-7 boundaries (see below) --
-  cached locally after the first fetch, same as the rest of the app.
+- Network access to Sefaria for the aliyah 1-7 boundaries and per-chapter
+  verse counts (see below) -- cached locally after the first fetch, same
+  as the rest of the app. The first time you tag a book you haven't
+  already fetched verses from (via the main app's Chapter/Verse or
+  Parashah/Aliyah modes), this means fetching every chapter of that book
+  once to get accurate verse counts -- a one-time cost per book, not per
+  run.
 
 ## Running it
 
@@ -73,18 +78,28 @@ Maftir length (a verse *count*, e.g. "4") and the holiday/fast-day reading
 table come from a small bundled data file instead, derived from the
 [`@hebcal/leyning`](https://github.com/hebcal/hebcal-leyning) package --
 see `THIRD_PARTY_NOTICES.md`. Maftir is deliberately expressed as a count
-rather than an absolute reference: Genesis 31/32 has a well-known
-chapter-numbering discrepancy between some Bible versification conventions
-and the Jewish/Masoretic one Sefaria uses (Sefaria's Genesis 31:55 is
-Genesis 32:1 in some other numbering), and using a *relative* count
-combined with the *live* aliyah-7 boundary sidesteps that discrepancy
-entirely, rather than needing to special-case it.
+rather than an absolute reference, then walked backward from the live
+aliyah-7 boundary to get the actual range -- and that backward walk itself
+uses **live-fetched per-chapter verse counts**
+(`ankipasuk.sefaria.get_chapter_lengths`), not a static table, specifically
+because Genesis 31/32 has a well-known chapter-numbering discrepancy
+between different textual traditions (which verse is the last of chapter
+31 versus the first of chapter 32), and a hardcoded verse-count table can
+drift out of sync with what Sefaria's text currently has at exactly that
+kind of boundary -- which happened in practice and silently shifted
+Maftir (and everything downstream in the book, e.g. Vayishlach) by one
+verse. Deriving the counts live, cached afterward the same as everything
+else, eliminates that entire class of bug rather than requiring the count
+to be manually kept in sync.
 
 This was all validated during development against a real, partially
 hand-tagged deck: reconstructing "Sefaria-shaped" aliyah refs from the
 existing hand-applied tags and confirming all 568 tagged (verse, tag)
 pairs -- including the Genesis 31/32 case -- were reproduced exactly. See
-`tests/test_leyning.py` for the same logic in a self-contained form.
+`tests/test_leyning.py` for the same logic in a self-contained form, and
+its `test_chapter_counts_override_changes_verse_index` /
+`test_compute_maftir_range_uses_chapter_counts_override` tests
+specifically for the live-vs-static-table behavior.
 
 ## Scope and limitations of the holiday/fast-day table
 

@@ -5,6 +5,7 @@ from ankipasuk.anki_connect.tagging import (
     parse_source_field,
 )
 from ankipasuk.cache import SefariaCache
+from ankipasuk.config import POINTED_VERSION, TORAH_VERSE_COUNTS
 from ankipasuk.leyning import parasha_table
 
 DECK = "Leyning"
@@ -23,9 +24,23 @@ def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
     return out
 
 
-def _cache_with_genesis(tmp_path, overrides=None) -> SefariaCache:
+def _cache_with_genesis(tmp_path, overrides=None, chapter_length_overrides=None) -> SefariaCache:
+    """A SefariaCache pre-seeded with everything compute_tagging_plan needs
+    for Genesis without touching the network: a parasha structure (real
+    refs for the parshiot named in ``overrides``, placeholders elsewhere --
+    see ``_placeholder_genesis_parashot``) and per-chapter text long enough
+    to derive verse counts matching the static table, unless overridden
+    per chapter via ``chapter_length_overrides`` (e.g. to simulate live
+    data that differs from the static table, as in
+    test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table)."""
     cache = SefariaCache(cache_dir=tmp_path)
     cache.set_parasha_structure("Genesis", _placeholder_genesis_parashot(overrides))
+
+    chapter_length_overrides = chapter_length_overrides or {}
+    for ch, static_n in enumerate(TORAH_VERSE_COUNTS["Genesis"], start=1):
+        n = chapter_length_overrides.get(ch, static_n)
+        cache.set_text(f"Genesis {ch}", POINTED_VERSION, ["dummy verse"] * n)
+
     return cache
 
 
@@ -202,3 +217,34 @@ def test_tagging_batches_requests_on_a_large_deck(tmp_path, fake_anki):
 
     for note_id in (1, n_notes // 2, n_notes):
         assert "aliyah::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
+
+
+def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_path, fake_anki):
+    """Regression test for a real reported bug: Maftir computation used to
+    trust a static, hardcoded per-chapter verse-count table that can drift
+    out of sync with what Sefaria's live text actually has -- exactly what
+    happened in practice at the Genesis 31/32 boundary, corrupting Maftir
+    (and everything downstream in the book, e.g. Vayishlach) tagging.
+
+    Seeds the cache with live chapter lengths that deliberately differ
+    from the static table (chapter 31 has 54 verses here, not the static
+    table's 55) and confirms the computed Maftir tag reflects the live
+    count, not the stale static one.
+    """
+    vayetzei_refs = ["Genesis 1:31"] * 6 + ["Genesis 31:43-32:2"]
+    cache = _cache_with_genesis(
+        tmp_path, {"vayetze": vayetzei_refs}, chapter_length_overrides={31: 54}
+    )
+
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 31:53"}, tags=[])  # just before maftir
+    fake_anki.add_note_with_fields(2, DECK, {"Source": "Bereshit 31:54"}, tags=[])  # live maftir start
+    fake_anki.add_note_with_fields(3, DECK, {"Source": "Bereshit 32:2"}, tags=[])   # maftir end
+
+    plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
+    notes = {n.note_id: n for n in plan.notes}
+
+    # With the live count (54 verses in chapter 31), Maftir is 31:54-32:2 --
+    # NOT 31:55-32:2, which is what the stale static table would produce.
+    assert "aliyah::bereshit::07-vayetze::maftir" not in notes[1].missing_tags
+    assert "aliyah::bereshit::07-vayetze::maftir" in notes[2].missing_tags
+    assert "aliyah::bereshit::07-vayetze::maftir" in notes[3].missing_tags

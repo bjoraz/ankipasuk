@@ -12,11 +12,19 @@ Two data sources feed this, deliberately kept separate:
   derived from the ``@hebcal/leyning`` package -- see ``THIRD_PARTY_NOTICES.md``.
   Maftir is expressed as a **verse count**, not an absolute reference,
   specifically so it's immune to the one well-known chapter-numbering
-  discrepancy in the Torah (Genesis 31/32, "Vayetzei" -- Sefaria's Jewish/
-  Masoretic numbering has Genesis 31:55 where some other numbering
-  conventions have Genesis 32:1, shifting the rest of the chapter by one).
-  Combining a *relative* verse count with the *live* aliyah-7 boundary
-  sidesteps that entirely.
+  discrepancy in the Torah (Genesis 31/32, "Vayetzei" -- different textual
+  traditions place the chapter break a verse apart).
+
+That immunity only holds if the per-chapter verse *counts* used to walk
+that verse count backward are themselves correct for the current text --
+which is why every function here takes an optional ``chapter_counts``
+(or ``chapter_counts_by_book``) override. Passed a live-fetched value (see
+:func:`ankipasuk.sefaria.get_chapter_lengths`), it's used instead of the
+static ``config.TORAH_VERSE_COUNTS`` snapshot, which can otherwise drift
+out of sync with what Sefaria's API currently returns for a given chapter
+and silently shift every subsequent chapter's indexing. This module itself
+still does no I/O -- the caller (:mod:`ankipasuk.anki_connect.tagging`)
+fetches the live data and passes it in as plain data.
 """
 
 from __future__ import annotations
@@ -52,21 +60,23 @@ def holiday_readings() -> list[dict]:
 # =============================================================
 #  LINEAR VERSE INDEXING (within one book)
 # =============================================================
-def _chapter_verse_counts(book: str) -> list[int]:
-    return TORAH_VERSE_COUNTS[book]
+def _chapter_verse_counts(book: str, chapter_counts: list[int] | None) -> list[int]:
+    """``chapter_counts`` wins if given (e.g. live-fetched data); otherwise
+    falls back to the static ``config.TORAH_VERSE_COUNTS`` snapshot."""
+    return chapter_counts if chapter_counts is not None else TORAH_VERSE_COUNTS[book]
 
 
-def verse_index(book: str, ch: int, vs: int) -> int:
+def verse_index(book: str, ch: int, vs: int, chapter_counts: list[int] | None = None) -> int:
     """A 0-based index of (ch, vs) within the whole book, counting verses in
     reading order. Used to walk backward/forward across chapter boundaries
     and to test range containment without special-casing chapter edges."""
-    counts = _chapter_verse_counts(book)
+    counts = _chapter_verse_counts(book, chapter_counts)
     return sum(counts[: ch - 1]) + (vs - 1)
 
 
-def verse_from_index(book: str, idx: int) -> tuple[int, int]:
+def verse_from_index(book: str, idx: int, chapter_counts: list[int] | None = None) -> tuple[int, int]:
     """Inverse of :func:`verse_index`."""
-    counts = _chapter_verse_counts(book)
+    counts = _chapter_verse_counts(book, chapter_counts)
     remaining = idx
     for ch, n in enumerate(counts, start=1):
         if remaining < n:
@@ -118,29 +128,36 @@ def parse_ref_range(ref: str) -> tuple[str, int, int, int, int]:
 # =============================================================
 #  MAFTIR COMPUTATION
 # =============================================================
-def compute_maftir_range(book: str, aliyah7_end: tuple[int, int], n_verses: int) -> tuple[int, int, int, int]:
+def compute_maftir_range(
+    book: str, aliyah7_end: tuple[int, int], n_verses: int, chapter_counts: list[int] | None = None
+) -> tuple[int, int, int, int]:
     """Given the live-fetched end of aliyah 7 and the bundled Maftir verse
     count, return (start_ch, start_vs, end_ch, end_vs) for Maftir -- the
     last ``n_verses`` verses of the parasha, correctly walking backward
     across a chapter boundary if needed."""
     ech, evs = aliyah7_end
-    end_idx = verse_index(book, ech, evs)
+    end_idx = verse_index(book, ech, evs, chapter_counts)
     start_idx = end_idx - (n_verses - 1)
     if start_idx < 0:
         raise ValueError(f"Maftir verse count {n_verses} runs before the start of {book}.")
-    sch, svs = verse_from_index(book, start_idx)
+    sch, svs = verse_from_index(book, start_idx, chapter_counts)
     return sch, svs, ech, evs
 
 
 # =============================================================
 #  INTERVAL TABLES
 # =============================================================
-def build_parasha_intervals(book: str, sefaria_parashot: list[dict]) -> list[tuple[int, int, str]]:
+def build_parasha_intervals(
+    book: str, sefaria_parashot: list[dict], chapter_counts: list[int] | None = None
+) -> list[tuple[int, int, str]]:
     """Build (start_idx, end_idx, tag) intervals for every aliyah and
     Maftir in ``book``, by pairing Sefaria's live per-parasha aliyah refs
     (``sefaria_parashot``, as returned by
     :func:`ankipasuk.sefaria.get_parasha_structure`, in canonical order)
-    with the bundled slug/Maftir-count table, matched by position."""
+    with the bundled slug/Maftir-count table, matched by position. Pass a
+    live-fetched ``chapter_counts`` (see
+    :func:`ankipasuk.sefaria.get_chapter_lengths`) to avoid relying on the
+    static verse-count table for the Maftir backward-walk."""
     hebrew_book = BOOK_HEBREW_NAMES.get(book, book).lower()
     table = parasha_table(book)
     intervals = []
@@ -157,40 +174,51 @@ def build_parasha_intervals(book: str, sefaria_parashot: list[dict]) -> list[tup
         aliyah7_end = None
         for aliyah_num, ref in enumerate(refs, start=1):
             _b, sch, svs, ech, evs = parse_ref_range(ref)
-            start_idx = verse_index(book, sch, svs)
-            end_idx = verse_index(book, ech, evs)
+            start_idx = verse_index(book, sch, svs, chapter_counts)
+            end_idx = verse_index(book, ech, evs, chapter_counts)
             intervals.append((start_idx, end_idx, f"{prefix}::{aliyah_num}"))
             if aliyah_num == 7:
                 aliyah7_end = (ech, evs)
 
         if aliyah7_end is not None and entry.get("maftir_verses"):
-            msch, msvs, mech, mevs = compute_maftir_range(book, aliyah7_end, entry["maftir_verses"])
-            start_idx = verse_index(book, msch, msvs)
-            end_idx = verse_index(book, mech, mevs)
+            msch, msvs, mech, mevs = compute_maftir_range(
+                book, aliyah7_end, entry["maftir_verses"], chapter_counts
+            )
+            start_idx = verse_index(book, msch, msvs, chapter_counts)
+            end_idx = verse_index(book, mech, mevs, chapter_counts)
             intervals.append((start_idx, end_idx, f"{prefix}::maftir"))
 
     return intervals
 
 
-def build_holiday_intervals() -> list[tuple[str, int, int, str]]:
+def build_holiday_intervals(
+    chapter_counts_by_book: dict[str, list[int]] | None = None,
+) -> list[tuple[str, int, int, str]]:
     """Build (book, start_idx, end_idx, tag) intervals for every bundled
-    holiday/fast-day reading. Independent of any live data."""
+    holiday/fast-day reading. Doesn't depend on live parasha data, but does
+    accept live-fetched per-book chapter counts (see
+    :func:`ankipasuk.sefaria.get_chapter_lengths`) for the same reason
+    :func:`build_parasha_intervals` does; any book not present in
+    ``chapter_counts_by_book`` falls back to the static table."""
+    chapter_counts_by_book = chapter_counts_by_book or {}
     intervals = []
     for entry in holiday_readings():
         slug = entry["slug"]
         for aliyah in entry["aliyot"]:
             book = aliyah["book"]
+            counts = chapter_counts_by_book.get(book)
             _b, sch, svs, ech, evs = parse_ref_range(f"{book} {aliyah['start']}-{aliyah['end']}")
             intervals.append((
-                book, verse_index(book, sch, svs), verse_index(book, ech, evs),
+                book, verse_index(book, sch, svs, counts), verse_index(book, ech, evs, counts),
                 f"holiday::{slug}::{aliyah['num']}",
             ))
         maftir = entry.get("maftir")
         if maftir:
             book = maftir["book"]
+            counts = chapter_counts_by_book.get(book)
             _b, sch, svs, ech, evs = parse_ref_range(f"{book} {maftir['start']}-{maftir['end']}")
             intervals.append((
-                book, verse_index(book, sch, svs), verse_index(book, ech, evs),
+                book, verse_index(book, sch, svs, counts), verse_index(book, ech, evs, counts),
                 f"holiday::{slug}::maftir",
             ))
     return intervals
@@ -200,10 +228,14 @@ def tags_for_verse(
     book: str, ch: int, vs: int,
     parasha_intervals: list[tuple[int, int, str]],
     holiday_intervals: list[tuple[str, int, int, str]],
+    chapter_counts: list[int] | None = None,
 ) -> list[str]:
     """All tags applicable to (book, ch, vs), given precomputed interval
-    tables (see :func:`build_parasha_intervals` / :func:`build_holiday_intervals`)."""
-    idx = verse_index(book, ch, vs)
+    tables (see :func:`build_parasha_intervals` / :func:`build_holiday_intervals`).
+    ``chapter_counts`` should be the same live-fetched data (if any) used to
+    build those interval tables, so the index computed here lines up with
+    theirs exactly."""
+    idx = verse_index(book, ch, vs, chapter_counts)
     tags = [tag for start, end, tag in parasha_intervals if start <= idx <= end]
     tags += [tag for b, start, end, tag in holiday_intervals if b == book and start <= idx <= end]
     return tags
