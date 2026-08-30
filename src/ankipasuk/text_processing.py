@@ -71,9 +71,9 @@ def tokenize_pasuk(pasuk: str):
 
 def adjust_for_munach_legarmeh(tokens) -> None:
     """A munach immediately followed by a paseq is "munach legarmeh" -- and
-    is upgraded to a disjunctive at the same rank as Revia (level 3) -- if
+    is upgraded to a disjunctive at the same rank as Geresh (level 4) -- if
     and only if the next disjunctive ta'am, skipping over any number of
-    conjunctives in between, is itself level 3. Mutates ``tokens`` in
+    conjunctives in between, is level 3. Mutates ``tokens`` in
     place."""
     n = len(tokens)
     for i in range(n - 1):
@@ -82,7 +82,7 @@ def adjust_for_munach_legarmeh(tokens) -> None:
             while j < n and tokens[j]["level"] == 0:
                 j += 1
             if j < n and tokens[j]["level"] == 3:
-                tokens[i + 1]["level"] = 3
+                tokens[i + 1]["level"] = 4
                 tokens[i + 1]["trope_name"] = "Munach legarmeh"
                 tokens[i + 1]["is_legarmeh"] = True
 

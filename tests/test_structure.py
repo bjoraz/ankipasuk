@@ -19,7 +19,7 @@ def test_verse_structure_signature_longer_verse(genesis_1_2):
 
 
 def test_verse_structure_signature_short_verse(munach_legarmeh_verse):
-    assert st.verse_structure_signature(munach_legarmeh_verse) == (3, (3, 1))
+    assert st.verse_structure_signature(munach_legarmeh_verse) == ((4, 3), 1)
 
 
 def test_verse_structure_signature_is_independent_of_cloze_splitting_setting(genesis_1_1):
