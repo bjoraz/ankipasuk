@@ -40,18 +40,21 @@ change before the tags exist.
 
 ## Running it
 
-```powershell
-python .\scripts\tag_deck.py
-```
-or
-```bash
-ankipasuk-tag-deck "Leyning" --dry-run   # preview
-ankipasuk-tag-deck "Leyning"             # apply
-```
+- **From the GUI** -- launch `ankipasuk` (or `python -m ankipasuk`), then
+  **Tools → AnkiConnect Tools... → Tag Deck**.
+- **Double-click the script**:
+  ```powershell
+  python .\scripts\tag_deck.py
+  ```
+- **The installed console command**:
+  ```bash
+  ankipasuk-tag-deck "Leyning" --dry-run   # preview
+  ankipasuk-tag-deck "Leyning"             # apply
+  ```
 
 Point it at the whole `Leyning` deck (or a sub-deck) -- every note in it is
 checked regardless of which book/parasha it's in. **Always dry-run first**;
-the dry-run prints exactly which tags would be added to which notes, with
+the dry-run shows exactly which tags would be added to which notes, with
 no changes made.
 
 **This tool only ever adds tags. It never removes or changes an existing

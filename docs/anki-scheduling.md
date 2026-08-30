@@ -40,9 +40,14 @@ Flag 2 + stem interval < PROMOTION_INTERVAL   (i.e. the stem lapsed)
 
 ## Running it
 
-Two equivalent ways to run each step: double-click the script (Windows-
-friendly, config at the top of the file), or use the installed console
-command (any OS, flags on the command line).
+Three equivalent ways to run each step:
+
+- **From the GUI** -- launch `ankipasuk` (or `python -m ankipasuk`), then
+  **Tools → AnkiConnect Tools...**. Each operation has its own tab with a
+  deck field, a dry-run checkbox, and a live log pane.
+- **Double-click the script** (Windows-friendly, config at the top of the
+  file).
+- **The installed console command** (any OS, flags on the command line).
 
 ### 1. One-time setup: flag every note's stem
 
@@ -70,9 +75,11 @@ ankipasuk-sync-scheduling "Leyning::1-Bereshit" --promotion-interval 21 --dry-ru
 ankipasuk-sync-scheduling "Leyning::1-Bereshit" --promotion-interval 21
 ```
 
-Run this regularly (e.g. as a scheduled task). It promotes any flag-1 stem
-whose interval has reached `PROMOTION_INTERVAL` days, and recovers any
-flag-2 stem whose interval has since dropped back below it.
+Run this regularly (e.g. as a scheduled task -- the GUI or console command
+are better fits for that than opening the app, see note below). It
+promotes any flag-1 stem whose interval has reached `PROMOTION_INTERVAL`
+days, and recovers any flag-2 stem whose interval has since dropped back
+below it.
 
 ### 3. Just checking AnkiConnect is reachable
 
@@ -86,11 +93,11 @@ ankipasuk-check-connection
 
 ## Always dry-run first
 
-Every script/command supports a dry run (`DRY_RUN = True` at the top of the
-`.py` file, or `--dry-run` on the command line) that prints exactly what it
-would change without touching Anki. Use a test deck and a low
-`PROMOTION_INTERVAL` (e.g. 10) to sanity-check behavior before pointing at
-a real deck.
+Every script/command/GUI tab supports a dry run (`DRY_RUN = True` at the
+top of the `.py` file, the "Dry run" checkbox in the GUI, or `--dry-run` on
+the command line) that shows exactly what it would change without
+touching Anki. Use a test deck and a low `PROMOTION_INTERVAL` (e.g. 10) to
+sanity-check behavior before pointing at a real deck.
 
 ## Library structure
 

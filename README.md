@@ -29,12 +29,13 @@ grammatical break down to individual words.
 - **Anki scheduling automation** (optional, via AnkiConnect): once a note's
   full-verse cloze is well-memorized, automatically suspend its easier
   partial-clue clozes, and bring them back if the full verse later lapses.
-  See [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
+  Available from the GUI (**Tools → AnkiConnect Tools...**) or as standalone
+  scripts. See [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
 - **Automatic parasha/aliyah/Maftir/holiday tagging** (optional, via
   AnkiConnect): tag every note with where its verse falls in the annual
-  Torah reading cycle. See [`docs/anki-tagging.md`](docs/anki-tagging.md).
-  Every Hebrew name it generates follows a strict Sephardic
-  transliteration convention -- see
+  Torah reading cycle. Also available from **Tools → AnkiConnect Tools...**.
+  See [`docs/anki-tagging.md`](docs/anki-tagging.md). Every Hebrew name it
+  generates follows a strict Sephardic transliteration convention -- see
   [`docs/transliteration.md`](docs/transliteration.md).
 
 ## Installation
@@ -63,6 +64,11 @@ python -m ankipasuk
 3. **Export to CSV** for import into Anki, or **Copy cloze output** directly.
 4. Click **Show Stats** to open the corpus statistics window for the
    currently loaded range.
+5. **Tools → AnkiConnect Tools...** opens a window for the optional
+   AnkiConnect-backed features (connection check, stem initialization,
+   scheduling sync, tagging) -- see
+   [`docs/anki-scheduling.md`](docs/anki-scheduling.md) and
+   [`docs/anki-tagging.md`](docs/anki-tagging.md).
 
 ### The local cache
 
@@ -102,6 +108,7 @@ src/ankipasuk/
 └── gui/
     ├── app.py            # Main window (AnkiPasukApp)
     ├── stats_window.py   # "Corpus statistics" window
+    ├── anki_connect_window.py  # "AnkiConnect Tools" window (Tools menu)
     └── charts.py         # Clickable canvas bar/scatter charts + verse popup
 
 scripts/                  # Double-click-friendly wrappers around anki_connect

@@ -32,6 +32,7 @@ from ..sefaria import (
     parse_start_ref,
 )
 from ..text_processing import format_units, strip_vowels_and_trope
+from .anki_connect_window import show_anki_connect_tools
 from .stats_window import show_stats_window
 
 
@@ -500,6 +501,9 @@ class AnkiPasukApp:
     def show_stats(self) -> None:
         show_stats_window(self.root, self.current_verse_data, self._get_max_leaf_disj())
 
+    def open_anki_connect_tools(self) -> None:
+        show_anki_connect_tools(self.root)
+
     def clear_cache(self) -> None:
         if not messagebox.askyesno(
             "Clear cache",
@@ -535,6 +539,12 @@ class AnkiPasukApp:
     def _build_widgets(self) -> None:
         root = self.root
         PADX, PADY = self.PADX, self.PADY
+
+        menubar = tk.Menu(root)
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        tools_menu.add_command(label="AnkiConnect Tools...", command=self.open_anki_connect_tools)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        root.config(menu=menubar)
 
         root.grid_columnconfigure(0, weight=1)
         root.grid_columnconfigure(1, weight=1)
