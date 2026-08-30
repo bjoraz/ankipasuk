@@ -11,16 +11,21 @@ aliyah::<hebrew-book>::<NN-parasha-slug>::<1-7|maftir>
 holiday::<holiday-slug>::<1-N|maftir>
 ```
 
-For example: `aliyah::bereshit::01-bereshit::1`, `aliyah::shemot::13-shemot::maftir`,
+For example: `aliyah::bereshit::01-bereshit::1`, `aliyah::shemot::01-shemot::maftir`,
 `holiday::rosh_hashana_i::1`. A verse can carry more than one tag -- e.g.
 Genesis 22:1 is both `aliyah::bereshit::04-vayera::7` (the regular weekly
 reading) and `holiday::rosh_hashana_ii::1` (also read on Rosh Hashana II).
 
-The `aliyah::` scheme matches what was already being applied by hand to
-this deck before this tool existed. The `holiday::` scheme is new,
-introduced by this tool (there was no existing precedent to match) --
-rename it in `ankipasuk/leyning.py` before running if you'd prefer
-something else, since it's simplest to change before the tags exist.
+The `aliyah::` scheme's structure matches what was already being applied
+by hand to this deck before this tool existed; the exact spelling of book
+and parasha names now follows a strict Sephardic transliteration
+convention -- see [`docs/transliteration.md`](transliteration.md) for the
+full rule set, the complete name table, and how backward compatibility
+with this deck's existing notes and tags is handled. The `holiday::`
+scheme is new, introduced by this tool (there was no existing precedent to
+match) -- edit the `slug` field in `ankipasuk/data/holiday_readings.json`
+before running if you'd prefer different names, since it's simplest to
+change before the tags exist.
 
 ## Requirements
 

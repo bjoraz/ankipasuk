@@ -33,6 +33,9 @@ grammatical break down to individual words.
 - **Automatic parasha/aliyah/Maftir/holiday tagging** (optional, via
   AnkiConnect): tag every note with where its verse falls in the annual
   Torah reading cycle. See [`docs/anki-tagging.md`](docs/anki-tagging.md).
+  Every Hebrew name it generates follows a strict Sephardic
+  transliteration convention -- see
+  [`docs/transliteration.md`](docs/transliteration.md).
 
 ## Installation
 
@@ -109,7 +112,8 @@ scripts/                  # Double-click-friendly wrappers around anki_connect
 
 docs/
 ├── anki-scheduling.md    # Anki scheduling automation: how it works, how to run it
-└── anki-tagging.md       # Automatic tagging: how it works, how to run it
+├── anki-tagging.md       # Automatic tagging: how it works, how to run it
+└── transliteration.md    # Sephardic transliteration rules + full name table
 ```
 
 Only `gui/` depends on `tkinter`; everything else is pure Python + `requests`,

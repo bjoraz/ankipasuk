@@ -19,12 +19,20 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ..cache import SefariaCache
-from ..config import BOOK_HEBREW_NAMES
+from ..config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES
 from ..leyning import build_holiday_intervals, build_parasha_intervals, tags_for_verse
 from ..sefaria import get_parasha_structure
 from .operations import add_tags, find_notes, notes_info
 
-HEBREW_TO_BOOK = {v: k for k, v in BOOK_HEBREW_NAMES.items()}
+# Recognizes both the current (Sephardic) and previous (Ashkenazi/hebcal-
+# style) Hebrew book-name spellings, so notes created before the switch to
+# strict Sephardic transliteration -- whose "Source" field text is already
+# fixed at creation time -- still get parsed and tagged correctly. New
+# output (CSV export, tag prefixes) always uses the current spelling.
+HEBREW_TO_BOOK = {
+    **{v: k for k, v in BOOK_HEBREW_NAMES.items()},
+    **{v: k for k, v in LEGACY_BOOK_HEBREW_NAMES.items()},
+}
 
 _SOURCE_RE = re.compile(r"^(?P<book>.+?)\s+(?P<ch>\d+):(?P<vs>\d+)$")
 
