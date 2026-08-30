@@ -51,7 +51,7 @@ def test_parasha_table_genesis_matches_known_slugs():
     table = ln.parasha_table("Genesis")
     assert len(table) == 12
     slugs = [e["slug"] for e in table]
-    assert slugs[:4] == ["bereshit", "noaḥ", "lekh_lekha", "vayera"]
+    assert slugs[:4] == ["bereshit", "noah", "lekh_lekha", "vayera"]
     assert all(e["rel"] == i + 1 for i, e in enumerate(table))
 
 
@@ -114,17 +114,17 @@ def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
 
 
 def test_tags_for_verse_vayetzei_maftir_crosses_chapter_boundary():
-    # Vayetse is the 7th parasha of Genesis (rel=7). Aliyah 7 real end is
+    # Vayetzei is the 7th parasha of Genesis (rel=7). Aliyah 7 real end is
     # 32:2 in Jewish/Sefaria numbering; maftir is 3 verses -> 31:55-32:2.
     refs = ["Genesis 1:1"] * 6 + ["Genesis 31:43-32:2"]
-    sefaria_parashot = _fake_sefaria_parashot({"vayetse": refs})
+    sefaria_parashot = _fake_sefaria_parashot({"vayetze": refs})
     intervals = ln.build_parasha_intervals("Genesis", sefaria_parashot)
 
     for ch, vs in [(31, 55), (32, 1), (32, 2)]:
-        assert "aliyah::bereshit::07-vayetse::maftir" in ln.tags_for_verse(
+        assert "aliyah::bereshit::07-vayetze::maftir" in ln.tags_for_verse(
             "Genesis", ch, vs, intervals, []
         )
-    assert "aliyah::bereshit::07-vayetse::maftir" not in ln.tags_for_verse(
+    assert "aliyah::bereshit::07-vayetze::maftir" not in ln.tags_for_verse(
         "Genesis", 31, 54, intervals, []
     )
 

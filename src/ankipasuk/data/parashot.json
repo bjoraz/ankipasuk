@@ -5,108 +5,84 @@
       "slug": "bereshit",
       "hebcal_name": "Bereshit",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "bereshit",
-      "display_name": "Bereshit"
+      "n_aliyot": 7
     },
     {
       "rel": 2,
-      "slug": "noaḥ",
+      "slug": "noah",
       "hebcal_name": "Noach",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "noah",
-      "display_name": "Noaḥ"
+      "n_aliyot": 7
     },
     {
       "rel": 3,
       "slug": "lekh_lekha",
       "hebcal_name": "Lech-Lecha",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "lekh_lekha",
-      "display_name": "Lekh Lekha"
+      "n_aliyot": 7
     },
     {
       "rel": 4,
       "slug": "vayera",
       "hebcal_name": "Vayera",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "vayera",
-      "display_name": "Vayera"
+      "n_aliyot": 7
     },
     {
       "rel": 5,
-      "slug": "ḥayei_sara",
+      "slug": "haye_sara",
       "hebcal_name": "Chayei Sara",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "haye_sara",
-      "display_name": "Ḥayei Sara"
+      "n_aliyot": 7
     },
     {
       "rel": 6,
       "slug": "toledot",
       "hebcal_name": "Toldot",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "toledot",
-      "display_name": "Toledot"
+      "n_aliyot": 7
     },
     {
       "rel": 7,
-      "slug": "vayetse",
+      "slug": "vayetze",
       "hebcal_name": "Vayetzei",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vayetze",
-      "display_name": "Vayetse"
+      "n_aliyot": 7
     },
     {
       "rel": 8,
-      "slug": "vayishlaḥ",
+      "slug": "vayishlah",
       "hebcal_name": "Vayishlach",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "vayishlah",
-      "display_name": "Vayishlaḥ"
+      "n_aliyot": 7
     },
     {
       "rel": 9,
       "slug": "vayeshev",
       "hebcal_name": "Vayeshev",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "vayeshev",
-      "display_name": "Vayeshev"
+      "n_aliyot": 7
     },
     {
       "rel": 10,
-      "slug": "miqets",
+      "slug": "miketz",
       "hebcal_name": "Miketz",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "miketz",
-      "display_name": "Miqets"
+      "n_aliyot": 7
     },
     {
       "rel": 11,
       "slug": "vayigash",
       "hebcal_name": "Vayigash",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vayigash",
-      "display_name": "Vayigash"
+      "n_aliyot": 7
     },
     {
       "rel": 12,
-      "slug": "vayḥi",
+      "slug": "vayhi",
       "hebcal_name": "Vayechi",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "vayhi",
-      "display_name": "Vayḥi"
+      "n_aliyot": 7
     }
   ],
   "Exodus": [
@@ -115,283 +91,221 @@
       "slug": "shemot",
       "hebcal_name": "Shemot",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "shemot",
-      "display_name": "Shemot"
+      "n_aliyot": 7
     },
     {
       "rel": 2,
       "slug": "vaera",
       "hebcal_name": "Vaera",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vaera",
-      "display_name": "Vaera"
+      "n_aliyot": 7
     },
     {
       "rel": 3,
       "slug": "bo",
       "hebcal_name": "Bo",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "bo",
-      "display_name": "Bo"
+      "n_aliyot": 7
     },
     {
       "rel": 4,
-      "slug": "beshalaḥ",
+      "slug": "beshalach",
       "hebcal_name": "Beshalach",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "beshalach",
-      "display_name": "Beshalaḥ"
+      "n_aliyot": 7
     },
     {
       "rel": 5,
       "slug": "yitro",
       "hebcal_name": "Yitro",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "yitro",
-      "display_name": "Yitro"
+      "n_aliyot": 7
     },
     {
       "rel": 6,
       "slug": "mishpatim",
       "hebcal_name": "Mishpatim",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "mishpatim",
-      "display_name": "Mishpatim"
+      "n_aliyot": 7
     },
     {
       "rel": 7,
-      "slug": "teruma",
+      "slug": "terumah",
       "hebcal_name": "Terumah",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "terumah",
-      "display_name": "Teruma"
+      "n_aliyot": 7
     },
     {
       "rel": 8,
-      "slug": "tetsave",
+      "slug": "tetzaveh",
       "hebcal_name": "Tetzaveh",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "tetzaveh",
-      "display_name": "Tetsave"
+      "n_aliyot": 7
     },
     {
       "rel": 9,
       "slug": "ki_tisa",
       "hebcal_name": "Ki Tisa",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "ki_tisa",
-      "display_name": "Ki Tisa"
+      "n_aliyot": 7
     },
     {
       "rel": 10,
-      "slug": "vayaqhel",
+      "slug": "vayakhel",
       "hebcal_name": "Vayakhel",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vayakhel",
-      "display_name": "Vayaqhel"
+      "n_aliyot": 7
     },
     {
       "rel": 11,
-      "slug": "pequdei",
+      "slug": "pekudei",
       "hebcal_name": "Pekudei",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "pekudei",
-      "display_name": "Pequdei"
+      "n_aliyot": 7
     }
   ],
   "Leviticus": [
     {
       "rel": 1,
-      "slug": "vayiqra",
+      "slug": "vayikra",
       "hebcal_name": "Vayikra",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vayikra",
-      "display_name": "Vayiqra"
+      "n_aliyot": 7
     },
     {
       "rel": 2,
-      "slug": "tsav",
+      "slug": "tzav",
       "hebcal_name": "Tzav",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "tzav",
-      "display_name": "Tsav"
+      "n_aliyot": 7
     },
     {
       "rel": 3,
-      "slug": "shemini",
+      "slug": "shmini",
       "hebcal_name": "Shmini",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "shmini",
-      "display_name": "Shemini"
+      "n_aliyot": 7
     },
     {
       "rel": 4,
-      "slug": "tazria’",
+      "slug": "tazria",
       "hebcal_name": "Tazria",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "tazria",
-      "display_name": "Tazria’"
+      "n_aliyot": 7
     },
     {
       "rel": 5,
-      "slug": "metsora’",
+      "slug": "metzora",
       "hebcal_name": "Metzora",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "metzora",
-      "display_name": "Metsora’"
+      "n_aliyot": 7
     },
     {
       "rel": 6,
-      "slug": "aḥarei_mot",
+      "slug": "achrei_mot",
       "hebcal_name": "Achrei Mot",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "achrei_mot",
-      "display_name": "Aḥarei Mot"
+      "n_aliyot": 7
     },
     {
       "rel": 7,
-      "slug": "qedoshim",
+      "slug": "kedoshim",
       "hebcal_name": "Kedoshim",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "kedoshim",
-      "display_name": "Qedoshim"
+      "n_aliyot": 7
     },
     {
       "rel": 8,
       "slug": "emor",
       "hebcal_name": "Emor",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "emor",
-      "display_name": "Emor"
+      "n_aliyot": 7
     },
     {
       "rel": 9,
       "slug": "behar",
       "hebcal_name": "Behar",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "behar",
-      "display_name": "Behar"
+      "n_aliyot": 7
     },
     {
       "rel": 10,
-      "slug": "beḥuqotai",
+      "slug": "bechukotai",
       "hebcal_name": "Bechukotai",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "bechukotai",
-      "display_name": "Beḥuqotai"
+      "n_aliyot": 7
     }
   ],
   "Numbers": [
     {
       "rel": 1,
-      "slug": "bemidbar",
+      "slug": "bamidbar",
       "hebcal_name": "Bamidbar",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "bamidbar",
-      "display_name": "Bemidbar"
+      "n_aliyot": 7
     },
     {
       "rel": 2,
-      "slug": "naso",
+      "slug": "nasso",
       "hebcal_name": "Nasso",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "nasso",
-      "display_name": "Naso"
+      "n_aliyot": 7
     },
     {
       "rel": 3,
-      "slug": "beha’alotkha",
+      "slug": "behaalotcha",
       "hebcal_name": "Beha'alotcha",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "behaalotcha",
-      "display_name": "Beha’alotkha"
+      "n_aliyot": 7
     },
     {
       "rel": 4,
-      "slug": "shelaḥ",
+      "slug": "shlach",
       "hebcal_name": "Sh'lach",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "shlach",
-      "display_name": "Shelaḥ"
+      "n_aliyot": 7
     },
     {
       "rel": 5,
-      "slug": "qoraḥ",
+      "slug": "korach",
       "hebcal_name": "Korach",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "korach",
-      "display_name": "Qoraḥ"
+      "n_aliyot": 7
     },
     {
       "rel": 6,
-      "slug": "ḥuqat",
+      "slug": "chukat",
       "hebcal_name": "Chukat",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "chukat",
-      "display_name": "Ḥuqat"
+      "n_aliyot": 7
     },
     {
       "rel": 7,
-      "slug": "balaq",
+      "slug": "balak",
       "hebcal_name": "Balak",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "balak",
-      "display_name": "Balaq"
+      "n_aliyot": 7
     },
     {
       "rel": 8,
-      "slug": "pinḥas",
+      "slug": "pinchas",
       "hebcal_name": "Pinchas",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "pinchas",
-      "display_name": "Pinḥas"
+      "n_aliyot": 7
     },
     {
       "rel": 9,
       "slug": "matot",
       "hebcal_name": "Matot",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "matot",
-      "display_name": "Matot"
+      "n_aliyot": 7
     },
     {
       "rel": 10,
-      "slug": "mas’ei",
+      "slug": "masei",
       "hebcal_name": "Masei",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "masei",
-      "display_name": "Mas’ei"
+      "n_aliyot": 7
     }
   ],
   "Deuteronomy": [
@@ -400,99 +314,77 @@
       "slug": "devarim",
       "hebcal_name": "Devarim",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "devarim",
-      "display_name": "Devarim"
+      "n_aliyot": 7
     },
     {
       "rel": 2,
-      "slug": "vaetḥanan",
+      "slug": "vaetchanan",
       "hebcal_name": "Vaetchanan",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vaetchanan",
-      "display_name": "Vaetḥanan"
+      "n_aliyot": 7
     },
     {
       "rel": 3,
-      "slug": "’eqev",
+      "slug": "eikev",
       "hebcal_name": "Eikev",
       "maftir_verses": 4,
-      "n_aliyot": 7,
-      "legacy_slug": "eikev",
-      "display_name": "’Eqev"
+      "n_aliyot": 7
     },
     {
       "rel": 4,
-      "slug": "ree",
+      "slug": "reeh",
       "hebcal_name": "Re'eh",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "reeh",
-      "display_name": "Ree"
+      "n_aliyot": 7
     },
     {
       "rel": 5,
       "slug": "shoftim",
       "hebcal_name": "Shoftim",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "shoftim",
-      "display_name": "Shoftim"
+      "n_aliyot": 7
     },
     {
       "rel": 6,
-      "slug": "ki_tetse",
+      "slug": "ki_teitzei",
       "hebcal_name": "Ki Teitzei",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "ki_teitzei",
-      "display_name": "Ki Tetse"
+      "n_aliyot": 7
     },
     {
       "rel": 7,
       "slug": "ki_tavo",
       "hebcal_name": "Ki Tavo",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "ki_tavo",
-      "display_name": "Ki Tavo"
+      "n_aliyot": 7
     },
     {
       "rel": 8,
-      "slug": "nitsavim",
+      "slug": "nitzavim",
       "hebcal_name": "Nitzavim",
       "maftir_verses": 6,
-      "n_aliyot": 7,
-      "legacy_slug": "nitzavim",
-      "display_name": "Nitsavim"
+      "n_aliyot": 7
     },
     {
       "rel": 9,
-      "slug": "vayelekh",
+      "slug": "vayeilech",
       "hebcal_name": "Vayeilech",
       "maftir_verses": 3,
-      "n_aliyot": 7,
-      "legacy_slug": "vayeilech",
-      "display_name": "Vayelekh"
+      "n_aliyot": 7
     },
     {
       "rel": 10,
       "slug": "haazinu",
       "hebcal_name": "Ha'azinu",
       "maftir_verses": 5,
-      "n_aliyot": 7,
-      "legacy_slug": "haazinu",
-      "display_name": "Haazinu"
+      "n_aliyot": 7
     },
     {
       "rel": 11,
-      "slug": "vezot_haberakha",
+      "slug": "vezot_haberakhah",
       "hebcal_name": "Vezot Haberakhah",
       "maftir_verses": null,
-      "n_aliyot": 7,
-      "legacy_slug": "vezot_haberakhah",
-      "display_name": "Vezot Haberakha"
+      "n_aliyot": 7
     }
   ]
 }

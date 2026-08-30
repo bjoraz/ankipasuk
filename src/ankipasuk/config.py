@@ -55,19 +55,6 @@ TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 BOOK_HEBREW_NAMES = {
     "Genesis": "Bereshit",
     "Exodus": "Shemot",
-    "Leviticus": "Vayiqra",
-    "Numbers": "Bemidbar",
-    "Deuteronomy": "Devarim",
-}
-
-# Previous (Ashkenazi/hebcal-style) spellings, kept only so notes created
-# before the switch to strict Sephardic transliteration -- whose "Source"
-# field already has the old spelling baked in as static text -- still
-# parse correctly. Never used for generating new output; see
-# ankipasuk.anki_connect.tagging.HEBREW_TO_BOOK and docs/transliteration.md.
-LEGACY_BOOK_HEBREW_NAMES = {
-    "Genesis": "Bereshit",
-    "Exodus": "Shemot",
     "Leviticus": "Vayikra",
     "Numbers": "Bamidbar",
     "Deuteronomy": "Devarim",

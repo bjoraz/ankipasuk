@@ -38,8 +38,7 @@
       "book": "Numbers",
       "start": "29:1",
       "end": "29:6"
-    },
-    "legacy_slug": "rosh_hashana_i"
+    }
   },
   {
     "slug": "rosh_hashana_ii",
@@ -80,8 +79,7 @@
       "book": "Numbers",
       "start": "29:1",
       "end": "29:6"
-    },
-    "legacy_slug": "rosh_hashana_ii"
+    }
   },
   {
     "slug": "yom_kippur",
@@ -128,12 +126,11 @@
       "book": "Numbers",
       "start": "29:7",
       "end": "29:11"
-    },
-    "legacy_slug": "yom_kippur"
+    }
   },
   {
-    "slug": "yom_kippur_minḥa",
-    "display_name": "Yom Kippur (Minḥa)",
+    "slug": "yom_kippur_mincha",
+    "display_name": "Yom Kippur (Mincha)",
     "aliyot": [
       {
         "num": "1",
@@ -152,8 +149,7 @@
       "book": "Leviticus",
       "start": "18:22",
       "end": "18:30"
-    },
-    "legacy_slug": "yom_kippur_mincha"
+    }
   },
   {
     "slug": "sukkot_i",
@@ -194,8 +190,7 @@
       "book": "Numbers",
       "start": "29:12",
       "end": "29:16"
-    },
-    "legacy_slug": "sukkot_i"
+    }
   },
   {
     "slug": "sukkot_ii",
@@ -236,12 +231,11 @@
       "book": "Numbers",
       "start": "29:12",
       "end": "29:16"
-    },
-    "legacy_slug": "sukkot_ii"
+    }
   },
   {
-    "slug": "sukkot_ḥol_hamoed_day_1",
-    "display_name": "Sukkot Ḥol HaMoed Day 1",
+    "slug": "sukkot_chol_ha_moed_day_1",
+    "display_name": "Sukkot Chol ha-Moed Day 1",
     "aliyot": [
       {
         "num": "1",
@@ -268,12 +262,11 @@
         "end": "29:22"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_chol_ha_moed_day_1"
+    "maftir": null
   },
   {
-    "slug": "sukkot_ḥol_hamoed_day_2",
-    "display_name": "Sukkot Ḥol HaMoed Day 2",
+    "slug": "sukkot_chol_ha_moed_day_2",
+    "display_name": "Sukkot Chol ha-Moed Day 2",
     "aliyot": [
       {
         "num": "1",
@@ -300,12 +293,11 @@
         "end": "29:25"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_chol_ha_moed_day_2"
+    "maftir": null
   },
   {
-    "slug": "sukkot_ḥol_hamoed_day_3",
-    "display_name": "Sukkot Ḥol HaMoed Day 3",
+    "slug": "sukkot_chol_ha_moed_day_3",
+    "display_name": "Sukkot Chol ha-Moed Day 3",
     "aliyot": [
       {
         "num": "1",
@@ -332,12 +324,11 @@
         "end": "29:28"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_chol_ha_moed_day_3"
+    "maftir": null
   },
   {
-    "slug": "sukkot_ḥol_hamoed_day_4",
-    "display_name": "Sukkot Ḥol HaMoed Day 4",
+    "slug": "sukkot_chol_ha_moed_day_4",
+    "display_name": "Sukkot Chol ha-Moed Day 4",
     "aliyot": [
       {
         "num": "1",
@@ -364,12 +355,11 @@
         "end": "29:31"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_chol_ha_moed_day_4"
+    "maftir": null
   },
   {
-    "slug": "sukkot_ḥol_hamoed_day_5",
-    "display_name": "Sukkot Ḥol HaMoed Day 5",
+    "slug": "sukkot_chol_ha_moed_day_5",
+    "display_name": "Sukkot Chol ha-Moed Day 5",
     "aliyot": [
       {
         "num": "1",
@@ -396,8 +386,7 @@
         "end": "29:34"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_chol_ha_moed_day_5"
+    "maftir": null
   },
   {
     "slug": "sukkot_final_day_hoshana_raba",
@@ -428,12 +417,11 @@
         "end": "29:34"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "sukkot_final_day_hoshana_raba"
+    "maftir": null
   },
   {
-    "slug": "shemini_atseret",
-    "display_name": "Shemini ’Atseret",
+    "slug": "shmini_atzeret",
+    "display_name": "Shmini Atzeret",
     "aliyot": [
       {
         "num": "1",
@@ -470,12 +458,11 @@
       "book": "Numbers",
       "start": "29:35",
       "end": "30:1"
-    },
-    "legacy_slug": "shmini_atzeret"
+    }
   },
   {
-    "slug": "simḥat_tora",
-    "display_name": "Simḥat Tora",
+    "slug": "simchat_torah",
+    "display_name": "Simchat Torah",
     "aliyot": [
       {
         "num": "1",
@@ -524,12 +511,11 @@
       "book": "Numbers",
       "start": "29:35",
       "end": "30:1"
-    },
-    "legacy_slug": "simchat_torah"
+    }
   },
   {
-    "slug": "pesaḥ_i",
-    "display_name": "Pesaḥ I",
+    "slug": "pesach_i",
+    "display_name": "Pesach I",
     "aliyot": [
       {
         "num": "1",
@@ -566,12 +552,11 @@
       "book": "Numbers",
       "start": "28:16",
       "end": "28:25"
-    },
-    "legacy_slug": "pesach_i"
+    }
   },
   {
-    "slug": "pesaḥ_ii",
-    "display_name": "Pesaḥ II",
+    "slug": "pesach_ii",
+    "display_name": "Pesach II",
     "aliyot": [
       {
         "num": "1",
@@ -608,12 +593,11 @@
       "book": "Numbers",
       "start": "28:16",
       "end": "28:25"
-    },
-    "legacy_slug": "pesach_ii"
+    }
   },
   {
-    "slug": "pesaḥ_ḥol_hamoed_day_1",
-    "display_name": "Pesaḥ Ḥol HaMoed Day 1",
+    "slug": "pesach_chol_ha_moed_day_1",
+    "display_name": "Pesach Chol ha-Moed Day 1",
     "aliyot": [
       {
         "num": "1",
@@ -640,12 +624,11 @@
         "end": "28:25"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "pesach_chol_ha_moed_day_1"
+    "maftir": null
   },
   {
-    "slug": "pesaḥ_ḥol_hamoed_day_2",
-    "display_name": "Pesaḥ Ḥol HaMoed Day 2",
+    "slug": "pesach_chol_ha_moed_day_2",
+    "display_name": "Pesach Chol ha-Moed Day 2",
     "aliyot": [
       {
         "num": "1",
@@ -672,12 +655,11 @@
         "end": "28:25"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "pesach_chol_ha_moed_day_2"
+    "maftir": null
   },
   {
-    "slug": "pesaḥ_ḥol_hamoed_day_3",
-    "display_name": "Pesaḥ Ḥol HaMoed Day 3",
+    "slug": "pesach_chol_ha_moed_day_3",
+    "display_name": "Pesach Chol ha-Moed Day 3",
     "aliyot": [
       {
         "num": "1",
@@ -704,12 +686,11 @@
         "end": "28:25"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "pesach_chol_ha_moed_day_3"
+    "maftir": null
   },
   {
-    "slug": "pesaḥ_ḥol_hamoed_day_4",
-    "display_name": "Pesaḥ Ḥol HaMoed Day 4",
+    "slug": "pesach_chol_ha_moed_day_4",
+    "display_name": "Pesach Chol ha-Moed Day 4",
     "aliyot": [
       {
         "num": "1",
@@ -736,12 +717,11 @@
         "end": "28:25"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "pesach_chol_ha_moed_day_4"
+    "maftir": null
   },
   {
-    "slug": "pesaḥ_vii",
-    "display_name": "Pesaḥ VII",
+    "slug": "pesach_vii",
+    "display_name": "Pesach VII",
     "aliyot": [
       {
         "num": "1",
@@ -778,12 +758,11 @@
       "book": "Numbers",
       "start": "28:19",
       "end": "28:25"
-    },
-    "legacy_slug": "pesach_vii"
+    }
   },
   {
-    "slug": "pesaḥ_viii",
-    "display_name": "Pesaḥ VIII",
+    "slug": "pesach_viii",
+    "display_name": "Pesach VIII",
     "aliyot": [
       {
         "num": "1",
@@ -820,12 +799,11 @@
       "book": "Numbers",
       "start": "28:19",
       "end": "28:25"
-    },
-    "legacy_slug": "pesach_viii"
+    }
   },
   {
-    "slug": "shavu’ot_i",
-    "display_name": "Shavu’ot I",
+    "slug": "shavuot_i",
+    "display_name": "Shavuot I",
     "aliyot": [
       {
         "num": "1",
@@ -862,12 +840,11 @@
       "book": "Numbers",
       "start": "28:26",
       "end": "28:31"
-    },
-    "legacy_slug": "shavuot_i"
+    }
   },
   {
-    "slug": "shavu’ot_ii",
-    "display_name": "Shavu’ot II",
+    "slug": "shavuot_ii",
+    "display_name": "Shavuot II",
     "aliyot": [
       {
         "num": "1",
@@ -904,12 +881,11 @@
       "book": "Numbers",
       "start": "28:26",
       "end": "28:31"
-    },
-    "legacy_slug": "shavuot_ii"
+    }
   },
   {
-    "slug": "ḥanukka_day_1",
-    "display_name": "Ḥanukka Day 1",
+    "slug": "chanukah_day_1",
+    "display_name": "Chanukah Day 1",
     "aliyot": [
       {
         "num": "1",
@@ -930,12 +906,11 @@
         "end": "7:17"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_1"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_2",
-    "display_name": "Ḥanukka Day 2",
+    "slug": "chanukah_day_2",
+    "display_name": "Chanukah Day 2",
     "aliyot": [
       {
         "num": "1",
@@ -956,12 +931,11 @@
         "end": "7:29"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_2"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_3",
-    "display_name": "Ḥanukka Day 3",
+    "slug": "chanukah_day_3",
+    "display_name": "Chanukah Day 3",
     "aliyot": [
       {
         "num": "1",
@@ -982,12 +956,11 @@
         "end": "7:35"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_3"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_4",
-    "display_name": "Ḥanukka Day 4",
+    "slug": "chanukah_day_4",
+    "display_name": "Chanukah Day 4",
     "aliyot": [
       {
         "num": "1",
@@ -1008,12 +981,11 @@
         "end": "7:41"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_4"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_5",
-    "display_name": "Ḥanukka Day 5",
+    "slug": "chanukah_day_5",
+    "display_name": "Chanukah Day 5",
     "aliyot": [
       {
         "num": "1",
@@ -1034,12 +1006,11 @@
         "end": "7:47"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_5"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_6",
-    "display_name": "Ḥanukka Day 6",
+    "slug": "chanukah_day_6",
+    "display_name": "Chanukah Day 6",
     "aliyot": [
       {
         "num": "1",
@@ -1066,12 +1037,11 @@
         "end": "7:47"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_6"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_7",
-    "display_name": "Ḥanukka Day 7",
+    "slug": "chanukah_day_7",
+    "display_name": "Chanukah Day 7",
     "aliyot": [
       {
         "num": "1",
@@ -1092,12 +1062,11 @@
         "end": "7:59"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_7"
+    "maftir": null
   },
   {
-    "slug": "ḥanukka_day_8",
-    "display_name": "Ḥanukka Day 8",
+    "slug": "chanukah_day_8",
+    "display_name": "Chanukah Day 8",
     "aliyot": [
       {
         "num": "1",
@@ -1118,12 +1087,11 @@
         "end": "8:4"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "chanukah_day_8"
+    "maftir": null
   },
   {
-    "slug": "rosh_ḥodesh",
-    "display_name": "Rosh Ḥodesh",
+    "slug": "rosh_chodesh",
+    "display_name": "Rosh Chodesh",
     "aliyot": [
       {
         "num": "1",
@@ -1150,8 +1118,7 @@
         "end": "28:15"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "rosh_chodesh"
+    "maftir": null
   },
   {
     "slug": "purim",
@@ -1176,8 +1143,7 @@
         "end": "17:16"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "purim"
+    "maftir": null
   },
   {
     "slug": "shushan_purim",
@@ -1202,12 +1168,11 @@
         "end": "17:16"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "shushan_purim"
+    "maftir": null
   },
   {
-    "slug": "ta’anit_ester",
-    "display_name": "Ta’anit Ester",
+    "slug": "taanit_esther",
+    "display_name": "Ta'anit Esther",
     "aliyot": [
       {
         "num": "1",
@@ -1228,56 +1193,51 @@
         "end": "34:10"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "taanit_esther"
+    "maftir": null
   },
   {
-    "slug": "shabbat_sheqalim",
-    "display_name": "Shabbat Sheqalim",
+    "slug": "shabbat_shekalim",
+    "display_name": "Shabbat Shekalim",
     "aliyot": [],
     "maftir": {
       "book": "Exodus",
       "start": "30:11",
       "end": "30:16"
-    },
-    "legacy_slug": "shabbat_shekalim"
+    }
   },
   {
-    "slug": "shabbat_zakhor",
-    "display_name": "Shabbat Zakhor",
+    "slug": "shabbat_zachor",
+    "display_name": "Shabbat Zachor",
     "aliyot": [],
     "maftir": {
       "book": "Deuteronomy",
       "start": "25:17",
       "end": "25:19"
-    },
-    "legacy_slug": "shabbat_zachor"
+    }
   },
   {
-    "slug": "shabbat_para",
-    "display_name": "Shabbat Para",
+    "slug": "shabbat_parah",
+    "display_name": "Shabbat Parah",
     "aliyot": [],
     "maftir": {
       "book": "Numbers",
       "start": "19:1",
       "end": "19:22"
-    },
-    "legacy_slug": "shabbat_parah"
+    }
   },
   {
-    "slug": "shabbat_haḥodesh",
-    "display_name": "Shabbat Haḥodesh",
+    "slug": "shabbat_hachodesh",
+    "display_name": "Shabbat HaChodesh",
     "aliyot": [],
     "maftir": {
       "book": "Exodus",
       "start": "12:1",
       "end": "12:20"
-    },
-    "legacy_slug": "shabbat_hachodesh"
+    }
   },
   {
-    "slug": "tsom_gedalya",
-    "display_name": "Tsom Gedalya",
+    "slug": "tzom_gedaliah",
+    "display_name": "Tzom Gedaliah",
     "aliyot": [
       {
         "num": "1",
@@ -1298,12 +1258,11 @@
         "end": "34:10"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "tzom_gedaliah"
+    "maftir": null
   },
   {
-    "slug": "’asara_betevet",
-    "display_name": "’Asara BeTevet",
+    "slug": "asara_btevet",
+    "display_name": "Asara B'Tevet",
     "aliyot": [
       {
         "num": "1",
@@ -1324,12 +1283,11 @@
         "end": "34:10"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "asara_btevet"
+    "maftir": null
   },
   {
-    "slug": "tsom_tammuz",
-    "display_name": "Tsom Tammuz",
+    "slug": "tzom_tammuz",
+    "display_name": "Tzom Tammuz",
     "aliyot": [
       {
         "num": "1",
@@ -1350,12 +1308,11 @@
         "end": "34:10"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "tzom_tammuz"
+    "maftir": null
   },
   {
-    "slug": "tish’a_beav",
-    "display_name": "Tish’a BeAv",
+    "slug": "tisha_bav",
+    "display_name": "Tish'a B'Av",
     "aliyot": [
       {
         "num": "1",
@@ -1376,12 +1333,11 @@
         "end": "4:40"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "tisha_bav"
+    "maftir": null
   },
   {
-    "slug": "tish’a_beav_minḥa",
-    "display_name": "Tish’a BeAv (Minḥa)",
+    "slug": "tisha_bav_mincha",
+    "display_name": "Tish'a B'Av (Mincha)",
     "aliyot": [
       {
         "num": "1",
@@ -1400,12 +1356,11 @@
       "book": "Exodus",
       "start": "34:4",
       "end": "34:10"
-    },
-    "legacy_slug": "tisha_bav_mincha"
+    }
   },
   {
-    "slug": "yom_ha’atsmaut",
-    "display_name": "Yom Ha’atsmaut",
+    "slug": "yom_haatzmaut",
+    "display_name": "Yom HaAtzma'ut",
     "aliyot": [
       {
         "num": "1",
@@ -1426,7 +1381,6 @@
         "end": "8:18"
       }
     ],
-    "maftir": null,
-    "legacy_slug": "yom_haatzmaut"
+    "maftir": null
   }
 ]
