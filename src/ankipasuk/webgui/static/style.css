@@ -62,6 +62,14 @@ body {
     flex-wrap: wrap;
 }
 
+/* Higher specificity than .inline-group's display:flex, which otherwise
+   ties with (and, being defined later, beats) the browser's default
+   [hidden] { display: none } rule -- without this, elements using both
+   the hidden attribute and this class never actually hide. */
+.inline-group[hidden] {
+    display: none;
+}
+
 label {
     display: flex;
     align-items: center;
@@ -129,12 +137,20 @@ button:disabled { opacity: 0.6; cursor: default; }
     font-size: 16px;
 }
 
+.viz-row {
+    display: flex;
+    margin-bottom: 1px;
+}
+
+.viz-guide {
+    flex-shrink: 0;
+}
+
 .viz-line {
-    direction: rtl;
     text-align: right;
     padding: 3px 6px;
     border-radius: 2px;
-    margin-bottom: 1px;
+    flex: 1;
 }
 
 .viz-line .conj {

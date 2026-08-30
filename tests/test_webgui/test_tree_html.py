@@ -64,3 +64,33 @@ def test_depth_determines_background_color(genesis_1_2):
 
     colors_present = [c for c in UNIT_COLORS if c in html]
     assert len(colors_present) >= 2
+
+
+def test_indented_leaves_get_a_separate_guide_strip(genesis_1_2):
+    """Regression test: the indent must be a separate element with its
+    own GUIDE_BG background, distinct from the leaf's own depth color --
+    not padding within the depth-colored element itself, which loses the
+    original Tk visualization's two-tone (gray guide + colored content)
+    treatment entirely."""
+    from ankipasuk.config import GUIDE_BG
+
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_2, max_leaf_disj=1)
+    html = tree_to_html(tree)
+    assert 'class="viz-guide"' in html
+    assert GUIDE_BG in html
+
+
+def test_unindented_leaf_has_no_guide_strip(genesis_1_1):
+    """A leaf at indent 0 (e.g. an unsplit verse) shouldn't render an
+    empty/zero-width guide div at all."""
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_1, max_leaf_disj=100)
+    html = tree_to_html(tree)
+    assert 'class="viz-guide"' not in html
+
+
+def test_each_row_is_wrapped_in_viz_row(genesis_1_2):
+    from ankipasuk.cloze import tree_leaf_count
+
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_2, max_leaf_disj=1)
+    html = tree_to_html(tree)
+    assert html.count('class="viz-row"') == tree_leaf_count(tree)

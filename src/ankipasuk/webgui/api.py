@@ -237,6 +237,7 @@ class Api:
             js_api=anki_api,
             width=780,
             height=680,
+            text_select=True,
         )
         anki_api.window = window
         return {"ok": True}
@@ -251,6 +252,7 @@ class Api:
             js_api=stats_api,
             width=1000,
             height=760,
+            text_select=True,
         )
         stats_api.window = window
         return {"ok": True}

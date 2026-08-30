@@ -1,24 +1,24 @@
 """Renders a cloze split tree (see :mod:`ankipasuk.cloze`) as HTML.
 
-This is the actual fix for the Tk bidi/selection bugs this project hit
-repeatedly: rather than fighting Tk's incomplete, platform-inconsistent
-bidi engine with manual word reversal and embedding characters, this emits
-plain HTML with a native ``dir="rtl"`` attribute and lets the browser's own
-(standards-compliant, thoroughly tested) Unicode Bidirectional Algorithm
-implementation do the reordering -- correctly, including for text
-selection, which Tk could never get right for niqud/teamim-heavy Hebrew.
+Structurally a faithful port of the original Tk render_colored_tree (see
+gui/app.py, kept for reference): same recursion, same depth-to-color
+mapping, same growing indent-guide strip distinct from each leaf's own
+depth color. The one deliberate difference is *how* RTL is achieved --
+plain HTML with a native dir="rtl" attribute, letting the browser's own
+standards-compliant Unicode Bidirectional Algorithm implementation do the
+reordering, rather than Tk's manual word-reversal-plus-embedding-
+characters workaround, which could not be made reliable (confirmed on the
+actual Windows target: word/spacing corruption on long lines, and text
+visibly rearranging on selection -- both traced to genuine Tk/Windows
+Tk-bidi limitations, not something fixable with more workarounds).
 """
 
 from __future__ import annotations
 
 from html import escape
 
-from ..config import INDENT_UNIT_PX, UNIT_COLORS
+from ..config import GUIDE_BG, INDENT_UNIT_PX, UNIT_COLORS
 
-# Indent is expressed as a right-side CSS margin (padding-right), the
-# mirror image of Tk's original left-margin approach -- because in an RTL
-# layout, "start" (where reading begins, and where deeper nesting should
-# visually indent *from*) is the right edge, not the left.
 _INDENT_PER_LEVEL_PX = INDENT_UNIT_PX
 
 
@@ -30,14 +30,31 @@ def _leaf_to_html(node, depth: int, indent_level: int) -> str:
             cls = "conj" if sub["level"] == 0 else "word"
             words_html.append(f'<span class="{cls}">{escape(sub["text"])}</span>')
     words = " ".join(words_html)
-    style = f"background:{color};padding-right:{indent_level * _INDENT_PER_LEVEL_PX}px;"
-    return f'<div class="viz-line" style="{style}">{words}</div>'
+
+    # A growing indent-guide strip, its own GUIDE_BG background distinct
+    # from the leaf's own depth color -- matching the original Tk
+    # visualization's two-tone treatment (a light-gray "guide" region,
+    # separate from the colored word content) rather than one solid
+    # color spanning the whole row including its indent.
+    indent_px = indent_level * _INDENT_PER_LEVEL_PX
+    guide_html = (
+        f'<div class="viz-guide" style="width:{indent_px}px;background:{GUIDE_BG}"></div>'
+        if indent_px
+        else ""
+    )
+
+    return (
+        '<div class="viz-row">'
+        f"{guide_html}"
+        f'<div class="viz-line" dir="rtl" style="background:{color}">{words}</div>'
+        "</div>"
+    )
 
 
 def tree_to_html(node, depth: int = 0, indent_level: int = 0, extra_bias: int = 0) -> str:
-    """Render one verse's split tree as a block of ``<div class="viz-line">``
-    rows, most-significant clause first, matching the original Tk
-    visualization's top-to-bottom reading order and depth-based coloring."""
+    """Render one verse's split tree as a block of rows, most-significant
+    clause first, matching the original Tk visualization's top-to-bottom
+    reading order, depth-based coloring, and growing indent guide."""
     eff_indent = indent_level + extra_bias
 
     if isinstance(node, dict):

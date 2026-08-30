@@ -28,6 +28,7 @@ def main() -> None:
         width=1280,
         height=920,
         min_size=(900, 650),
+        text_select=True,
     )
     api.window = window
     webview.start()
