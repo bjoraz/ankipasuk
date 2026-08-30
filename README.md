@@ -35,17 +35,16 @@ grammatical break down to individual words.
 - **Anki scheduling automation** (optional, via AnkiConnect): once a note's
   full-verse cloze is well-memorized, automatically suspend its easier
   partial-clue clozes, and bring them back if the full verse later lapses.
-  Available from the GUI (**Tools → AnkiConnect Tools...**) or as standalone
+  Available from the GUI (**AnkiConnect Tools** link) or as standalone
   scripts. See [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
 - **Automatic parasha/aliyah/Maftir/holiday tagging** (optional, via
   AnkiConnect): tag every note with where its verse falls in the annual
-  Torah reading cycle. Also available from **Tools → AnkiConnect Tools...**.
+  Torah reading cycle. Also available from the **AnkiConnect Tools** link.
   See [`docs/anki-tagging.md`](docs/anki-tagging.md).
 
 ## Installation
 
-Requires Python 3.10+. Tkinter must be available (it ships with most Python
-installers; on Debian/Ubuntu you may need `sudo apt install python3-tk`).
+Requires Python 3.10+.
 
 ```bash
 git clone https://github.com/bjoraz/ankipasuk.git
@@ -61,14 +60,18 @@ ankipasuk
 python -m ankipasuk
 ```
 
+(The original tkinter GUI is still available via `ankipasuk-tk-legacy` if
+ever needed, but isn't actively developed -- see "Why webgui, not gui"
+below.)
+
 1. Choose **Chapter / Verse** or **Parashah / Aliyah** mode, pick a range,
    and click **Fetch range from Sefaria**.
 2. Set **Max disjunctive groups per leaf** (how granular the nested cloze
    splitting should be) and click **Generate cloze cards**.
 3. **Export to CSV** for import into Anki, or **Copy cloze output** directly.
-4. Click **Show Stats** to open the corpus statistics window for the
+4. Click **Corpus statistics** to open the statistics window for the
    currently loaded range.
-5. **Tools → AnkiConnect Tools...** opens a window for the optional
+5. **AnkiConnect Tools** opens a window for the optional
    AnkiConnect-backed features (connection check, stem initialization,
    scheduling sync, tagging) -- see
    [`docs/anki-scheduling.md`](docs/anki-scheduling.md) and
@@ -88,7 +91,7 @@ need a clean re-fetch.
 
 ## Architecture
 
-The codebase is split into a GUI-free core and a thin tkinter GUI on top of
+The codebase is split into a GUI-free core and a web-based GUI on top of
 it, so the actual cantillation-parsing logic can be tested, scripted, or
 reused independently of the desktop app:
 
@@ -110,11 +113,17 @@ src/ankipasuk/
 │   └── cli.py                     #   console-friendly wrappers
 ├── leyning.py               # Parasha/aliyah/Maftir/holiday tag computation (no network)
 ├── data/                    # Bundled parasha & holiday-reading tables (see THIRD_PARTY_NOTICES.md)
-└── gui/
-    ├── app.py            # Main window (AnkiPasukApp)
-    ├── stats_window.py   # "Corpus statistics" window
-    ├── anki_connect_window.py  # "AnkiConnect Tools" window (Tools menu)
-    └── charts.py         # Clickable canvas bar/scatter charts + verse popup
+├── webgui/                  # The GUI: a pywebview window rendering local HTML/CSS/JS
+│   ├── api.py                 #   main window's Python<->JS bridge (fetch, cloze, CSV)
+│   ├── anki_connect_api.py    #   AnkiConnect Tools window's bridge
+│   ├── stats_api.py           #   Corpus statistics window's bridge
+│   ├── tree_html.py           #   renders the cloze split-tree as RTL-correct HTML
+│   └── static/                 #   index.html/anki_connect.html/stats.html + .js/.css
+└── gui/                     # Legacy: the original tkinter GUI, kept for reference
+    ├── app.py                  #   (see "Why webgui, not gui" below)
+    ├── stats_window.py
+    ├── anki_connect_window.py
+    └── charts.py
 
 scripts/                  # Double-click-friendly wrappers around anki_connect
 ├── test_anki_connect.py
@@ -127,11 +136,35 @@ docs/
 └── anki-tagging.md       # Automatic tagging: how it works, how to run it
 ```
 
-Only `gui/` depends on `tkinter`; everything else is pure Python + `requests`,
-which is what makes the test suite able to run headless / in CI. `anki_connect/`
-depends on nothing but the standard library (`urllib`, `json`) plus a running
-Anki + AnkiConnect instance, and is entirely optional -- the cloze generator
-works without it.
+Only `webgui/` and (legacy) `gui/` depend on anything GUI-related;
+everything else is pure Python + `requests`, which is what makes the test
+suite able to run headless / in CI. `anki_connect/` depends on nothing but
+the standard library (`urllib`, `json`) plus a running Anki + AnkiConnect
+instance, and is entirely optional -- the cloze generator works without it.
+
+### Why `webgui`, not `gui`
+
+The original GUI was built with tkinter. Tkinter's `Text` widget has no
+real implementation of the Unicode Bidirectional Algorithm, which caused
+persistent, hard-to-fully-fix bugs with Hebrew (niqud/teamim-heavy RTL
+text): word order and spacing corruption on long lines, and text visibly
+rearranging when the user selected it with the mouse -- both confirmed
+present on the actual target platform (Windows), and both traced to
+documented, long-standing tkinter/Tk limitations rather than anything
+fixable with more workarounds.
+
+`webgui/` renders the same UI as plain HTML with `dir="rtl"`, using the
+OS's native web engine (WebView2 on Windows, the same Chromium family used
+by every mainstream browser) via [`pywebview`](https://pywebview.flowrl.com/).
+Browsers implement bidi text correctly, including selection -- this isn't
+a workaround, it eliminates the underlying bug class. `gui/` is kept in
+the repository for reference and is still runnable via the
+`ankipasuk-tk-legacy` command, but is no longer the default and isn't
+being developed further.
+
+Everything below `gui/`/`webgui/` in the module list above -- all the
+actual cantillation-parsing, statistics, and tagging logic -- is
+completely unaffected by this and required no changes.
 
 ## Development
 

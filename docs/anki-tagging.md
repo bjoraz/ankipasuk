@@ -42,7 +42,7 @@ before the tags exist.
 ## Running it
 
 - **From the GUI** -- launch `ankipasuk` (or `python -m ankipasuk`), then
-  **Tools → AnkiConnect Tools... → Tag Deck**.
+  **AnkiConnect Tools → Tag Deck**.
 - **Double-click the script**:
   ```powershell
   python .\scripts\tag_deck.py

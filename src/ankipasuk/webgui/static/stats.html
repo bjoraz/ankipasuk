@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Corpus statistics</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .tabs { display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 0; }
+  .tab-btn.active { background: white; font-weight: 600; }
+  .tab-panel { display: none; border: 1px solid var(--border); border-radius: 0 4px 4px 4px;
+               background: white; padding: 12px; min-height: 400px; }
+  .tab-panel.active { display: block; }
+  .subtabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .subtab-btn.active { background: #e0e0e0; font-weight: 600; }
+  .subtab-panel { display: none; }
+  .subtab-panel.active { display: block; }
+
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; cursor: pointer; }
+  .bar-row:hover .bar-fill { filter: brightness(0.9); }
+  .bar-label { width: 3em; text-align: right; font-size: 12px; color: #444; flex-shrink: 0; }
+  .bar-track { flex: 1; background: #f0f0f0; border-radius: 2px; overflow: hidden; }
+  .bar-fill { background: #64b5f6; height: 18px; }
+  .bar-count { width: 3em; font-size: 12px; color: #444; }
+
+  .trope-row, .struct-line { cursor: pointer; padding: 2px 4px; }
+  .trope-row:hover, .struct-line:hover { background: #eef4fb; }
+  .axis-header { font-weight: 600; margin: 10px 0 2px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex;
+                    align-items: center; justify-content: center; z-index: 500; }
+  .modal { background: white; border-radius: 6px; width: 560px; max-height: 80vh; overflow: auto; padding: 14px; }
+  .modal h3 { margin-top: 0; }
+  .modal .verse-ref { font-weight: 600; color: #37474f; margin-top: 10px; }
+  .modal .verse-text { direction: rtl; text-align: right; font-size: 17px; margin: 2px 0 6px; }
+</style>
+</head>
+<body>
+
+<div class="tabs" id="tabs">
+  <button class="tab-btn" data-tab="summary">Summary</button>
+  <button class="tab-btn" data-tab="dist">Distributions</button>
+  <button class="tab-btn" data-tab="chapter">By chapter</button>
+  <button class="tab-btn" data-tab="trope">Trope frequency</button>
+  <button class="tab-btn" data-tab="structure">Structure</button>
+</div>
+
+<div class="tab-panel" data-panel="summary">
+  <pre id="summary-text" style="white-space: pre-wrap; font-family: 'Courier New', monospace;"></pre>
+</div>
+
+<div class="tab-panel" data-panel="dist">
+  <div class="subtabs" id="dist-subtabs">
+    <button class="subtab-btn" data-subtab="word_count">Words / verse</button>
+    <button class="subtab-btn" data-subtab="disj_count">Disjunctive groups / verse</button>
+    <button class="subtab-btn" data-subtab="clause_count">Clauses / verse</button>
+    <button class="subtab-btn" data-subtab="depth">Split depth</button>
+    <button class="subtab-btn" data-subtab="ratio">Words / disjunctive group</button>
+  </div>
+  <div id="dist-content"></div>
+</div>
+
+<div class="tab-panel" data-panel="chapter">
+  <div id="chapter-content"></div>
+</div>
+
+<div class="tab-panel" data-panel="trope">
+  <div id="trope-content"></div>
+</div>
+
+<div class="tab-panel" data-panel="structure">
+  <div class="subtabs">
+    <button class="subtab-btn" data-subtab="by-word-count">By word count</button>
+    <button class="subtab-btn" data-subtab="by-disj-count">By disjunctive groups</button>
+    <button class="subtab-btn" data-subtab="summary">Most common shapes</button>
+  </div>
+  <div id="structure-content"></div>
+</div>
+
+<div class="row" style="margin-top: 10px;">
+  <button id="btn-export-stats-csv">Export per-verse stats to CSV</button>
+</div>
+
+<div id="verse-modal"></div>
+
+<script src="stats.js"></script>
+</body>
+</html>

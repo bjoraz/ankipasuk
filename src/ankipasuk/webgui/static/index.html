@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nested Anki Cloze Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="btn-stats" class="link-btn">Corpus statistics</button>
+  <button id="btn-anki-tools" class="link-btn">AnkiConnect Tools</button>
+</div>
+
+<fieldset class="panel">
+  <legend>Source (Sefaria, Torah only)</legend>
+  <div class="row">
+    <label>Mode:
+      <select id="mode">
+        <option>Chapter / Verse</option>
+        <option>Parashah / Aliyah</option>
+      </select>
+    </label>
+    <label>Book:
+      <select id="book"></select>
+    </label>
+
+    <span id="cv-controls" class="inline-group">
+      <label>Start chapter: <select id="start-ch"></select></label>
+      <label>Start verse: <select id="start-vs"></select></label>
+      <label>End chapter: <select id="end-ch"></select></label>
+      <label>End verse: <select id="end-vs"></select></label>
+    </span>
+
+    <span id="pa-controls" class="inline-group" hidden>
+      <label>Parashah: <select id="parasha"></select></label>
+      <label>Aliyah: <select id="aliyah"></select></label>
+    </span>
+
+    <button id="btn-fetch">Fetch range from Sefaria</button>
+  </div>
+  <div class="row">
+    <span id="cache-status" class="muted"></span>
+    <button id="btn-clear-cache">Clear cache</button>
+  </div>
+</fieldset>
+
+<div class="two-col">
+  <div class="col">
+    <div class="row space-between">
+      <label>Pointed text (display only):</label>
+      <button id="btn-copy-pointed">Copy pointed text</button>
+    </div>
+    <div id="pointed-box" class="text-box" dir="rtl"></div>
+  </div>
+  <div class="col">
+    <div class="row space-between">
+      <label>Text only (display only):</label>
+      <button id="btn-copy-plain">Copy text-only</button>
+    </div>
+    <div id="plain-box" class="text-box" dir="rtl"></div>
+  </div>
+</div>
+<div class="row space-between">
+  <span></span>
+  <span id="line-count" class="muted"></span>
+</div>
+
+<div class="row space-between">
+  <span class="inline-group">
+    <label>Max disjunctive groups per leaf: <input type="number" id="max-leaf-disj" value="2" min="1" style="width:4em"></label>
+    <label><input type="checkbox" id="reset-per-line" checked> Reset cloze numbering for each line</label>
+  </span>
+  <span class="inline-group">
+    <button id="btn-generate">Generate cloze cards</button>
+    <button id="btn-copy-cloze">Copy cloze output</button>
+    <button id="btn-export-csv">Export to CSV</button>
+  </span>
+</div>
+
+<div class="two-col">
+  <div class="col" style="flex:3">
+    <label>Output:</label>
+    <div id="output-box" class="text-box mono"></div>
+  </div>
+  <div class="col" style="flex:1">
+    <label>Minimum disjunctive groups:</label>
+    <div id="tokens-box" class="text-box mono" dir="rtl"></div>
+  </div>
+</div>
+
+<label>Visualization:</label>
+<div id="viz-box" class="text-box viz"></div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
