@@ -35,7 +35,10 @@ def _leaf_to_html(node, depth: int, indent_level: int) -> str:
     # from the leaf's own depth color -- matching the original Tk
     # visualization's two-tone treatment (a light-gray "guide" region,
     # separate from the colored word content) rather than one solid
-    # color spanning the whole row including its indent.
+    # color spanning the whole row including its indent. The guide sits
+    # on the RIGHT (the side Hebrew reading starts from), so deeper
+    # nesting indents inward from the right -- the RTL mirror of how
+    # indentation normally grows from the left in an LTR layout.
     indent_px = indent_level * _INDENT_PER_LEVEL_PX
     guide_html = (
         f'<div class="viz-guide" style="width:{indent_px}px;background:{GUIDE_BG}"></div>'
@@ -45,8 +48,8 @@ def _leaf_to_html(node, depth: int, indent_level: int) -> str:
 
     return (
         '<div class="viz-row">'
-        f"{guide_html}"
         f'<div class="viz-line" dir="rtl" style="background:{color}">{words}</div>'
+        f"{guide_html}"
         "</div>"
     )
 

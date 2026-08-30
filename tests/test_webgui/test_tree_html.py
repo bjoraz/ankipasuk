@@ -80,6 +80,20 @@ def test_indented_leaves_get_a_separate_guide_strip(genesis_1_2):
     assert GUIDE_BG in html
 
 
+def test_guide_comes_after_line_in_dom_order_so_it_renders_on_the_right(genesis_1_2):
+    """Regression test: in a default (LTR) flex row, the *first* child
+    renders on the left and the *second* on the right. The guide must be
+    the second child (after viz-line) so it renders on the right -- the
+    side Hebrew reading starts from -- so deeper nesting indents inward
+    from the right, mirroring how indentation grows from the left in an
+    LTR layout. Guide-before-line would put it on the wrong side."""
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_2, max_leaf_disj=1)
+    html = tree_to_html(tree)
+    for row in html.split('<div class="viz-row">')[1:]:
+        if 'class="viz-guide"' in row:
+            assert row.index('class="viz-line"') < row.index('class="viz-guide"')
+
+
 def test_unindented_leaf_has_no_guide_strip(genesis_1_1):
     """A leaf at indent 0 (e.g. an unsplit verse) shouldn't render an
     empty/zero-width guide div at all."""
