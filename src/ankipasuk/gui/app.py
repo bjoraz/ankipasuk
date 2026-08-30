@@ -265,13 +265,32 @@ class AnkiPasukApp:
 
     @staticmethod
     def set_display_text(widget: tk.Text, text: str) -> None:
+        """Display ``text`` (one verse per line) right-to-left.
+
+        Deliberately does NOT hand Tk a whole line and trust its automatic
+        bidi reordering (via a single RLE...PDF wrapping the full line) --
+        confirmed unreliable for long, niqud/teamim-heavy lines (Tk seems
+        to force a wrap despite wrap=NONE and then reorders the two halves
+        incorrectly, the same class of bug seen in render_colored_tree).
+        Instead, words are reversed in Python first and left-justified, so
+        Tk only ever lays characters out in the exact order given -- RLE/PDF
+        is used per word, just to keep each word's own niqud/teamim
+        correctly ordered, which is a much smaller, apparently reliable
+        operation.
+        """
         widget.config(state="normal")
         widget.delete("1.0", tk.END)
-        widget.tag_configure("rtl", justify="right")
+        widget.tag_configure("rtl", justify="left")
 
         lines = text.splitlines()
         for i, line in enumerate(lines):
-            widget.insert(tk.END, RLE + line + PDF, ("rtl",))
+            words = line.split()
+            first = True
+            for word in reversed(words):
+                if not first:
+                    widget.insert(tk.END, " ", ("rtl",))
+                first = False
+                widget.insert(tk.END, RLE + word + PDF, ("rtl",))
             if i < len(lines) - 1:
                 widget.insert(tk.END, "\n")
 
