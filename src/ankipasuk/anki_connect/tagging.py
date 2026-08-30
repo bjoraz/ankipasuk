@@ -87,11 +87,12 @@ def _books_present(plans: list[tuple]) -> set[str]:
     return {book for _nid, _source, book, _ch, _vs in plans}
 
 
-def compute_tagging_plan(deck: str, *, url: str, cache: SefariaCache) -> TaggingPlan:
+def compute_tagging_plan(deck: str, *, url: str, cache: SefariaCache, log=lambda _msg: None) -> TaggingPlan:
     """Fetch every note in ``deck``, compute its tags, and diff against
     what's already there. Makes no changes -- see :func:`apply_tagging_plan`."""
     note_ids = find_notes(f"deck:{deck}", url=url)
-    infos = notes_info(note_ids, url=url)
+    log(f"Found {len(note_ids)} note(s) in {deck}.")
+    infos = notes_info(note_ids, url=url, log=log)
 
     parsed = []
     unparsed = []
@@ -143,7 +144,7 @@ def apply_tagging_plan(plan: TaggingPlan, *, url: str, dry_run: bool, log=lambda
 
     for tagset, note_ids in by_tagset.items():
         log(f"TAG   {len(note_ids)} note(s) -> {tagset}")
-        add_tags(note_ids, tagset, url=url, dry_run=dry_run)
+        add_tags(note_ids, tagset, url=url, dry_run=dry_run, log=log)
 
     for note in plan.notes_with_conflicts:
         log(

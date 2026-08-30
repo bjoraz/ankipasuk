@@ -1,3 +1,4 @@
+from ankipasuk.anki_connect.operations import _BATCH_SIZE
 from ankipasuk.anki_connect.scheduling import (
     initialize_stems,
     process_lapses,
@@ -17,6 +18,30 @@ def test_initialize_stems_flags_only_the_highest_ord_card(fake_anki):
     assert flags[2] == 1
     assert flags[0] == 0
     assert flags[1] == 0
+
+
+def test_initialize_stems_batches_requests_on_a_large_deck(fake_anki):
+    """Regression test for a real bug: cardsInfo/notesInfo used to be sent
+    as one single request for the whole deck, which timed out on a deck
+    with thousands of cards. This seeds more than one batch's worth of
+    notes and checks both that cardsInfo was actually split into multiple
+    calls, and that every note still ends up correctly flagged."""
+    n_notes = (_BATCH_SIZE * 2) + 50  # 1 card/note -> guarantees 3 cardsInfo batches
+    for note_id in range(1, n_notes + 1):
+        fake_anki.add_note(note_id, DECK, [(0, 5)])
+
+    result = initialize_stems(DECK, url="http://fake", dry_run=False)
+
+    assert result == {"flagged": n_notes, "skipped": 0, "notes": n_notes}
+
+    cards_info_calls = [params for action, params in fake_anki.calls if action == "cardsInfo"]
+    assert len(cards_info_calls) == 3  # ceil((500*2+50) / 500) == 3
+    assert all(len(call["cards"]) <= _BATCH_SIZE for call in cards_info_calls)
+
+    # Every note's card should be flagged.
+    for note_id in (1, n_notes // 2, n_notes):
+        note_cards = [c for c in fake_anki.cards.values() if c["note"] == note_id]
+        assert note_cards[0]["flags"] == 1
 
 
 def test_initialize_stems_skips_already_flagged_notes(fake_anki):

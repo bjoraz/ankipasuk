@@ -9,11 +9,10 @@ one implementation of the request/response/error handling to get right.
 from __future__ import annotations
 
 import json
-import urllib.error
 import urllib.request
 
 DEFAULT_URL = "http://127.0.0.1:8765"
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 60
 
 
 class AnkiConnectError(RuntimeError):
@@ -41,10 +40,17 @@ def invoke(action: str, *, url: str = DEFAULT_URL, timeout: int = DEFAULT_TIMEOU
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = response.read().decode("utf-8")
-    except urllib.error.URLError as e:
+    except OSError as e:
+        # Covers urllib.error.URLError (connection failures) as well as a
+        # bare TimeoutError/socket.timeout, which urllib can raise directly
+        # -- unwrapped -- if the timeout happens while reading a large
+        # response body (e.g. cardsInfo/notesInfo on a big deck) rather
+        # than while connecting. Both are OSError subclasses, so one
+        # except clause catches both and gives a consistent message.
         raise AnkiConnectError(
-            f"Could not connect to AnkiConnect at {url}. "
-            f"Make sure Anki is running and the AnkiConnect add-on is installed.\n"
+            f"Could not connect to AnkiConnect at {url}, or it stopped responding "
+            f"(possibly a slow/large request timing out). Make sure Anki is running "
+            f"and the AnkiConnect add-on is installed.\n"
             f"Technical error: {e}"
         ) from e
 

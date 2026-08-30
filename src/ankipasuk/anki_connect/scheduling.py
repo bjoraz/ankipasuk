@@ -41,7 +41,7 @@ def initialize_stems(deck: str, *, url: str, dry_run: bool, log: Logger = _noop)
     if not card_ids:
         return {"flagged": 0, "skipped": 0, "notes": 0}
 
-    cards = cards_info(card_ids, url=url)
+    cards = cards_info(card_ids, url=url, log=log)
     notes = group_cards_by_note(cards)
     log(f"Found {len(notes)} note(s).")
 
@@ -97,7 +97,7 @@ def process_promotions(
     if not matching_ids:
         return {"promoted": 0}
 
-    matching_cards = cards_info(matching_ids, url=url)
+    matching_cards = cards_info(matching_ids, url=url, log=log)
     promoted = 0
 
     for matched_card in matching_cards:
@@ -111,7 +111,7 @@ def process_promotions(
         )
 
         set_flag(stem["cardId"], 2, url=url, dry_run=dry_run)
-        suspend([leaf["cardId"] for leaf in leaves], url=url, dry_run=dry_run)
+        suspend([leaf["cardId"] for leaf in leaves], url=url, dry_run=dry_run, log=log)
         promoted += 1
 
     return {"promoted": promoted}
@@ -131,7 +131,7 @@ def process_lapses(
     if not matching_ids:
         return {"recovered": 0}
 
-    matching_cards = cards_info(matching_ids, url=url)
+    matching_cards = cards_info(matching_ids, url=url, log=log)
     recovered = 0
 
     for matched_card in matching_cards:
@@ -145,8 +145,8 @@ def process_lapses(
         )
 
         leaf_ids = [leaf["cardId"] for leaf in leaves]
-        unsuspend(leaf_ids, url=url, dry_run=dry_run)
-        answer_again(leaf_ids, url=url, dry_run=dry_run)
+        unsuspend(leaf_ids, url=url, dry_run=dry_run, log=log)
+        answer_again(leaf_ids, url=url, dry_run=dry_run, log=log)
         set_flag(stem["cardId"], 1, url=url, dry_run=dry_run)
         recovered += 1
 

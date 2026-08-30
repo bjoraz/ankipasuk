@@ -166,7 +166,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
         print("Fetching notes and computing tags (this may take a moment on first")
         print("run, while Sefaria's parasha structure is fetched and cached)...")
         cache = SefariaCache()
-        plan = compute_tagging_plan(deck, url=url, cache=cache)
+        plan = compute_tagging_plan(deck, url=url, cache=cache, log=print)
 
         print()
         summary = apply_tagging_plan(plan, url=url, dry_run=dry_run, log=print)

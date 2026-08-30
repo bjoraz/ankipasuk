@@ -43,6 +43,22 @@ def test_invoke_raises_on_connection_error(monkeypatch):
         invoke("version")
 
 
+def test_invoke_raises_friendly_error_on_bare_timeout(monkeypatch):
+    """Regression test: on a large response (e.g. cardsInfo for a big
+    deck), a timeout while reading the body can surface as a bare
+    TimeoutError rather than urllib.error.URLError -- this must still be
+    caught and wrapped in AnkiConnectError, not leak out raw."""
+    import ankipasuk.anki_connect.client as client_module
+
+    def fake_urlopen(request, timeout):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(client_module.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(AnkiConnectError, match="Could not connect"):
+        invoke("cardsInfo", cards=[1, 2, 3])
+
+
 def test_invoke_raises_on_anki_reported_error(monkeypatch):
     import ankipasuk.anki_connect.client as client_module
 

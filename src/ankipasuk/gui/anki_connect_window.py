@@ -273,7 +273,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
             url = get_url()
             tag_tab.log("Fetching notes and computing tags...")
             cache = SefariaCache()
-            plan = compute_tagging_plan(deck, url=url, cache=cache)
+            plan = compute_tagging_plan(deck, url=url, cache=cache, log=tag_tab.log)
             return apply_tagging_plan(plan, url=url, dry_run=dry_run, log=tag_tab.log)
 
         def on_done(summary, error):

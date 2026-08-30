@@ -1,3 +1,4 @@
+from ankipasuk.anki_connect.operations import _BATCH_SIZE
 from ankipasuk.anki_connect.tagging import (
     apply_tagging_plan,
     compute_tagging_plan,
@@ -169,3 +170,35 @@ def test_holiday_tag_applied_independent_of_parasha_data(tmp_path, fake_anki):
     note = plan.notes[0]
 
     assert "holiday::rosh_hashana_i::1" in note.missing_tags
+
+
+def test_tagging_batches_requests_on_a_large_deck(tmp_path, fake_anki):
+    """Regression test for a real bug: notesInfo/addTags used to be sent
+    as one single request for the whole deck, which timed out on a deck
+    with thousands of notes (the exact scenario a real user hit). This
+    seeds more than one batch's worth of notes -- all referencing the same
+    verse, so they all need the same single tag -- and checks that both
+    notesInfo and addTags were split into multiple calls, and that every
+    note still ends up correctly tagged."""
+    bereshit_refs = ["Genesis 1:1-2:3", "Genesis 2:4-2:19"] + ["Genesis 1:31"] * 5
+    cache = _cache_with_genesis(tmp_path, {"bereshit": bereshit_refs})
+
+    n_notes = (_BATCH_SIZE * 2) + 50
+    for note_id in range(1, n_notes + 1):
+        fake_anki.add_note_with_fields(note_id, DECK, {"Source": "Bereshit 2:5"}, tags=[])
+
+    plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
+    notes_info_calls = [params for action, params in fake_anki.calls if action == "notesInfo"]
+    assert len(notes_info_calls) == 3  # ceil((500*2+50) / 500) == 3
+    assert all(len(call["notes"]) <= _BATCH_SIZE for call in notes_info_calls)
+    assert len(plan.notes) == n_notes
+
+    summary = apply_tagging_plan(plan, url="http://fake", dry_run=False)
+    assert summary["total_tags_to_add"] == n_notes  # one tag each
+
+    add_tags_calls = [params for action, params in fake_anki.calls if action == "addTags"]
+    assert len(add_tags_calls) == 3  # same n_notes worth of note_ids, one tagset group
+    assert all(len(call["notes"]) <= _BATCH_SIZE for call in add_tags_calls)
+
+    for note_id in (1, n_notes // 2, n_notes):
+        assert "aliyah::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
