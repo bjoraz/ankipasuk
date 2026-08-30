@@ -22,7 +22,7 @@ from ..config import GUIDE_BG, INDENT_UNIT_PX, UNIT_COLORS
 _INDENT_PER_LEVEL_PX = INDENT_UNIT_PX
 
 
-def _leaf_to_html(node, depth: int, indent_level: int) -> str:
+def _leaf_to_html(node, depth: int, indent_level: float) -> str:
     color = UNIT_COLORS[depth % len(UNIT_COLORS)]
     words_html = []
     for u in node:
@@ -41,7 +41,7 @@ def _leaf_to_html(node, depth: int, indent_level: int) -> str:
     # indentation normally grows from the left in an LTR layout.
     indent_px = indent_level * _INDENT_PER_LEVEL_PX
     guide_html = (
-        f'<div class="viz-guide" style="width:{indent_px}px;background:{GUIDE_BG}"></div>'
+        f'<div class="viz-guide" style="width:{indent_px:g}px;background:{GUIDE_BG}"></div>'
         if indent_px
         else ""
     )
@@ -54,15 +54,25 @@ def _leaf_to_html(node, depth: int, indent_level: int) -> str:
     )
 
 
-def tree_to_html(node, depth: int = 0, indent_level: int = 0, extra_bias: int = 0) -> str:
+def tree_to_html(node, depth: int = 0, indent_level: float = 0, extra_bias: float = 0) -> str:
     """Render one verse's split tree as a block of rows, most-significant
     clause first, matching the original Tk visualization's top-to-bottom
-    reading order, depth-based coloring, and growing indent guide."""
+    reading order, depth-based coloring, and growing indent guide.
+
+    A "sibling leaf pair" -- a node whose *both* children are leaves,
+    neither one further split -- gets its first (upper, logically-earlier)
+    leaf nudged in by an extra half indent step. A leaf paired with a
+    further-nested subtree on the other side does not qualify; only a
+    genuine terminal pair does.
+    """
     eff_indent = indent_level + extra_bias
 
     if isinstance(node, dict):
-        left_html = tree_to_html(node["left"], depth + 1, indent_level + 1, extra_bias)
-        right_html = tree_to_html(node["right"], depth + 1, indent_level, extra_bias + 1)
+        left, right = node["left"], node["right"]
+        half_bump = 0.5 if not isinstance(left, dict) and not isinstance(right, dict) else 0
+
+        left_html = tree_to_html(left, depth + 1, indent_level + 1 + half_bump, extra_bias)
+        right_html = tree_to_html(right, depth + 1, indent_level, extra_bias + 1)
         return left_html + right_html
 
     return _leaf_to_html(node, depth, eff_indent)

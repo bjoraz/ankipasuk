@@ -108,3 +108,87 @@ def test_each_row_is_wrapped_in_viz_row(genesis_1_2):
     _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_2, max_leaf_disj=1)
     html = tree_to_html(tree)
     assert html.count('class="viz-row"') == tree_leaf_count(tree)
+
+
+# =============================================================
+#  Half-indent for sibling leaf pairs
+# =============================================================
+def _leaf(text: str, level: int = 1):
+    """A minimal, hand-built leaf (list of one unit) for precise,
+    synthetic tree construction -- independent of real trope parsing, so
+    the exact tree shape under test is fully controlled."""
+    return [{"level": level, "subs": [{"text": text, "level": level}]}]
+
+
+def _guide_widths(html: str) -> list[float]:
+    """Extract each row's guide width in px, in row order (0 for a row
+    with no guide at all, i.e. indent 0)."""
+    import re
+
+    widths = []
+    for row in html.split('<div class="viz-row">')[1:]:
+        m = re.search(r'class="viz-guide" style="width:([\d.]+)px', row)
+        widths.append(float(m.group(1)) if m else 0.0)
+    return widths
+
+
+def test_sibling_leaf_pair_first_leaf_gets_half_indent_bump():
+    """A node whose BOTH children are leaves (no further nesting on
+    either side) is a genuine sibling leaf pair -- its first (upper)
+    leaf should render with an extra half indent step compared to what
+    it would get without the bump, while the second (lower) leaf is
+    unaffected."""
+    tree = {"left": _leaf("first"), "right": _leaf("second")}
+    widths = _guide_widths(tree_to_html(tree))
+    assert widths == [21.0, 14.0]
+    # The relationship that actually matters, independent of the exact
+    # absolute values above: the first leaf of a genuine pair is always
+    # exactly half an indent step (7px = 0.5 * 14) wider than the second.
+    assert widths[0] - widths[1] == 7.0
+
+
+def test_leaf_paired_with_further_nesting_gets_no_half_indent():
+    """The user's explicit clarification: a leaf on one side and further
+    nesting (not a leaf) on the other side does NOT count as a sibling
+    leaf pair -- no half-indent bump applies in that case."""
+    tree = {
+        "left": _leaf("first"),
+        "right": {"left": _leaf("second"), "right": _leaf("third")},
+    }
+    widths = _guide_widths(tree_to_html(tree))
+    assert widths == [14.0, 35.0, 28.0]
+    # "first" (root's left, paired with further nesting on the right) is
+    # NOT bumped -- confirmed by there being no other leaf at the same
+    # nominal indent level to compare it to changing by 7px.
+    # "second" and "third", one level down, ARE a genuine sibling leaf
+    # pair -- "second" (first/upper) is exactly half a step ahead of
+    # "third" (second/lower), same relationship as the simple pair case.
+    assert widths[1] - widths[2] == 7.0
+
+
+def test_half_indent_does_not_apply_transitively():
+    """A leaf whose sibling is itself a leaf gets the bump; going one
+    more level up the tree, that same leaf's *grandparent* pairing
+    (leaf vs. further-nested subtree) must not also apply a bump --
+    only the immediate sibling-leaf-pair relationship matters."""
+    # Root: left=leaf, right=deeper subtree containing its own sibling
+    # leaf pair three levels down.
+    tree = {
+        "left": _leaf("A"),
+        "right": {
+            "left": {"left": _leaf("B"), "right": _leaf("C")},
+            "right": _leaf("D"),
+        },
+    }
+    widths = _guide_widths(tree_to_html(tree))
+    assert widths == [14.0, 49.0, 42.0, 28.0]
+    # A: root.left is a leaf, root.right is a dict -> not a sibling pair
+    # at the root level -> no bump (nothing to compare against here, but
+    # confirmed by the exact value matching plain indent_level 1 = 14px,
+    # not 21px which is what a bump at that level would produce).
+    # B and C: a genuine sibling leaf pair one level inside root.right ->
+    # B (first/upper) is exactly half a step ahead of C (second/lower).
+    assert widths[1] - widths[2] == 7.0
+    # D: paired with a dict (not C directly) at its own level -> not a
+    # sibling leaf pair -> no bump, and critically not "transitively"
+    # bumped just because ITS subtree happens to contain a bumped leaf.
