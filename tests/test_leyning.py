@@ -20,6 +20,17 @@ def test_parse_ref_range_same_chapter_short_form():
     assert ln.parse_ref_range("Genesis 1:1-5") == ("Genesis", 1, 1, 1, 5)
 
 
+def test_parse_ref_range_accepts_en_dash():
+    """Regression test for a real bug: Sefaria's API doesn't consistently
+    use a plain ASCII hyphen for ranges -- an en-dash (U+2013) was observed
+    in the wild for a live-fetched aliyah ref, which broke tagging with
+    ValueError: Could not parse ref range. Same-chapter short form and full
+    cross-chapter form should both work with any common dash variant."""
+    assert ln.parse_ref_range("Deuteronomy 33:1\u20137") == ("Deuteronomy", 33, 1, 33, 7)
+    assert ln.parse_ref_range("Genesis 1:1\u20132:3") == ("Genesis", 1, 1, 2, 3)
+    assert ln.parse_ref_range("Genesis 1:1\u20145") == ("Genesis", 1, 1, 1, 5)  # em-dash too
+
+
 def test_parse_ref_range_cross_chapter():
     assert ln.parse_ref_range("Genesis 1:1-2:3") == ("Genesis", 1, 1, 2, 3)
 

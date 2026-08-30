@@ -78,10 +78,17 @@ def verse_from_index(book: str, idx: int) -> tuple[int, int]:
 # =============================================================
 #  SEFARIA REF-RANGE PARSING
 # =============================================================
+# Sefaria's API doesn't consistently use a plain ASCII hyphen for ranges --
+# an en-dash has been observed in the wild (e.g. "Deuteronomy 33:1-7" is
+# sometimes rendered with U+2013 instead of U+002D). Accept the common
+# dash/hyphen variants so a data-formatting quirk on Sefaria's end doesn't
+# break tagging.
+_DASH_CHARS = "\u002D\u2010\u2011\u2012\u2013\u2014\u2212"  # -‐‑‒–—−
+
 _REF_RANGE_RE = re.compile(
     r"^(?P<book>.+?)\s+"
     r"(?P<sch>\d+):(?P<svs>\d+)"
-    r"(?:-(?:(?P<ech>\d+):)?(?P<evs>\d+))?$"
+    rf"(?:[{_DASH_CHARS}](?:(?P<ech>\d+):)?(?P<evs>\d+))?$"
 )
 
 
@@ -89,7 +96,8 @@ def parse_ref_range(ref: str) -> tuple[str, int, int, int, int]:
     """Parse a Sefaria-style ref string into (book, start_ch, start_vs,
     end_ch, end_vs). Handles all three shapes Sefaria emits:
     ``"Genesis 1:1"`` (single verse), ``"Genesis 1:1-5"`` (same-chapter
-    range), and ``"Genesis 1:1-2:3"`` (cross-chapter range)."""
+    range), and ``"Genesis 1:1-2:3"`` (cross-chapter range) -- with any of
+    the dash variants in ``_DASH_CHARS`` as the range separator."""
     m = _REF_RANGE_RE.match(ref.strip())
     if not m:
         raise ValueError(f"Could not parse ref range: {ref!r}")
