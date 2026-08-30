@@ -1,0 +1,41 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Testing / tooling ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- App-local data (never commit user data or secrets) ---
+.env
+*.local
+
+# Local Sefaria cache, if ever created inside the repo directory
+# (default location is the OS cache dir, but ANKIPASUK_CACHE_DIR can
+# point it here during development).
+.ankipasuk-cache/
