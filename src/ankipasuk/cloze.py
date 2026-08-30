@@ -26,6 +26,29 @@ def tree_leaf_count(node) -> int:
     return 1
 
 
+def structure_signature(node):
+    """Canonical, hashable signature of a split tree's shape, reduced to
+    just the trope *levels* that drove each split.
+
+    A leaf (a list of disjunctive units, as produced by
+    :func:`ankipasuk.text_processing.group_into_units`) is represented as
+    its terminal disjunctive level -- an int 1-4, or 0 only in the
+    degenerate case of a fragment with no disjunctive at all (never
+    happens for a real, complete verse, which always ends in Sof Pasuq).
+    An internal node is a 2-tuple ``(left_signature, right_signature)``.
+
+    Two verses have "the same structure" iff their signatures compare
+    equal -- this is exactly the traditional cantillation hierarchy when
+    the tree comes from ``split_segment(units, max_leaf_disj=1)``: the
+    strongest disjunctive divides the verse first, then the next-strongest
+    *present* mark divides each half, and so on down to individual
+    minimum-disjunctive units. See :mod:`ankipasuk.structure`.
+    """
+    if isinstance(node, dict):
+        return (structure_signature(node["left"]), structure_signature(node["right"]))
+    return node[-1]["level"] if node else 0
+
+
 def render_to_cloze_and_plain(node, counter):
     if isinstance(node, dict):
         l_m, l_p, _ = render_to_cloze_and_plain(node["left"], counter)

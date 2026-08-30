@@ -23,6 +23,12 @@ grammatical break down to individual words.
   a length-vs-depth correlation scatter plot, per-chapter averages, and
   trope-frequency counts — every chart is clickable and shows the actual
   verse text behind any bar, point, or row.
+- **Verse nesting-structure analysis** (`ankipasuk.structure`, not yet
+  exposed in the GUI): group every verse in a range by its cantillation
+  nesting shape (the traditional disjunctive-accent hierarchy -- strongest
+  mark divides first, then the next-strongest present mark within each
+  half, and so on), find every other verse sharing a given verse's exact
+  shape, or see which shapes recur most.
 - **Persistent local cache**: verse text and parashah structure fetched from
   Sefaria are cached to disk, so re-running the app (or re-fetching an
   overlapping range) never re-downloads the same data.
@@ -94,6 +100,7 @@ src/ankipasuk/
 ├── text_processing.py   # Trope tokenization, disjunctive grouping, tree splitting
 ├── cloze.py              # Nested cloze markup generation from the split tree
 ├── stats.py               # Corpus statistics computation (no GUI dependency)
+├── structure.py           # Verse nesting-structure analysis/grouping (no GUI dependency)
 ├── anki_connect/            # Optional: AnkiConnect scheduling automation
 │   ├── client.py             #   raw JSON-RPC client
 │   ├── notes.py               #   pure stem/leaf identification (no network)
