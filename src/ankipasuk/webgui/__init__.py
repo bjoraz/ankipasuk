@@ -30,7 +30,7 @@ def main() -> None:
         min_size=(900, 650),
         text_select=True,
     )
-    api.window = window
+    api._window = window
     webview.start()
 
 

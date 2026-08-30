@@ -24,19 +24,19 @@ from ..cache import SefariaCache
 
 class AnkiConnectApi:
     def __init__(self) -> None:
-        self.window: webview.Window | None = None
+        self._window: webview.Window | None = None
 
     def get_default_url(self) -> str:
         return DEFAULT_URL
 
     def _log(self, tab_id: str, msg: str) -> None:
-        if self.window is None:
+        if self._window is None:
             return
-        self.window.evaluate_js(f"appendLog({json.dumps(tab_id)}, {json.dumps(msg)})")
+        self._window.evaluate_js(f"appendLog({json.dumps(tab_id)}, {json.dumps(msg)})")
 
     def _done(self, tab_id: str) -> None:
-        if self.window is not None:
-            self.window.evaluate_js(f"operationDone({json.dumps(tab_id)})")
+        if self._window is not None:
+            self._window.evaluate_js(f"operationDone({json.dumps(tab_id)})")
 
     # =============================================================
     #  Connection

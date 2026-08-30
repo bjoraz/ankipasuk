@@ -73,6 +73,6 @@ def test_get_chapter_data_shape(genesis_1_1):
 
 def test_export_csv_without_window_reports_error(genesis_1_1):
     sapi = StatsApi(_verse_data([(1, 1, genesis_1_1)]), max_leaf_disj=2)
-    sapi.window = None
+    sapi._window = None
     result = sapi.export_csv()
     assert result["ok"] is False

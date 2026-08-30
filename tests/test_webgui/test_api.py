@@ -4,7 +4,7 @@ Every method is a thin wrapper around already-tested core logic
 (cloze.py, sefaria.py) -- these tests focus on the wrapping itself: does
 the JSON-serializable shape returned to JS match what the frontend
 expects, are errors reported as {"ok": False, "error": ...} rather than
-raised, and is state (current_verse_data, current_book) threaded through
+raised, and is state (_current_verse_data, _current_book) threaded through
 correctly between calls.
 """
 
@@ -41,7 +41,7 @@ def test_generate_cloze_matches_verse_to_nested_cloze(genesis_1_1):
     from ankipasuk.cloze import verse_to_nested_cloze
 
     api = Api()
-    api.current_verse_data = [{"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1}]
+    api._current_verse_data = [{"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1}]
 
     result = api.generate_cloze(2, True)
     assert result["ok"] is True
@@ -53,7 +53,7 @@ def test_generate_cloze_matches_verse_to_nested_cloze(genesis_1_1):
 
 def test_generate_cloze_skips_blank_lines(genesis_1_1):
     api = Api()
-    api.current_verse_data = [
+    api._current_verse_data = [
         {"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
         {"ch": 1, "vs": 2, "pointed": "   ", "plain": ""},
     ]
@@ -64,7 +64,7 @@ def test_generate_cloze_skips_blank_lines(genesis_1_1):
 
 def test_generate_cloze_reset_per_line_vs_continuous(genesis_1_1):
     api = Api()
-    api.current_verse_data = [
+    api._current_verse_data = [
         {"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
         {"ch": 1, "vs": 2, "pointed": genesis_1_1, "plain": genesis_1_1},
     ]
@@ -85,9 +85,9 @@ def test_export_csv_without_fetched_verses_reports_error():
 
 def test_export_csv_without_window_reports_error(genesis_1_1):
     api = Api()
-    api.current_verse_data = [{"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1}]
-    api.current_book = "Genesis"
-    api.window = None
+    api._current_verse_data = [{"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1}]
+    api._current_book = "Genesis"
+    api._window = None
     result = api.export_csv(2, True)
     assert result["ok"] is False
 

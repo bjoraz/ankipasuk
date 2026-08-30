@@ -53,7 +53,7 @@ def test_get_default_url():
 def test_check_connection_success(fake_anki):
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     api.check_connection("http://fake")
     _wait_for_done(window, "conn")
@@ -67,7 +67,7 @@ def test_initialize_stems_streams_progress_and_flags(fake_anki):
 
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     api.initialize_stems("http://fake", DECK, False)
     _wait_for_done(window, "stems")
@@ -85,7 +85,7 @@ def test_initialize_stems_dry_run_makes_no_changes(fake_anki):
 
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     api.initialize_stems("http://fake", DECK, True)
     _wait_for_done(window, "stems")
@@ -101,7 +101,7 @@ def test_sync_scheduling_reports_promoted_and_recovered(fake_anki):
 
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     api.sync_scheduling("http://fake", DECK, 21, False)
     _wait_for_done(window, "sched")
@@ -121,7 +121,7 @@ def test_tag_deck_reports_summary(fake_anki, tmp_path, monkeypatch):
 
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     api.tag_deck("http://fake", DECK, True)
     _wait_for_done(window, "tag")
@@ -137,7 +137,7 @@ def test_errors_are_logged_not_raised(fake_anki):
     (which would just silently vanish with no user-visible feedback)."""
     api = AnkiConnectApi()
     window = _FakeWindow()
-    api.window = window
+    api._window = window
 
     # No deck notes added -- initialize_stems should complete cleanly
     # with zero notes, not error; use a real failure mode instead: an

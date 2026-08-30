@@ -44,10 +44,10 @@ class Api:
     call, mirroring how ``AnkiPasukApp`` held this as instance state."""
 
     def __init__(self) -> None:
-        self.cache = SefariaCache()
-        self.current_verse_data: list[dict] = []
-        self.current_book: str = "Genesis"
-        self.window: webview.Window | None = None
+        self._cache = SefariaCache()
+        self._current_verse_data: list[dict] = []
+        self._current_book: str = "Genesis"
+        self._window: webview.Window | None = None
 
     # =============================================================
     #  Static reference data (no network)
@@ -70,7 +70,7 @@ class Api:
     def get_parashot(self, book: str) -> dict:
         """{"ok": True, "names": [...]} or {"ok": False, "error": "..."}."""
         try:
-            parashot = get_parasha_structure(book, self.cache)
+            parashot = get_parasha_structure(book, self._cache)
             return {"ok": True, "names": [p["name"] for p in parashot]}
         except Exception as e:  # noqa: BLE001 - reported to the JS side
             traceback.print_exc()
@@ -78,7 +78,7 @@ class Api:
 
     def get_aliyah_count(self, book: str, parasha_name: str) -> dict:
         try:
-            parashot = get_parasha_structure(book, self.cache)
+            parashot = get_parasha_structure(book, self._cache)
             for p in parashot:
                 if p["name"] == parasha_name:
                     return {"ok": True, "count": len(p["refs"])}
@@ -94,18 +94,18 @@ class Api:
         self, book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int
     ) -> dict:
         try:
-            data = fetch_torah_range(book, start_ch, start_vs, end_ch, end_vs, self.cache, POINTED_VERSION)
+            data = fetch_torah_range(book, start_ch, start_vs, end_ch, end_vs, self._cache, POINTED_VERSION)
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self.current_verse_data = data
-        self.current_book = book
+        self._current_verse_data = data
+        self._current_book = book
         return {"ok": True, "verses": data, "cache_status": self._cache_status_text()}
 
     def fetch_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
         try:
-            ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self.cache)
-            pointed_verses = get_text_for_ref(ref_str, POINTED_VERSION, self.cache)
+            ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self._cache)
+            pointed_verses = get_text_for_ref(ref_str, POINTED_VERSION, self._cache)
             start_ch, start_vs = parse_start_ref(ref_str)
 
             data = []
@@ -120,26 +120,26 @@ class Api:
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self.current_verse_data = data
-        self.current_book = book
+        self._current_verse_data = data
+        self._current_book = book
         return {"ok": True, "verses": data, "cache_status": self._cache_status_text()}
 
     def _cache_status_text(self) -> str:
-        s = self.cache.stats()
+        s = self._cache.stats()
         return f"Cache: {s['cached_refs']} ref(s), {s['cached_books']} book structure(s)"
 
     def get_cache_status(self) -> str:
         return self._cache_status_text()
 
     def clear_cache(self) -> dict:
-        self.cache.clear()
+        self._cache.clear()
         return {"ok": True, "cache_status": self._cache_status_text()}
 
     # =============================================================
     #  Cloze generation
     # =============================================================
     def generate_cloze(self, max_leaf_disj: int, reset_per_line: bool) -> dict:
-        if not self.current_verse_data:
+        if not self._current_verse_data:
             return {"ok": False, "error": "Fetch a range of verses first."}
 
         max_leaf_disj = max(1, max_leaf_disj)
@@ -148,7 +148,7 @@ class Api:
         viz_html_blocks = []
         next_start = 1
 
-        for item in self.current_verse_data:
+        for item in self._current_verse_data:
             v = item["pointed"].strip()
             if not v:
                 continue
@@ -175,16 +175,16 @@ class Api:
     #  CSV export
     # =============================================================
     def export_csv(self, max_leaf_disj: int, reset_per_line: bool) -> dict:
-        if not self.current_verse_data:
+        if not self._current_verse_data:
             return {"ok": False, "error": "Fetch a range of verses first."}
 
         max_leaf_disj = max(1, max_leaf_disj)
-        hebrew_book = BOOK_HEBREW_NAMES.get(self.current_book, self.current_book)
+        hebrew_book = BOOK_HEBREW_NAMES.get(self._current_book, self._current_book)
         rows = []
         next_start = 1
-        total = len(self.current_verse_data)
+        total = len(self._current_verse_data)
 
-        for i, item in enumerate(self.current_verse_data):
+        for i, item in enumerate(self._current_verse_data):
             pointed = item["pointed"].strip()
             start_counter = 1 if reset_per_line else next_start
             cl, last, _tree, _tok, _units = verse_to_nested_cloze(
@@ -194,8 +194,8 @@ class Api:
                 next_start = last + 1
 
             plain = item["plain"]
-            prev_plain = self.current_verse_data[i - 1]["plain"] if i > 0 else ""
-            next_plain = self.current_verse_data[i + 1]["plain"] if i + 1 < total else ""
+            prev_plain = self._current_verse_data[i - 1]["plain"] if i > 0 else ""
+            next_plain = self._current_verse_data[i + 1]["plain"] if i + 1 < total else ""
             verse_label = f"{hebrew_book} {item['ch']}:{item['vs']}"
 
             rows.append([str(i + 1), verse_label, cl, plain, prev_plain, next_plain, "", CSV_FLAGS])
@@ -203,10 +203,10 @@ class Api:
         if not rows:
             return {"ok": False, "error": "No verse lines were found to export."}
 
-        if self.window is None:
+        if self._window is None:
             return {"ok": False, "error": "Window not ready."}
 
-        path = self.window.create_file_dialog(
+        path = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename="cloze_cards.csv",
             file_types=("CSV files (*.csv)", "All files (*.*)"),
@@ -239,13 +239,13 @@ class Api:
             height=680,
             text_select=True,
         )
-        anki_api.window = window
+        anki_api._window = window
         return {"ok": True}
 
     def open_stats_window(self, max_leaf_disj: int) -> dict:
-        if not self.current_verse_data:
+        if not self._current_verse_data:
             return {"ok": False, "error": "Fetch a range of verses first."}
-        stats_api = StatsApi(self.current_verse_data, max_leaf_disj)
+        stats_api = StatsApi(self._current_verse_data, max_leaf_disj)
         window = webview.create_window(
             "Corpus statistics",
             str(_STATIC_DIR / "stats.html"),
@@ -254,5 +254,5 @@ class Api:
             height=760,
             text_select=True,
         )
-        stats_api.window = window
+        stats_api._window = window
         return {"ok": True}

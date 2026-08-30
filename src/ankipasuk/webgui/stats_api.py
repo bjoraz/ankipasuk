@@ -27,7 +27,7 @@ def _dist_to_bars(dist, bins, value_formatter=str):
 
 class StatsApi:
     def __init__(self, verse_data: list[dict], max_leaf_disj: int) -> None:
-        self.window: webview.Window | None = None
+        self._window: webview.Window | None = None
         self.verse_data = verse_data
         self.max_leaf_disj = max_leaf_disj
         self.stats = compute_corpus_stats(verse_data, max_leaf_disj)
@@ -119,10 +119,10 @@ class StatsApi:
     def export_csv(self) -> dict:
         if self.stats is None:
             return {"ok": False, "error": "No verses to export."}
-        if self.window is None:
+        if self._window is None:
             return {"ok": False, "error": "Window not ready."}
 
-        path = self.window.create_file_dialog(
+        path = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename="verse_stats.csv",
             file_types=("CSV files (*.csv)", "All files (*.*)"),

@@ -20,16 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.31",
-    # <5.3 deliberately: 5.3 introduced window.native (reflecting the
-    # native WinForms/WebView2 window object for JS access), which this
-    # app never uses but which has caused a reproducible ~10s startup
-    # freeze on at least one Windows machine (repeated "[pywebview] Error
-    # while processing window.native.X" log spam -- recursion depth
-    # exceeded walking circular WinForms Accessibility/COM properties,
-    # plus "members can only be accessed from the UI thread" errors).
-    # Revisit this pin if a pywebview release fixes that reflection or
-    # adds a way to disable it.
-    "pywebview>=5.0,<5.3",
+    "pywebview>=5.0",
 ]
 
 [project.optional-dependencies]
