@@ -54,7 +54,7 @@ def genesis_1_2() -> str:
 def munach_legarmeh_verse() -> str:
     """A word carrying Munach immediately followed by a Paseq-marked word,
     with the next disjunctive at Revia level -- this should be upgraded to
-    Munach Legarmeh (level 3)."""
+    Munach Legarmeh (level 4)."""
     return " ".join([
         word("אָב", MUNACH),
         word("גָּדוֹל", PASEQ),
