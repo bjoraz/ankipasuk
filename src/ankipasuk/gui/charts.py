@@ -11,7 +11,6 @@ import tkinter as tk
 from collections import Counter
 
 from ..config import PDF, RLE
-from .fonts import pick_hebrew_font
 
 
 def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dict) -> None:
@@ -20,7 +19,6 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     from ..stats import _label_sort_key
 
     labels = sorted(set(labels), key=_label_sort_key)
-    hebrew_font = pick_hebrew_font()
 
     win = tk.Toplevel(parent)
     win.title(title)
@@ -34,24 +32,15 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     text_frame.grid_rowconfigure(0, weight=1)
     text_frame.grid_columnconfigure(0, weight=1)
 
-    # wrap=NONE + horizontal scroll, not wrap=WORD: Tk's word-wrap can
-    # visibly scramble word order within a Hebrew line when it splits that
-    # line across multiple display lines -- it applies bidi reordering to
-    # the logical line as a whole and then chops the result for display,
-    # rather than reordering per visual line.
-    text = tk.Text(text_frame, wrap=tk.NONE, font=(hebrew_font, 12))
+    text = tk.Text(text_frame, wrap=tk.WORD, font=("SBL Hebrew", 12))
     text.grid(row=0, column=0, sticky="nsew")
 
-    scroll_y = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
-    scroll_y.grid(row=0, column=1, sticky="ns")
-    text.configure(yscrollcommand=scroll_y.set)
-
-    scroll_x = tk.Scrollbar(text_frame, orient="horizontal", command=text.xview)
-    scroll_x.grid(row=1, column=0, sticky="ew")
-    text.configure(xscrollcommand=scroll_x.set)
+    scroll = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
+    scroll.grid(row=0, column=1, sticky="ns")
+    text.configure(yscrollcommand=scroll.set)
 
     text.tag_configure("ref", font=("Arial", 10, "bold"), foreground="#37474f", spacing1=10, spacing3=2)
-    text.tag_configure("verse", font=(hebrew_font, 13), spacing3=4, justify="right")
+    text.tag_configure("verse", font=("SBL Hebrew", 13), spacing3=4)
 
     for label in labels:
         entry = verse_lookup.get(label)

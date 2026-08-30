@@ -222,17 +222,15 @@ class AnkiPasukApp:
         text_widget.tag_configure(
             depth_tag,
             background=UNIT_COLORS[depth % len(UNIT_COLORS)],
-            justify="right",
+            justify="left",
         )
 
-        # Nesting depth is shown as a margin on the right -- the side
-        # Hebrew text actually starts from -- rather than the left, so
-        # deeper clauses visually indent inward from where reading begins.
         indent_tag = f"indent{eff_indent}"
         text_widget.tag_configure(
             indent_tag,
-            rmargin=INDENT_UNIT_PX * eff_indent,
-            justify="right",
+            lmargin1=INDENT_UNIT_PX * eff_indent,
+            lmargin2=INDENT_UNIT_PX * eff_indent,
+            justify="left",
         )
 
         text_widget.tag_configure("guide", background=GUIDE_BG)
@@ -247,28 +245,21 @@ class AnkiPasukApp:
             )
             return
 
-        # The whole leaf is one bidi-isolated run (single RLE...PDF pair
-        # around all its words) -- wrapping each word individually broke
-        # spacing/ordering between adjacent isolated runs and confused
-        # word-wrap point calculation on long lines. Per-word tags (for
-        # "conj" styling) still apply fine to sub-ranges within one run.
-        text_widget.insert(tk.END, RLE, (depth_tag, indent_tag))
+        if eff_indent > 0:
+            for _ in range(eff_indent):
+                text_widget.insert(tk.END, "\u00A0" * INDENT_SPACES_PER_LEVEL, ("guide",))
+            text_widget.insert(tk.END, " ", ("guide",))
+
         first = True
-        for u in node:
-            for sub in u["subs"]:
+        for u in reversed(node):
+            for sub in reversed(u["subs"]):
                 if not first:
                     text_widget.insert(tk.END, " ", (depth_tag, indent_tag))
                 first = False
                 tags = [depth_tag, indent_tag]
                 if sub["level"] == 0:
                     tags.append("conj")
-                text_widget.insert(tk.END, sub["text"], tuple(tags))
-        text_widget.insert(tk.END, PDF, (depth_tag, indent_tag))
-
-        if eff_indent > 0:
-            text_widget.insert(tk.END, " ", ("guide", indent_tag))
-            for _ in range(eff_indent):
-                text_widget.insert(tk.END, "\u00A0" * INDENT_SPACES_PER_LEVEL, ("guide", indent_tag))
+                text_widget.insert(tk.END, RLE + sub["text"] + PDF, tuple(tags))
 
         text_widget.insert(tk.END, "\n", ())
 
@@ -752,55 +743,25 @@ class AnkiPasukApp:
 
         left_output_frame = ttk.Frame(output_frame)
         left_output_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 8))
-        left_output_frame.grid_rowconfigure(0, weight=1)
-        left_output_frame.grid_columnconfigure(0, weight=1)
 
-        # wrap=NONE + horizontal scroll, not wrap=WORD: Tk's word-wrap can
-        # visibly scramble word order within a Hebrew line when it splits
-        # that line across multiple display lines -- it applies bidi
-        # reordering to the logical line as a whole and then chops the
-        # result for display, rather than reordering per visual line. This
-        # is the same pattern already proven safe in input_box/plain_box.
-        self.output_box = tk.Text(left_output_frame, wrap=tk.NONE, width=60, height=6)
-        self.output_box.grid(row=0, column=0, sticky="nsew")
-        output_scroll_x = ttk.Scrollbar(left_output_frame, orient="horizontal", command=self.output_box.xview)
-        output_scroll_x.grid(row=1, column=0, sticky="ew")
-        self.output_box.configure(xscrollcommand=output_scroll_x.set)
+        self.output_box = tk.Text(left_output_frame, wrap=tk.WORD, width=60, height=6)
+        self.output_box.pack(fill="both", expand=True)
 
         right_tokens_frame = ttk.Frame(output_frame)
         right_tokens_frame.grid(row=1, column=1, sticky="nsew")
-        right_tokens_frame.grid_rowconfigure(1, weight=1)
-        right_tokens_frame.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(right_tokens_frame, text="Minimum disjunctive groups:", anchor="w").grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(right_tokens_frame, text="Minimum disjunctive groups:", anchor="w").pack(anchor="w")
 
-        self.tokens_box = tk.Text(right_tokens_frame, wrap=tk.NONE, width=32, height=6, font=("Courier", 10))
-        self.tokens_box.grid(row=1, column=0, sticky="nsew")
-        tokens_scroll_x = ttk.Scrollbar(
-            right_tokens_frame, orient="horizontal", command=self.tokens_box.xview
-        )
-        tokens_scroll_x.grid(row=2, column=0, sticky="ew")
-        self.tokens_box.configure(xscrollcommand=tokens_scroll_x.set)
+        self.tokens_box = tk.Text(right_tokens_frame, wrap=tk.WORD, width=32, height=6, font=("Courier", 10))
+        self.tokens_box.pack(fill="both", expand=True)
 
         # --- Visualization ---
         ttk.Label(root, text="Visualization:", anchor="w").grid(
             row=5, column=0, columnspan=2, sticky="w", padx=PADX, pady=(0, 2)
         )
 
-        viz_frame = ttk.Frame(root)
-        viz_frame.grid(row=6, column=0, columnspan=2, sticky="nsew", padx=PADX, pady=(0, PADY))
-        viz_frame.grid_rowconfigure(0, weight=1)
-        viz_frame.grid_columnconfigure(0, weight=1)
-
-        self.viz_output = tk.Text(
-            viz_frame, wrap=tk.NONE, width=100, height=14, font=(pick_hebrew_font(), 13)
-        )
-        self.viz_output.grid(row=0, column=0, sticky="nsew")
-        viz_scroll_x = ttk.Scrollbar(viz_frame, orient="horizontal", command=self.viz_output.xview)
-        viz_scroll_x.grid(row=1, column=0, sticky="ew")
-        self.viz_output.configure(xscrollcommand=viz_scroll_x.set)
+        self.viz_output = tk.Text(root, wrap=tk.WORD, width=100, height=14, font=("Courier", 11))
+        self.viz_output.grid(row=6, column=0, columnspan=2, sticky="nsew", padx=PADX, pady=(0, PADY))
 
     def _wire_traces(self) -> None:
         self.selection_mode_var.trace_add("write", self.update_mode_visibility)
