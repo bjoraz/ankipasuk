@@ -11,6 +11,7 @@ import tkinter as tk
 from collections import Counter
 
 from ..config import PDF, RLE
+from .fonts import pick_hebrew_font
 
 
 def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dict) -> None:
@@ -19,6 +20,7 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     from ..stats import _label_sort_key
 
     labels = sorted(set(labels), key=_label_sort_key)
+    hebrew_font = pick_hebrew_font()
 
     win = tk.Toplevel(parent)
     win.title(title)
@@ -32,7 +34,7 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     text_frame.grid_rowconfigure(0, weight=1)
     text_frame.grid_columnconfigure(0, weight=1)
 
-    text = tk.Text(text_frame, wrap=tk.WORD, font=("SBL Hebrew", 12))
+    text = tk.Text(text_frame, wrap=tk.WORD, font=(hebrew_font, 12))
     text.grid(row=0, column=0, sticky="nsew")
 
     scroll = tk.Scrollbar(text_frame, orient="vertical", command=text.yview)
@@ -40,7 +42,7 @@ def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dic
     text.configure(yscrollcommand=scroll.set)
 
     text.tag_configure("ref", font=("Arial", 10, "bold"), foreground="#37474f", spacing1=10, spacing3=2)
-    text.tag_configure("verse", font=("SBL Hebrew", 13), spacing3=4)
+    text.tag_configure("verse", font=(hebrew_font, 13), spacing3=4, justify="right")
 
     for label in labels:
         entry = verse_lookup.get(label)

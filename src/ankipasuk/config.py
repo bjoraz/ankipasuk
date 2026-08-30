@@ -113,6 +113,28 @@ PASEQ = "\u05C0"
 RLE = "\u202B"
 PDF = "\u202C"
 
+# Fonts that render Hebrew cantillation (trope) combining marks well, most
+# to least capable. Proper trope-mark stacking is a much narrower font
+# requirement than plain Hebrew support -- most system-default fonts (and
+# Tk's silent substitute when none of these are installed) will show
+# niqud/trope crowding or overlap. See gui.fonts.pick_hebrew_font, which
+# picks the first of these actually installed, falling back to Tk's
+# default if none are. For the best rendering, install one of the first
+# three (all free): SBL Hebrew, Ezra SIL, or a Taamey Torah font from
+# https://www.keyman.com/keyboards/taameyfrankcn or https://software.sil.org/ezra/.
+HEBREW_FONT_CANDIDATES = [
+    "SBL Hebrew",
+    "Ezra SIL",
+    "Taamey Frank CLM",
+    "Taamey Ashkenaz",
+    "Cardo",
+    "Noto Serif Hebrew",
+    "Noto Sans Hebrew",
+    "Times New Roman",
+    "David",
+    "Arial",
+]
+
 # =============================================================
 #  VISUALIZATION
 # =============================================================

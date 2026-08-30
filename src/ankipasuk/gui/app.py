@@ -33,6 +33,7 @@ from ..sefaria import (
 )
 from ..text_processing import format_units, strip_vowels_and_trope
 from .anki_connect_window import show_anki_connect_tools
+from .fonts import pick_hebrew_font
 from .stats_window import show_stats_window
 
 
@@ -44,8 +45,8 @@ class AnkiPasukApp:
     makes this safe to construct more than once (e.g. in tests).
     """
 
-    PADX = 8
-    PADY = 6
+    PADX = 10
+    PADY = 8
 
     def __init__(self, root: tk.Tk, cache: SefariaCache | None = None):
         self.root = root
@@ -221,15 +222,17 @@ class AnkiPasukApp:
         text_widget.tag_configure(
             depth_tag,
             background=UNIT_COLORS[depth % len(UNIT_COLORS)],
-            justify="left",
+            justify="right",
         )
 
+        # Nesting depth is shown as a margin on the right -- the side
+        # Hebrew text actually starts from -- rather than the left, so
+        # deeper clauses visually indent inward from where reading begins.
         indent_tag = f"indent{eff_indent}"
         text_widget.tag_configure(
             indent_tag,
-            lmargin1=INDENT_UNIT_PX * eff_indent,
-            lmargin2=INDENT_UNIT_PX * eff_indent,
-            justify="left",
+            rmargin=INDENT_UNIT_PX * eff_indent,
+            justify="right",
         )
 
         text_widget.tag_configure("guide", background=GUIDE_BG)
@@ -244,14 +247,12 @@ class AnkiPasukApp:
             )
             return
 
-        if eff_indent > 0:
-            for _ in range(eff_indent):
-                text_widget.insert(tk.END, "\u00A0" * INDENT_SPACES_PER_LEVEL, ("guide",))
-            text_widget.insert(tk.END, " ", ("guide",))
-
+        # Words go in in their natural (logical) reading order -- Tk's own
+        # bidi handling of the RLE-embedded Hebrew run displays this
+        # correctly right-to-left; no manual reversal needed or wanted.
         first = True
-        for u in reversed(node):
-            for sub in reversed(u["subs"]):
+        for u in node:
+            for sub in u["subs"]:
                 if not first:
                     text_widget.insert(tk.END, " ", (depth_tag, indent_tag))
                 first = False
@@ -260,16 +261,22 @@ class AnkiPasukApp:
                     tags.append("conj")
                 text_widget.insert(tk.END, RLE + sub["text"] + PDF, tuple(tags))
 
+        if eff_indent > 0:
+            text_widget.insert(tk.END, " ", ("guide", indent_tag))
+            for _ in range(eff_indent):
+                text_widget.insert(tk.END, "\u00A0" * INDENT_SPACES_PER_LEVEL, ("guide", indent_tag))
+
         text_widget.insert(tk.END, "\n", ())
 
     @staticmethod
     def set_display_text(widget: tk.Text, text: str) -> None:
         widget.config(state="normal")
         widget.delete("1.0", tk.END)
+        widget.tag_configure("rtl", justify="right")
 
         lines = text.splitlines()
         for i, line in enumerate(lines):
-            widget.insert(tk.END, RLE + line + PDF)
+            widget.insert(tk.END, RLE + line + PDF, ("rtl",))
             if i < len(lines) - 1:
                 widget.insert(tk.END, "\n")
 
@@ -553,207 +560,212 @@ class AnkiPasukApp:
         root.grid_rowconfigure(6, weight=3)
 
         # --- Source controls ---
-        tk.Label(root, text="Source from Sefaria (Torah only):", anchor="w", justify="left").grid(
-            row=0, column=0, columnspan=2, sticky="w", padx=PADX, pady=(PADY, 0)
+        source_labelframe = ttk.LabelFrame(root, text="Source (Sefaria, Torah only)")
+        source_labelframe.grid(
+            row=0, column=0, rowspan=2, columnspan=2, sticky="ew", padx=PADX, pady=(PADY, 4)
         )
 
-        source_frame = tk.Frame(root)
-        source_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=PADX, pady=(2, 2))
+        source_frame = ttk.Frame(source_labelframe)
+        source_frame.pack(fill="x", padx=8, pady=6)
         source_frame.grid_columnconfigure(99, weight=1)
 
-        tk.Label(source_frame, text="Mode:").grid(row=0, column=0, padx=(0, 4), sticky="w")
+        ttk.Label(source_frame, text="Mode:").grid(row=0, column=0, padx=(0, 4), sticky="w")
         mode_combo = ttk.Combobox(
             source_frame, textvariable=self.selection_mode_var,
             values=["Chapter / Verse", "Parashah / Aliyah"], state="readonly", width=18
         )
         mode_combo.grid(row=0, column=1, padx=(0, 12), sticky="w")
 
-        tk.Label(source_frame, text="Book:").grid(row=0, column=2, padx=(0, 4), sticky="w")
+        ttk.Label(source_frame, text="Book:").grid(row=0, column=2, padx=(0, 4), sticky="w")
         book_combo = ttk.Combobox(
             source_frame, textvariable=self.book_var,
             values=list(TORAH_BOOKS.keys()), state="readonly", width=14
         )
         book_combo.grid(row=0, column=3, padx=(0, 12), sticky="w")
 
-        cv_frame = tk.Frame(source_frame)
+        cv_frame = ttk.Frame(source_frame)
         cv_frame.grid(row=0, column=4, columnspan=10, sticky="w")
         self.cv_frame = cv_frame
 
-        tk.Label(cv_frame, text="Start chapter:").grid(row=0, column=0, padx=(0, 4), sticky="w")
+        ttk.Label(cv_frame, text="Start chapter:").grid(row=0, column=0, padx=(0, 4), sticky="w")
         self.start_ch_combo = ttk.Combobox(
             cv_frame, textvariable=self.start_ch_var, state="readonly", width=5
         )
         self.start_ch_combo.grid(row=0, column=1, padx=(0, 12), sticky="w")
 
-        tk.Label(cv_frame, text="Start verse:").grid(row=0, column=2, padx=(0, 4), sticky="w")
+        ttk.Label(cv_frame, text="Start verse:").grid(row=0, column=2, padx=(0, 4), sticky="w")
         self.start_vs_combo = ttk.Combobox(
             cv_frame, textvariable=self.start_vs_var, state="readonly", width=5
         )
         self.start_vs_combo.grid(row=0, column=3, padx=(0, 12), sticky="w")
 
-        tk.Label(cv_frame, text="End chapter:").grid(row=0, column=4, padx=(0, 4), sticky="w")
+        ttk.Label(cv_frame, text="End chapter:").grid(row=0, column=4, padx=(0, 4), sticky="w")
         self.end_ch_combo = ttk.Combobox(cv_frame, textvariable=self.end_ch_var, state="readonly", width=5)
         self.end_ch_combo.grid(row=0, column=5, padx=(0, 12), sticky="w")
 
-        tk.Label(cv_frame, text="End verse:").grid(row=0, column=6, padx=(0, 4), sticky="w")
+        ttk.Label(cv_frame, text="End verse:").grid(row=0, column=6, padx=(0, 4), sticky="w")
         self.end_vs_combo = ttk.Combobox(cv_frame, textvariable=self.end_vs_var, state="readonly", width=5)
         self.end_vs_combo.grid(row=0, column=7, padx=(0, 12), sticky="w")
 
-        pa_frame = tk.Frame(source_frame)
+        pa_frame = ttk.Frame(source_frame)
         pa_frame.grid(row=0, column=4, columnspan=10, sticky="w")
         self.pa_frame = pa_frame
 
-        tk.Label(pa_frame, text="Parashah:").grid(row=0, column=0, padx=(0, 4), sticky="w")
+        ttk.Label(pa_frame, text="Parashah:").grid(row=0, column=0, padx=(0, 4), sticky="w")
         self.parasha_combo = ttk.Combobox(pa_frame, textvariable=self.parasha_var, state="readonly", width=18)
         self.parasha_combo.grid(row=0, column=1, padx=(0, 12), sticky="w")
 
-        tk.Label(pa_frame, text="Aliyah:").grid(row=0, column=2, padx=(0, 4), sticky="w")
+        ttk.Label(pa_frame, text="Aliyah:").grid(row=0, column=2, padx=(0, 4), sticky="w")
         self.aliyah_combo = ttk.Combobox(pa_frame, textvariable=self.aliyah_var, state="readonly", width=5)
         self.aliyah_combo.grid(row=0, column=3, padx=(0, 12), sticky="w")
 
-        self.fetch_button = tk.Button(
+        self.fetch_button = ttk.Button(
             source_frame, text="Fetch range from Sefaria", command=self.populate_input_from_api
         )
         self.fetch_button.grid(row=0, column=20, padx=(8, 0), sticky="w")
 
         # --- Cache status row ---
-        cache_frame = tk.Frame(root)
-        cache_frame.grid(row=1, column=0, columnspan=2, sticky="e", padx=PADX, pady=(0, PADY))
-        tk.Label(cache_frame, textvariable=self.cache_status_var, fg="gray30").pack(side="left", padx=(0, 8))
-        tk.Button(cache_frame, text="Clear cache", command=self.clear_cache).pack(side="left")
+        cache_frame = ttk.Frame(source_labelframe)
+        cache_frame.pack(fill="x", padx=8, pady=(0, 6))
+        ttk.Label(cache_frame, textvariable=self.cache_status_var, foreground="gray30").pack(
+            side="left", padx=(0, 8)
+        )
+        ttk.Button(cache_frame, text="Clear cache", command=self.clear_cache).pack(side="left")
 
         # --- Input panes ---
-        input_frame = tk.Frame(root)
+        input_frame = ttk.Frame(root)
         input_frame.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=PADX, pady=(PADY, PADY))
         input_frame.grid_columnconfigure(0, weight=1)
         input_frame.grid_columnconfigure(1, weight=1)
         input_frame.grid_rowconfigure(1, weight=1)
 
-        left_header = tk.Frame(input_frame)
+        left_header = ttk.Frame(input_frame)
         left_header.grid(row=0, column=0, sticky="ew")
         left_header.grid_columnconfigure(0, weight=1)
 
-        right_header = tk.Frame(input_frame)
+        right_header = ttk.Frame(input_frame)
         right_header.grid(row=0, column=1, sticky="ew", padx=(8, 0))
         right_header.grid_columnconfigure(0, weight=1)
 
-        tk.Label(left_header, text="Pointed text (display only):", anchor="w").grid(
+        ttk.Label(left_header, text="Pointed text (display only):", anchor="w").grid(
             row=0, column=0, sticky="w"
         )
-        tk.Button(left_header, text="Copy pointed text", command=self.copy_pointed_to_clipboard).grid(
+        ttk.Button(left_header, text="Copy pointed text", command=self.copy_pointed_to_clipboard).grid(
             row=0, column=1, sticky="e"
         )
 
-        tk.Label(right_header, text="Text only (display only):", anchor="w").grid(row=0, column=0, sticky="w")
-        tk.Button(right_header, text="Copy text-only", command=self.copy_plain_to_clipboard).grid(
+        ttk.Label(right_header, text="Text only (display only):", anchor="w").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Button(right_header, text="Copy text-only", command=self.copy_plain_to_clipboard).grid(
             row=0, column=1, sticky="e"
         )
 
-        pointed_pane = tk.Frame(input_frame)
+        pointed_pane = ttk.Frame(input_frame)
         pointed_pane.grid(row=1, column=0, sticky="nsew", pady=(2, 0))
         pointed_pane.grid_rowconfigure(0, weight=1)
         pointed_pane.grid_columnconfigure(0, weight=1)
 
         self.input_box = tk.Text(
             pointed_pane, wrap=tk.NONE, width=60, height=8, undo=False,
-            font=("SBL Hebrew", 12), insertwidth=0,
+            font=(pick_hebrew_font(), 13), insertwidth=0,
         )
         self.input_box.grid(row=0, column=0, sticky="nsew")
 
-        pointed_scroll_y = tk.Scrollbar(pointed_pane, orient="vertical", command=self.input_box.yview)
+        pointed_scroll_y = ttk.Scrollbar(pointed_pane, orient="vertical", command=self.input_box.yview)
         pointed_scroll_y.grid(row=0, column=1, sticky="ns")
         self.input_box.configure(yscrollcommand=pointed_scroll_y.set)
 
-        pointed_scroll_x = tk.Scrollbar(pointed_pane, orient="horizontal", command=self.input_box.xview)
+        pointed_scroll_x = ttk.Scrollbar(pointed_pane, orient="horizontal", command=self.input_box.xview)
         pointed_scroll_x.grid(row=1, column=0, sticky="ew")
         self.input_box.configure(xscrollcommand=pointed_scroll_x.set)
 
-        plain_pane = tk.Frame(input_frame)
+        plain_pane = ttk.Frame(input_frame)
         plain_pane.grid(row=1, column=1, sticky="nsew", padx=(8, 0), pady=(2, 0))
         plain_pane.grid_rowconfigure(0, weight=1)
         plain_pane.grid_columnconfigure(0, weight=1)
 
         self.plain_box = tk.Text(
             plain_pane, wrap=tk.NONE, width=60, height=8, undo=False,
-            font=("SBL Hebrew", 12), insertwidth=0,
+            font=(pick_hebrew_font(), 13), insertwidth=0,
         )
         self.plain_box.grid(row=0, column=0, sticky="nsew")
 
-        plain_scroll_y = tk.Scrollbar(plain_pane, orient="vertical", command=self.plain_box.yview)
+        plain_scroll_y = ttk.Scrollbar(plain_pane, orient="vertical", command=self.plain_box.yview)
         plain_scroll_y.grid(row=0, column=1, sticky="ns")
         self.plain_box.configure(yscrollcommand=plain_scroll_y.set)
 
-        plain_scroll_x = tk.Scrollbar(plain_pane, orient="horizontal", command=self.plain_box.xview)
+        plain_scroll_x = ttk.Scrollbar(plain_pane, orient="horizontal", command=self.plain_box.xview)
         plain_scroll_x.grid(row=1, column=0, sticky="ew")
         self.plain_box.configure(xscrollcommand=plain_scroll_x.set)
 
         self.input_box.config(state="disabled")
         self.plain_box.config(state="disabled")
 
-        tk.Label(input_frame, textvariable=self.line_count_var, anchor="e").grid(
+        ttk.Label(input_frame, textvariable=self.line_count_var, anchor="e").grid(
             row=2, column=0, columnspan=2, sticky="e", pady=(4, 0)
         )
 
         # --- Options + Buttons ---
-        options_frame = tk.Frame(root)
+        options_frame = ttk.Frame(root)
         options_frame.grid(row=3, column=0, sticky="w", padx=PADX, pady=(0, PADY))
 
-        tk.Label(options_frame, text="Max disjunctive groups per leaf:", anchor="w").grid(
+        ttk.Label(options_frame, text="Max disjunctive groups per leaf:", anchor="w").grid(
             row=0, column=0, sticky="w"
         )
 
-        self.max_leaf_entry = tk.Entry(options_frame, width=5, justify="left")
+        self.max_leaf_entry = ttk.Entry(options_frame, width=5, justify="left")
         self.max_leaf_entry.insert(0, "2")
         self.max_leaf_entry.grid(row=0, column=1, sticky="w", padx=(6, 0))
 
-        tk.Checkbutton(
+        ttk.Checkbutton(
             options_frame, text="Reset cloze numbering for each line",
-            variable=self.reset_per_line_var, anchor="w", justify="left"
+            variable=self.reset_per_line_var,
         ).grid(row=0, column=2, sticky="w", padx=(12, 0))
 
-        button_frame = tk.Frame(root)
+        button_frame = ttk.Frame(root)
         button_frame.grid(row=3, column=1, sticky="e", padx=PADX, pady=(0, PADY))
 
-        tk.Button(button_frame, text="Generate cloze cards", command=self.generate_output).grid(
+        ttk.Button(button_frame, text="Generate cloze cards", command=self.generate_output).grid(
             row=0, column=0, padx=(0, 6)
         )
-        tk.Button(button_frame, text="Copy cloze output", command=self.copy_cloze_to_clipboard).grid(
+        ttk.Button(button_frame, text="Copy cloze output", command=self.copy_cloze_to_clipboard).grid(
             row=0, column=1, padx=(0, 6)
         )
-        tk.Button(button_frame, text="Export to CSV", command=self.export_to_csv).grid(
+        ttk.Button(button_frame, text="Export to CSV", command=self.export_to_csv).grid(
             row=0, column=2, padx=(0, 6)
         )
-        tk.Button(button_frame, text="Show Stats", command=self.show_stats).grid(row=0, column=3)
+        ttk.Button(button_frame, text="Show Stats", command=self.show_stats).grid(row=0, column=3)
 
         # --- Output + Tokens ---
-        output_frame = tk.Frame(root)
+        output_frame = ttk.Frame(root)
         output_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=PADX, pady=(0, PADY))
         output_frame.grid_columnconfigure(0, weight=3)
         output_frame.grid_columnconfigure(1, weight=1)
         output_frame.grid_rowconfigure(1, weight=1)
 
-        tk.Label(output_frame, text="Output:", anchor="w").grid(row=0, column=0, sticky="w")
+        ttk.Label(output_frame, text="Output:", anchor="w").grid(row=0, column=0, sticky="w")
 
-        left_output_frame = tk.Frame(output_frame)
+        left_output_frame = ttk.Frame(output_frame)
         left_output_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 8))
 
         self.output_box = tk.Text(left_output_frame, wrap=tk.WORD, width=60, height=6)
         self.output_box.pack(fill="both", expand=True)
 
-        right_tokens_frame = tk.Frame(output_frame)
+        right_tokens_frame = ttk.Frame(output_frame)
         right_tokens_frame.grid(row=1, column=1, sticky="nsew")
 
-        tk.Label(right_tokens_frame, text="Minimum disjunctive groups:", anchor="w").pack(anchor="w")
+        ttk.Label(right_tokens_frame, text="Minimum disjunctive groups:", anchor="w").pack(anchor="w")
 
         self.tokens_box = tk.Text(right_tokens_frame, wrap=tk.WORD, width=32, height=6, font=("Courier", 10))
         self.tokens_box.pack(fill="both", expand=True)
 
         # --- Visualization ---
-        tk.Label(root, text="Visualization:", anchor="w").grid(
+        ttk.Label(root, text="Visualization:", anchor="w").grid(
             row=5, column=0, columnspan=2, sticky="w", padx=PADX, pady=(0, 2)
         )
 
-        self.viz_output = tk.Text(root, wrap=tk.WORD, width=100, height=14, font=("Courier", 11))
+        self.viz_output = tk.Text(root, wrap=tk.WORD, width=100, height=14, font=(pick_hebrew_font(), 13))
         self.viz_output.grid(row=6, column=0, columnspan=2, sticky="nsew", padx=PADX, pady=(0, PADY))
 
     def _wire_traces(self) -> None:
@@ -765,11 +777,25 @@ class AnkiPasukApp:
         self.parasha_var.trace_add("write", self.update_aliyah_dropdown)
 
 
+def apply_best_theme(root: tk.Tk) -> None:
+    """Switch to the most modern-looking ttk theme actually available,
+    without changing any layout. Tk's default theme looks dated on every
+    platform; 'vista' (Windows-native) is the best option where present,
+    'clam' is a good flat cross-platform fallback everywhere else."""
+    style = ttk.Style(root)
+    available = set(style.theme_names())
+    for candidate in ("vista", "xpnative", "clam", "aqua"):
+        if candidate in available:
+            style.theme_use(candidate)
+            return
+
+
 def main() -> None:
     root = tk.Tk()
     root.title("Nested Anki Cloze Generator")
     root.geometry("1280x920")
     root.minsize(980, 720)
+    apply_best_theme(root)
 
     AnkiPasukApp(root)
 
