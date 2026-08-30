@@ -79,7 +79,7 @@ class AnkiPasukApp:
         self.parasha_var = tk.StringVar(value="")
         self.aliyah_var = tk.StringVar(value="1")
 
-        self.reset_per_line_var = tk.BooleanVar(value=False)
+        self.reset_per_line_var = tk.BooleanVar(value=True)
         self.line_count_var = tk.StringVar(value="Lines: 0")
         self.cache_status_var = tk.StringVar(value="")
 
