@@ -1,0 +1,1386 @@
+[
+  {
+    "slug": "rosh_hashana_i",
+    "display_name": "Rosh Hashana I",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Genesis",
+        "start": "21:1",
+        "end": "21:4"
+      },
+      {
+        "num": "2",
+        "book": "Genesis",
+        "start": "21:5",
+        "end": "21:12"
+      },
+      {
+        "num": "3",
+        "book": "Genesis",
+        "start": "21:13",
+        "end": "21:21"
+      },
+      {
+        "num": "4",
+        "book": "Genesis",
+        "start": "21:22",
+        "end": "21:27"
+      },
+      {
+        "num": "5",
+        "book": "Genesis",
+        "start": "21:28",
+        "end": "21:34"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:1",
+      "end": "29:6"
+    }
+  },
+  {
+    "slug": "rosh_hashana_ii",
+    "display_name": "Rosh Hashana II",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Genesis",
+        "start": "22:1",
+        "end": "22:3"
+      },
+      {
+        "num": "2",
+        "book": "Genesis",
+        "start": "22:4",
+        "end": "22:8"
+      },
+      {
+        "num": "3",
+        "book": "Genesis",
+        "start": "22:9",
+        "end": "22:14"
+      },
+      {
+        "num": "4",
+        "book": "Genesis",
+        "start": "22:15",
+        "end": "22:19"
+      },
+      {
+        "num": "5",
+        "book": "Genesis",
+        "start": "22:20",
+        "end": "22:24"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:1",
+      "end": "29:6"
+    }
+  },
+  {
+    "slug": "yom_kippur",
+    "display_name": "Yom Kippur",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Leviticus",
+        "start": "16:1",
+        "end": "16:6"
+      },
+      {
+        "num": "2",
+        "book": "Leviticus",
+        "start": "16:7",
+        "end": "16:11"
+      },
+      {
+        "num": "3",
+        "book": "Leviticus",
+        "start": "16:12",
+        "end": "16:17"
+      },
+      {
+        "num": "4",
+        "book": "Leviticus",
+        "start": "16:18",
+        "end": "16:24"
+      },
+      {
+        "num": "5",
+        "book": "Leviticus",
+        "start": "16:25",
+        "end": "16:30"
+      },
+      {
+        "num": "6",
+        "book": "Leviticus",
+        "start": "16:31",
+        "end": "16:34"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:7",
+      "end": "29:11"
+    }
+  },
+  {
+    "slug": "yom_kippur_mincha",
+    "display_name": "Yom Kippur (Mincha)",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Leviticus",
+        "start": "18:1",
+        "end": "18:5"
+      },
+      {
+        "num": "2",
+        "book": "Leviticus",
+        "start": "18:6",
+        "end": "18:21"
+      }
+    ],
+    "maftir": {
+      "book": "Leviticus",
+      "start": "18:22",
+      "end": "18:30"
+    }
+  },
+  {
+    "slug": "sukkot_i",
+    "display_name": "Sukkot I",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Leviticus",
+        "start": "22:26",
+        "end": "23:3"
+      },
+      {
+        "num": "2",
+        "book": "Leviticus",
+        "start": "23:4",
+        "end": "23:14"
+      },
+      {
+        "num": "3",
+        "book": "Leviticus",
+        "start": "23:15",
+        "end": "23:22"
+      },
+      {
+        "num": "4",
+        "book": "Leviticus",
+        "start": "23:23",
+        "end": "23:32"
+      },
+      {
+        "num": "5",
+        "book": "Leviticus",
+        "start": "23:33",
+        "end": "23:44"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:12",
+      "end": "29:16"
+    }
+  },
+  {
+    "slug": "sukkot_ii",
+    "display_name": "Sukkot II",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Leviticus",
+        "start": "22:26",
+        "end": "23:3"
+      },
+      {
+        "num": "2",
+        "book": "Leviticus",
+        "start": "23:4",
+        "end": "23:14"
+      },
+      {
+        "num": "3",
+        "book": "Leviticus",
+        "start": "23:15",
+        "end": "23:22"
+      },
+      {
+        "num": "4",
+        "book": "Leviticus",
+        "start": "23:23",
+        "end": "23:32"
+      },
+      {
+        "num": "5",
+        "book": "Leviticus",
+        "start": "23:33",
+        "end": "23:44"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:12",
+      "end": "29:16"
+    }
+  },
+  {
+    "slug": "sukkot_chol_ha_moed_day_1",
+    "display_name": "Sukkot Chol ha-Moed Day 1",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:17",
+        "end": "29:19"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:20",
+        "end": "29:22"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:23",
+        "end": "29:25"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:17",
+        "end": "29:22"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "sukkot_chol_ha_moed_day_2",
+    "display_name": "Sukkot Chol ha-Moed Day 2",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:20",
+        "end": "29:22"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:23",
+        "end": "29:25"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:26",
+        "end": "29:28"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:20",
+        "end": "29:25"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "sukkot_chol_ha_moed_day_3",
+    "display_name": "Sukkot Chol ha-Moed Day 3",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:23",
+        "end": "29:25"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:26",
+        "end": "29:28"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:31"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:23",
+        "end": "29:28"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "sukkot_chol_ha_moed_day_4",
+    "display_name": "Sukkot Chol ha-Moed Day 4",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:26",
+        "end": "29:28"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:31"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:32",
+        "end": "29:34"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:26",
+        "end": "29:31"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "sukkot_chol_ha_moed_day_5",
+    "display_name": "Sukkot Chol ha-Moed Day 5",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:31"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:32",
+        "end": "29:34"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:35",
+        "end": "29:37"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:34"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "sukkot_final_day_hoshana_raba",
+    "display_name": "Sukkot Final Day (Hoshana Raba)",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "29:26",
+        "end": "29:28"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:31"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "29:32",
+        "end": "29:34"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "29:29",
+        "end": "29:34"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "shmini_atzeret",
+    "display_name": "Shmini Atzeret",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "14:22",
+        "end": "14:29"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "15:1",
+        "end": "15:18"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "15:19",
+        "end": "16:3"
+      },
+      {
+        "num": "4",
+        "book": "Deuteronomy",
+        "start": "16:4",
+        "end": "16:8"
+      },
+      {
+        "num": "5",
+        "book": "Deuteronomy",
+        "start": "16:9",
+        "end": "16:17"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:35",
+      "end": "30:1"
+    }
+  },
+  {
+    "slug": "simchat_torah",
+    "display_name": "Simchat Torah",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "33:1",
+        "end": "33:7"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "33:8",
+        "end": "33:12"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "33:13",
+        "end": "33:17"
+      },
+      {
+        "num": "4",
+        "book": "Deuteronomy",
+        "start": "33:18",
+        "end": "33:21"
+      },
+      {
+        "num": "5",
+        "book": "Deuteronomy",
+        "start": "33:22",
+        "end": "33:26"
+      },
+      {
+        "num": "6",
+        "book": "Deuteronomy",
+        "start": "33:27",
+        "end": "34:12"
+      },
+      {
+        "num": "7",
+        "book": "Genesis",
+        "start": "1:1",
+        "end": "2:3"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "29:35",
+      "end": "30:1"
+    }
+  },
+  {
+    "slug": "pesach_i",
+    "display_name": "Pesach I",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "12:21",
+        "end": "12:24"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "12:25",
+        "end": "12:28"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "12:29",
+        "end": "12:36"
+      },
+      {
+        "num": "4",
+        "book": "Exodus",
+        "start": "12:37",
+        "end": "12:42"
+      },
+      {
+        "num": "5",
+        "book": "Exodus",
+        "start": "12:43",
+        "end": "12:51"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:16",
+      "end": "28:25"
+    }
+  },
+  {
+    "slug": "pesach_ii",
+    "display_name": "Pesach II",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Leviticus",
+        "start": "22:26",
+        "end": "23:3"
+      },
+      {
+        "num": "2",
+        "book": "Leviticus",
+        "start": "23:4",
+        "end": "23:14"
+      },
+      {
+        "num": "3",
+        "book": "Leviticus",
+        "start": "23:15",
+        "end": "23:22"
+      },
+      {
+        "num": "4",
+        "book": "Leviticus",
+        "start": "23:23",
+        "end": "23:32"
+      },
+      {
+        "num": "5",
+        "book": "Leviticus",
+        "start": "23:33",
+        "end": "23:44"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:16",
+      "end": "28:25"
+    }
+  },
+  {
+    "slug": "pesach_chol_ha_moed_day_1",
+    "display_name": "Pesach Chol ha-Moed Day 1",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "13:1",
+        "end": "13:4"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "13:5",
+        "end": "13:10"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "13:11",
+        "end": "13:16"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "28:19",
+        "end": "28:25"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "pesach_chol_ha_moed_day_2",
+    "display_name": "Pesach Chol ha-Moed Day 2",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "22:24",
+        "end": "22:26"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "22:27",
+        "end": "23:5"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "23:6",
+        "end": "23:19"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "28:19",
+        "end": "28:25"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "pesach_chol_ha_moed_day_3",
+    "display_name": "Pesach Chol ha-Moed Day 3",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:10"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:11",
+        "end": "34:17"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "34:18",
+        "end": "34:26"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "28:19",
+        "end": "28:25"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "pesach_chol_ha_moed_day_4",
+    "display_name": "Pesach Chol ha-Moed Day 4",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "9:1",
+        "end": "9:5"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "9:6",
+        "end": "9:8"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "9:9",
+        "end": "9:14"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "28:19",
+        "end": "28:25"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "pesach_vii",
+    "display_name": "Pesach VII",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "13:17",
+        "end": "13:22"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "14:1",
+        "end": "14:8"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "14:9",
+        "end": "14:14"
+      },
+      {
+        "num": "4",
+        "book": "Exodus",
+        "start": "14:15",
+        "end": "14:25"
+      },
+      {
+        "num": "5",
+        "book": "Exodus",
+        "start": "14:26",
+        "end": "15:26"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:19",
+      "end": "28:25"
+    }
+  },
+  {
+    "slug": "pesach_viii",
+    "display_name": "Pesach VIII",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "15:19",
+        "end": "15:23"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "16:1",
+        "end": "16:3"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "16:4",
+        "end": "16:8"
+      },
+      {
+        "num": "4",
+        "book": "Deuteronomy",
+        "start": "16:9",
+        "end": "16:12"
+      },
+      {
+        "num": "5",
+        "book": "Deuteronomy",
+        "start": "16:13",
+        "end": "16:17"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:19",
+      "end": "28:25"
+    }
+  },
+  {
+    "slug": "shavuot_i",
+    "display_name": "Shavuot I",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "19:1",
+        "end": "19:6"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "19:7",
+        "end": "19:13"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "19:14",
+        "end": "19:19"
+      },
+      {
+        "num": "4",
+        "book": "Exodus",
+        "start": "19:20",
+        "end": "20:14"
+      },
+      {
+        "num": "5",
+        "book": "Exodus",
+        "start": "20:15",
+        "end": "20:23"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:26",
+      "end": "28:31"
+    }
+  },
+  {
+    "slug": "shavuot_ii",
+    "display_name": "Shavuot II",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "15:19",
+        "end": "15:23"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "16:1",
+        "end": "16:3"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "16:4",
+        "end": "16:8"
+      },
+      {
+        "num": "4",
+        "book": "Deuteronomy",
+        "start": "16:9",
+        "end": "16:12"
+      },
+      {
+        "num": "5",
+        "book": "Deuteronomy",
+        "start": "16:13",
+        "end": "16:17"
+      }
+    ],
+    "maftir": {
+      "book": "Numbers",
+      "start": "28:26",
+      "end": "28:31"
+    }
+  },
+  {
+    "slug": "chanukah_day_1",
+    "display_name": "Chanukah Day 1",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:1",
+        "end": "7:11"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:12",
+        "end": "7:14"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:15",
+        "end": "7:17"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_2",
+    "display_name": "Chanukah Day 2",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:18",
+        "end": "7:20"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:21",
+        "end": "7:23"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:24",
+        "end": "7:29"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_3",
+    "display_name": "Chanukah Day 3",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:24",
+        "end": "7:26"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:27",
+        "end": "7:29"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:30",
+        "end": "7:35"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_4",
+    "display_name": "Chanukah Day 4",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:30",
+        "end": "7:32"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:33",
+        "end": "7:35"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:36",
+        "end": "7:41"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_5",
+    "display_name": "Chanukah Day 5",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:36",
+        "end": "7:38"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:39",
+        "end": "7:41"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:42",
+        "end": "7:47"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_6",
+    "display_name": "Chanukah Day 6",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "28:1",
+        "end": "28:5"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "28:6",
+        "end": "28:10"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "28:11",
+        "end": "28:15"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "7:42",
+        "end": "7:47"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_7",
+    "display_name": "Chanukah Day 7",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:48",
+        "end": "7:50"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:51",
+        "end": "7:53"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:54",
+        "end": "7:59"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "chanukah_day_8",
+    "display_name": "Chanukah Day 8",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "7:54",
+        "end": "7:56"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "7:57",
+        "end": "7:59"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "7:60",
+        "end": "8:4"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "rosh_chodesh",
+    "display_name": "Rosh Chodesh",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Numbers",
+        "start": "28:1",
+        "end": "28:3"
+      },
+      {
+        "num": "2",
+        "book": "Numbers",
+        "start": "28:3",
+        "end": "28:5"
+      },
+      {
+        "num": "3",
+        "book": "Numbers",
+        "start": "28:6",
+        "end": "28:10"
+      },
+      {
+        "num": "4",
+        "book": "Numbers",
+        "start": "28:11",
+        "end": "28:15"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "purim",
+    "display_name": "Purim",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "17:8",
+        "end": "17:10"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "17:11",
+        "end": "17:13"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "17:14",
+        "end": "17:16"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "shushan_purim",
+    "display_name": "Shushan Purim",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "17:8",
+        "end": "17:10"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "17:11",
+        "end": "17:13"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "17:14",
+        "end": "17:16"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "taanit_esther",
+    "display_name": "Ta'anit Esther",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "32:11",
+        "end": "32:14"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:3"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "34:4",
+        "end": "34:10"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "shabbat_shekalim",
+    "display_name": "Shabbat Shekalim",
+    "aliyot": [],
+    "maftir": {
+      "book": "Exodus",
+      "start": "30:11",
+      "end": "30:16"
+    }
+  },
+  {
+    "slug": "shabbat_zachor",
+    "display_name": "Shabbat Zachor",
+    "aliyot": [],
+    "maftir": {
+      "book": "Deuteronomy",
+      "start": "25:17",
+      "end": "25:19"
+    }
+  },
+  {
+    "slug": "shabbat_parah",
+    "display_name": "Shabbat Parah",
+    "aliyot": [],
+    "maftir": {
+      "book": "Numbers",
+      "start": "19:1",
+      "end": "19:22"
+    }
+  },
+  {
+    "slug": "shabbat_hachodesh",
+    "display_name": "Shabbat HaChodesh",
+    "aliyot": [],
+    "maftir": {
+      "book": "Exodus",
+      "start": "12:1",
+      "end": "12:20"
+    }
+  },
+  {
+    "slug": "tzom_gedaliah",
+    "display_name": "Tzom Gedaliah",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "32:11",
+        "end": "32:14"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:3"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "34:4",
+        "end": "34:10"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "asara_btevet",
+    "display_name": "Asara B'Tevet",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "32:11",
+        "end": "32:14"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:3"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "34:4",
+        "end": "34:10"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "tzom_tammuz",
+    "display_name": "Tzom Tammuz",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "32:11",
+        "end": "32:14"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:3"
+      },
+      {
+        "num": "3",
+        "book": "Exodus",
+        "start": "34:4",
+        "end": "34:10"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "tisha_bav",
+    "display_name": "Tish'a B'Av",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "4:25",
+        "end": "4:29"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "4:30",
+        "end": "4:35"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "4:36",
+        "end": "4:40"
+      }
+    ],
+    "maftir": null
+  },
+  {
+    "slug": "tisha_bav_mincha",
+    "display_name": "Tish'a B'Av (Mincha)",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Exodus",
+        "start": "32:11",
+        "end": "32:14"
+      },
+      {
+        "num": "2",
+        "book": "Exodus",
+        "start": "34:1",
+        "end": "34:3"
+      }
+    ],
+    "maftir": {
+      "book": "Exodus",
+      "start": "34:4",
+      "end": "34:10"
+    }
+  },
+  {
+    "slug": "yom_haatzmaut",
+    "display_name": "Yom HaAtzma'ut",
+    "aliyot": [
+      {
+        "num": "1",
+        "book": "Deuteronomy",
+        "start": "7:12",
+        "end": "7:21"
+      },
+      {
+        "num": "2",
+        "book": "Deuteronomy",
+        "start": "7:22",
+        "end": "8:3"
+      },
+      {
+        "num": "3",
+        "book": "Deuteronomy",
+        "start": "8:4",
+        "end": "8:18"
+      }
+    ],
+    "maftir": null
+  }
+]

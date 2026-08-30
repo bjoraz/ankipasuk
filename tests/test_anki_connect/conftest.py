@@ -16,6 +16,7 @@ class FakeAnki:
     def __init__(self):
         self._next_card_id = 1
         self.cards: dict[int, dict] = {}   # cardId -> card dict
+        self.notes: dict[int, dict] = {}   # noteId -> {"deck", "tags", "fields"}
         self.calls: list[tuple[str, dict]] = []
 
     def add_note(self, note_id: int, deck: str, ords_and_intervals: list[tuple[int, int]]) -> None:
@@ -32,6 +33,13 @@ class FakeAnki:
                 "deck": deck,
                 "suspended": False,
             }
+
+    def add_note_with_fields(
+        self, note_id: int, deck: str, fields: dict[str, str], tags: list[str] | None = None
+    ) -> None:
+        """Add a note with the given field values and tags, for tests that
+        exercise note-level (rather than card-level) operations."""
+        self.notes[note_id] = {"deck": deck, "tags": list(tags or []), "fields": dict(fields)}
 
     # --- the AnkiConnect-shaped API surface used by operations.py --------
     def invoke(self, action: str, **params):
@@ -92,6 +100,33 @@ class FakeAnki:
 
     def _do_answerCards(self, answers: list[dict]):
         return [True for _ in answers]
+
+    def _do_findNotes(self, query: str):
+        # Only "deck:X" is needed for the tagging tool.
+        assert query.startswith("deck:"), f"FakeAnki findNotes: unsupported query {query!r}"
+        deck = query[len("deck:"):]
+        return [nid for nid, n in self.notes.items() if n["deck"] == deck]
+
+    def _do_notesInfo(self, notes: list[int]):
+        out = []
+        for nid in notes:
+            n = self.notes[nid]
+            fields = {
+                name: {"value": value, "order": i}
+                for i, (name, value) in enumerate(n["fields"].items())
+            }
+            out.append({
+                "noteId": nid, "modelName": "Leyning (by pasuk)",
+                "tags": list(n["tags"]), "fields": fields,
+            })
+        return out
+
+    def _do_addTags(self, notes: list[int], tags: str):
+        for nid in notes:
+            existing = set(self.notes[nid]["tags"])
+            existing.update(tags.split())
+            self.notes[nid]["tags"] = sorted(existing)
+        return None
 
 
 @pytest.fixture

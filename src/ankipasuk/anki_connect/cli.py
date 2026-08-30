@@ -14,6 +14,7 @@ import sys
 
 from .client import DEFAULT_URL, AnkiConnectError, invoke
 from .scheduling import initialize_stems, process_lapses, process_promotions
+from .tagging import apply_tagging_plan, compute_tagging_plan
 
 
 def _pause() -> None:
@@ -144,6 +145,66 @@ def sync_scheduling_cli(
         _pause()
 
 
+def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: bool = True) -> None:
+    from ..cache import SefariaCache
+
+    print()
+    print("=" * 60)
+    print("PARASHA / ALIYAH / MAFTIR / HOLIDAY TAGGER")
+    print("=" * 60)
+    print()
+    print(f"Deck: {deck}")
+    print("MODE:", "DRY RUN" if dry_run else "LIVE")
+
+    try:
+        print()
+        print("Connecting to Anki...")
+        version = invoke("version", url=url)
+        print(f"Connected. AnkiConnect version: {version}")
+
+        print()
+        print("Fetching notes and computing tags (this may take a moment on first")
+        print("run, while Sefaria's parasha structure is fetched and cached)...")
+        cache = SefariaCache()
+        plan = compute_tagging_plan(deck, url=url, cache=cache)
+
+        print()
+        summary = apply_tagging_plan(plan, url=url, dry_run=dry_run, log=print)
+    except AnkiConnectError as e:
+        print()
+        print("ERROR")
+        print("-" * 40)
+        print(e)
+        if pause:
+            _pause()
+        sys.exit(1)
+
+    print()
+    print("=" * 60)
+    print("DONE")
+    print("=" * 60)
+    print()
+    print(f"Total notes:              {summary['total_notes']}")
+    print(f"Notes not a Torah ref:    {summary['unparsed_notes']}")
+    print(f"Notes tagged:             {summary['notes_needing_tags']}")
+    print(f"Tags added:               {summary['total_tags_to_add']}")
+    print(f"Conflicts (left as-is):   {summary['notes_with_conflicts']}")
+
+    if summary["notes_with_conflicts"]:
+        print()
+        print("Some notes already had a tag that looks like ours but doesn't match")
+        print("what was computed. These were left untouched -- see the CONFLICT")
+        print("lines above and review by hand.")
+
+    if dry_run:
+        print()
+        print("DRY RUN -- no changes were made.")
+        print("If the plan looks correct, change DRY_RUN to False.")
+
+    if pause:
+        _pause()
+
+
 # =============================================================
 #  console_scripts entry points (installed via pip; terminal use,
 #  as an alternative to double-clicking the scripts/ wrappers)
@@ -180,3 +241,16 @@ def _console_sync_scheduling() -> None:
     sync_scheduling_cli(
         args.deck, args.promotion_interval, url=args.url, dry_run=args.dry_run, pause=False
     )
+
+
+def _console_tag_deck() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Tag every note in a deck with its parasha/aliyah/Maftir/holiday tags."
+    )
+    parser.add_argument("deck", help='e.g. "Leyning"')
+    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
+    args = parser.parse_args()
+    tag_deck_cli(args.deck, url=args.url, dry_run=args.dry_run, pause=False)

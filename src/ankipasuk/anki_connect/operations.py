@@ -14,6 +14,23 @@ def find_cards(query: str, *, url: str) -> list[int]:
     return invoke("findCards", url=url, query=query)
 
 
+def find_notes(query: str, *, url: str) -> list[int]:
+    return invoke("findNotes", url=url, query=query)
+
+
+def notes_info(note_ids: list[int], *, url: str) -> list[dict]:
+    if not note_ids:
+        return []
+    return invoke("notesInfo", url=url, notes=note_ids)
+
+
+def add_tags(note_ids: list[int], tags: str, *, url: str, dry_run: bool) -> None:
+    """Add one or more space-separated tags to every note in ``note_ids``."""
+    if not note_ids or dry_run:
+        return
+    invoke("addTags", url=url, notes=note_ids, tags=tags)
+
+
 def cards_info(card_ids: list[int], *, url: str) -> list[dict]:
     if not card_ids:
         return []

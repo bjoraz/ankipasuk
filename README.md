@@ -30,6 +30,9 @@ grammatical break down to individual words.
   full-verse cloze is well-memorized, automatically suspend its easier
   partial-clue clozes, and bring them back if the full verse later lapses.
   See [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
+- **Automatic parasha/aliyah/Maftir/holiday tagging** (optional, via
+  AnkiConnect): tag every note with where its verse falls in the annual
+  Torah reading cycle. See [`docs/anki-tagging.md`](docs/anki-tagging.md).
 
 ## Installation
 
@@ -87,9 +90,12 @@ src/ankipasuk/
 ├── anki_connect/            # Optional: AnkiConnect scheduling automation
 │   ├── client.py             #   raw JSON-RPC client
 │   ├── notes.py               #   pure stem/leaf identification (no network)
-│   ├── operations.py           #   AnkiConnect-backed card operations
+│   ├── operations.py           #   AnkiConnect-backed card & note operations
 │   ├── scheduling.py            #   promotion / lapse-recovery policy
-│   └── cli.py                    #   console-friendly wrappers
+│   ├── tagging.py                #   parasha/aliyah/Maftir/holiday tagging
+│   └── cli.py                     #   console-friendly wrappers
+├── leyning.py               # Parasha/aliyah/Maftir/holiday tag computation (no network)
+├── data/                    # Bundled parasha & holiday-reading tables (see THIRD_PARTY_NOTICES.md)
 └── gui/
     ├── app.py            # Main window (AnkiPasukApp)
     ├── stats_window.py   # "Corpus statistics" window
@@ -98,10 +104,12 @@ src/ankipasuk/
 scripts/                  # Double-click-friendly wrappers around anki_connect
 ├── test_anki_connect.py
 ├── flag_stem_cards.py
-└── update_mature_cards.py
+├── update_mature_cards.py
+└── tag_deck.py
 
 docs/
-└── anki-scheduling.md    # Anki scheduling automation: how it works, how to run it
+├── anki-scheduling.md    # Anki scheduling automation: how it works, how to run it
+└── anki-tagging.md       # Automatic tagging: how it works, how to run it
 ```
 
 Only `gui/` depends on `tkinter`; everything else is pure Python + `requests`,
@@ -123,14 +131,22 @@ using small, hand-built verses with real trope Unicode combining marks, so
 they don't depend on network access to Sefaria. `tests/test_cache.py`
 specifically verifies that a repeat fetch of the same reference is served
 from disk instead of hitting the network again. `tests/test_anki_connect/`
-exercises the promotion/lapse-recovery scheduling logic end-to-end against
-an in-memory fake AnkiConnect backend, so it runs without Anki installed.
+exercises the promotion/lapse-recovery scheduling logic, and the tagging
+logic, end-to-end against an in-memory fake AnkiConnect backend, so it
+runs without Anki installed. `tests/test_leyning.py` covers the
+parasha/aliyah/Maftir/holiday tag computation itself, including the
+Genesis 31/32 Maftir chapter-boundary edge case.
 
 ## Acknowledgments
 
 Verse text and cantillation marks courtesy of the
 [Sefaria API](https://www.sefaria.org/). This project is not affiliated with
 Sefaria.
+
+Maftir verse counts and the holiday/fast-day reading table are derived from
+[`@hebcal/leyning`](https://github.com/hebcal/hebcal-leyning) (BSD-2-Clause).
+See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for details. This
+project is not affiliated with Hebcal.
 
 ## License
 
