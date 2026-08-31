@@ -116,28 +116,29 @@ def fetch_torah_range(book: str, start_ch: int, start_vs: int, end_ch: int, end_
 
     verse_data = []
 
-    for ch in range(start_ch, end_ch + 1):
-        chapter_pointed = get_text_for_ref(f"{book} {ch}", version_param, cache)
-        max_verse = len(chapter_pointed)
+    with cache.defer_saves():
+        for ch in range(start_ch, end_ch + 1):
+            chapter_pointed = get_text_for_ref(f"{book} {ch}", version_param, cache)
+            max_verse = len(chapter_pointed)
 
-        from_v = start_vs if ch == start_ch else 1
-        to_v = end_vs if ch == end_ch else max_verse
+            from_v = start_vs if ch == start_ch else 1
+            to_v = end_vs if ch == end_ch else max_verse
 
-        if from_v < 1 or to_v < 1 or from_v > max_verse or to_v > max_verse:
-            raise ValueError(
-                f"Verse out of range in {book} {ch}. "
-                f"That chapter has {max_verse} verses."
-            )
+            if from_v < 1 or to_v < 1 or from_v > max_verse or to_v > max_verse:
+                raise ValueError(
+                    f"Verse out of range in {book} {ch}. "
+                    f"That chapter has {max_verse} verses."
+                )
 
-        for vs_idx in range(from_v - 1, to_v):
-            pointed = chapter_pointed[vs_idx]
-            plain = strip_vowels_and_trope(pointed)
-            verse_data.append({
-                "ch": ch,
-                "vs": vs_idx + 1,
-                "pointed": pointed,
-                "plain": plain
-            })
+            for vs_idx in range(from_v - 1, to_v):
+                pointed = chapter_pointed[vs_idx]
+                plain = strip_vowels_and_trope(pointed)
+                verse_data.append({
+                    "ch": ch,
+                    "vs": vs_idx + 1,
+                    "pointed": pointed,
+                    "plain": plain
+                })
 
     return verse_data
 
@@ -159,15 +160,16 @@ def discover_book_structure(
 
     lengths = []
     ch = 1
-    while True:
-        try:
-            chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
-        except RuntimeError:
-            break
-        if not chapter_text:
-            break
-        lengths.append(len(chapter_text))
-        ch += 1
+    with cache.defer_saves():
+        while True:
+            try:
+                chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
+            except RuntimeError:
+                break
+            if not chapter_text:
+                break
+            lengths.append(len(chapter_text))
+            ch += 1
 
     if not lengths:
         raise RuntimeError(f"Could not find any chapters for {book}.")
@@ -210,29 +212,30 @@ def fetch_verse_range(book: str, start_ch: int, start_vs: int, end_ch: int, end_
 
     verse_data = []
 
-    for ch in range(start_ch, end_ch + 1):
-        chapter_pointed = get_text_for_ref(f"{book} {ch}", version_param, cache)
-        max_verse = len(chapter_pointed)
+    with cache.defer_saves():
+        for ch in range(start_ch, end_ch + 1):
+            chapter_pointed = get_text_for_ref(f"{book} {ch}", version_param, cache)
+            max_verse = len(chapter_pointed)
 
-        from_v = start_vs if ch == start_ch else 1
-        to_v = end_vs if ch == end_ch else max_verse
+            from_v = start_vs if ch == start_ch else 1
+            to_v = end_vs if ch == end_ch else max_verse
 
-        if from_v < 1 or to_v < 1 or from_v > max_verse or to_v > max_verse:
-            raise ValueError(
-                f"Verse out of range in {book} {ch}. "
-                f"That chapter has {max_verse} verses."
-            )
+            if from_v < 1 or to_v < 1 or from_v > max_verse or to_v > max_verse:
+                raise ValueError(
+                    f"Verse out of range in {book} {ch}. "
+                    f"That chapter has {max_verse} verses."
+                )
 
-        for vs_idx in range(from_v - 1, to_v):
-            pointed = chapter_pointed[vs_idx]
-            plain = strip_vowels_and_trope(pointed)
-            verse_data.append({
-                "book": book,
-                "ch": ch,
-                "vs": vs_idx + 1,
-                "pointed": pointed,
-                "plain": plain
-            })
+            for vs_idx in range(from_v - 1, to_v):
+                pointed = chapter_pointed[vs_idx]
+                plain = strip_vowels_and_trope(pointed)
+                verse_data.append({
+                    "book": book,
+                    "ch": ch,
+                    "vs": vs_idx + 1,
+                    "pointed": pointed,
+                    "plain": plain
+                })
 
     return verse_data
 
@@ -318,7 +321,8 @@ def get_chapter_lengths(book: str, cache: SefariaCache, version_param: str = POI
     just correcting one hardcoded number.
     """
     lengths = []
-    for ch in range(1, len(TORAH_VERSE_COUNTS[book]) + 1):
-        chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
-        lengths.append(len(chapter_text))
+    with cache.defer_saves():
+        for ch in range(1, len(TORAH_VERSE_COUNTS[book]) + 1):
+            chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
+            lengths.append(len(chapter_text))
     return lengths

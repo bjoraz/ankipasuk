@@ -11,9 +11,17 @@ from __future__ import annotations
 
 import json
 import os
+import time
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 CACHE_FORMAT_VERSION = 1
+
+# How many times to retry an atomic file replace before giving up -- see
+# _write_json_atomic's docstring for why this is needed at all.
+_REPLACE_MAX_ATTEMPTS = 6
+_REPLACE_BASE_DELAY_SECONDS = 0.05
 
 
 def default_cache_dir() -> Path:
@@ -40,8 +48,9 @@ class SefariaCache:
     lookups.
 
     Entries are held in memory for the lifetime of the instance and written
-    through to disk on every write, so a fresh instance pointed at the same
-    ``cache_dir`` immediately sees everything a previous run fetched.
+    through to disk on every write (unless inside a :meth:`defer_saves`
+    block), so a fresh instance pointed at the same ``cache_dir``
+    immediately sees everything a previous run fetched.
     """
 
     def __init__(self, cache_dir: Path | None = None):
@@ -52,6 +61,8 @@ class SefariaCache:
         self._text_cache: dict = {}
         self._parasha_cache: dict = {}
         self._book_structure_cache: dict = {}
+        self._defer_depth = 0  # >0 while inside a defer_saves() block
+        self._dirty: set[str] = set()  # which cache(s) changed since the last flush, while deferred
         self._load()
 
     # --- persistence ----------------------------------------------------
@@ -75,22 +86,104 @@ class SefariaCache:
             return data.get("entries", {})
         return None
 
+    @contextmanager
+    def defer_saves(self):
+        """Suppress the normal write-through-to-disk-on-every-write
+        behavior for the duration of the block, flushing once at the end
+        instead (even if the block raises) -- and only for whichever of
+        the three caches were actually written to during the block, not
+        all three unconditionally.
+
+        For call sites that make many small writes in a tight loop --
+        fetching or probing a book many chapters at a time -- writing the
+        whole cache file to disk after EVERY single entry is both
+        wasteful (one JSON dump of the entire cache per chapter, when one
+        dump at the end would do) and, on Windows specifically, can
+        trigger a transient PermissionError ("being used by another
+        process") if something else -- commonly antivirus real-time
+        scanning, or a cloud-sync client -- briefly holds a handle on the
+        just-written file before the next write tries to replace it
+        again moments later. Writing once at the end instead of dozens of
+        times removes nearly all of that exposure, on top of
+        _write_json_atomic's own retry as a second line of defense.
+
+        Reentrant: nested defer_saves() blocks only flush once, when the
+        outermost one exits, so a function that itself calls another
+        defer_saves()-wrapped function doesn't flush twice.
+        """
+        self._defer_depth += 1
+        try:
+            yield
+        finally:
+            self._defer_depth -= 1
+            if self._defer_depth == 0:
+                self._flush_dirty()
+
+    def _flush_dirty(self) -> None:
+        if "text" in self._dirty:
+            self._write_json_atomic(self.text_path, self._text_cache)
+        if "parasha" in self._dirty:
+            self._write_json_atomic(self.parasha_path, self._parasha_cache)
+        if "book_structure" in self._dirty:
+            self._write_json_atomic(self.book_structure_path, self._book_structure_cache)
+        self._dirty.clear()
+
     @staticmethod
     def _write_json_atomic(path: Path, entries: dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = path.with_suffix(path.suffix + ".tmp")
         payload = {"_version": CACHE_FORMAT_VERSION, "entries": entries}
+        # A unique temp filename per call -- not a fixed "<name>.tmp" --
+        # so that even if two writes to the same path somehow overlap in
+        # time, they can never race over the SAME temp file (one call's
+        # os.replace consuming/renaming the very file another call is
+        # mid-write to, which surfaces as a confusing FileNotFoundError
+        # rather than the more obvious PermissionError).
+        tmp_path = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False)
-        os.replace(tmp_path, path)  # atomic on POSIX and Windows
+
+        # os.replace is documented as atomic on both POSIX and Windows,
+        # but on Windows specifically it can transiently fail with a
+        # sharing-violation PermissionError (WinError 32) if something
+        # else -- commonly antivirus real-time scanning, or a cloud-sync
+        # client like OneDrive -- briefly holds a handle on the
+        # destination file right after a previous write touched it. That
+        # lock is transient by nature (whatever's holding it releases
+        # within milliseconds), so a short retry-with-backoff resolves it
+        # silently rather than crashing the whole app on what is, in
+        # practice, a common Windows environment interaction and not a
+        # real failure -- confirmed against a real crash report showing
+        # exactly this error, repeatedly, during rapid sequential writes.
+        last_error = None
+        for attempt in range(_REPLACE_MAX_ATTEMPTS):
+            try:
+                os.replace(tmp_path, path)
+                return
+            except OSError as e:
+                last_error = e
+                time.sleep(_REPLACE_BASE_DELAY_SECONDS * (2**attempt))
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise last_error
 
     def _save_text(self) -> None:
+        if self._defer_depth:
+            self._dirty.add("text")
+            return
         self._write_json_atomic(self.text_path, self._text_cache)
 
     def _save_parasha(self) -> None:
+        if self._defer_depth:
+            self._dirty.add("parasha")
+            return
         self._write_json_atomic(self.parasha_path, self._parasha_cache)
 
     def _save_book_structure(self) -> None:
+        if self._defer_depth:
+            self._dirty.add("book_structure")
+            return
         self._write_json_atomic(self.book_structure_path, self._book_structure_cache)
 
     # --- verse text cache -------------------------------------------------
