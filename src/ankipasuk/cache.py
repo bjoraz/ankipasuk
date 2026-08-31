@@ -48,14 +48,17 @@ class SefariaCache:
         self.cache_dir = Path(cache_dir) if cache_dir is not None else default_cache_dir()
         self.text_path = self.cache_dir / "text_cache.json"
         self.parasha_path = self.cache_dir / "parasha_cache.json"
+        self.book_structure_path = self.cache_dir / "book_structure_cache.json"
         self._text_cache: dict = {}
         self._parasha_cache: dict = {}
+        self._book_structure_cache: dict = {}
         self._load()
 
     # --- persistence ----------------------------------------------------
     def _load(self) -> None:
         self._text_cache = self._read_json(self.text_path) or {}
         self._parasha_cache = self._read_json(self.parasha_path) or {}
+        self._book_structure_cache = self._read_json(self.book_structure_path) or {}
 
     @staticmethod
     def _read_json(path: Path) -> dict | None:
@@ -87,6 +90,9 @@ class SefariaCache:
     def _save_parasha(self) -> None:
         self._write_json_atomic(self.parasha_path, self._parasha_cache)
 
+    def _save_book_structure(self) -> None:
+        self._write_json_atomic(self.book_structure_path, self._book_structure_cache)
+
     # --- verse text cache -------------------------------------------------
     @staticmethod
     def _text_key(ref_str: str, version_param: str) -> str:
@@ -109,12 +115,26 @@ class SefariaCache:
         self._parasha_cache[book] = structure
         self._save_parasha()
 
+    # --- book-structure cache (per-chapter verse counts) --------------------
+    # Used for books without a hardcoded TORAH_VERSE_COUNTS-style table
+    # (all of Nevi'im and the Megillot) -- discovered live once by probing
+    # Sefaria chapter by chapter (see sefaria.discover_book_structure),
+    # then cached here so every subsequent use -- even in a later app
+    # run -- is instant, no re-probing needed.
+    def get_book_structure(self, book: str):
+        return self._book_structure_cache.get(book)
+
+    def set_book_structure(self, book: str, chapter_lengths) -> None:
+        self._book_structure_cache[book] = chapter_lengths
+        self._save_book_structure()
+
     # --- maintenance --------------------------------------------------------
     def clear(self) -> None:
         """Forget everything, both in memory and on disk."""
         self._text_cache = {}
         self._parasha_cache = {}
-        for path in (self.text_path, self.parasha_path):
+        self._book_structure_cache = {}
+        for path in (self.text_path, self.parasha_path, self.book_structure_path):
             try:
                 path.unlink()
             except FileNotFoundError:
@@ -124,5 +144,6 @@ class SefariaCache:
         return {
             "cached_refs": len(self._text_cache),
             "cached_books": len(self._parasha_cache),
+            "cached_book_structures": len(self._book_structure_cache),
             "location": str(self.cache_dir),
         }

@@ -22,10 +22,11 @@ import webview
 
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
-from ..config import BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION, TORAH_BOOKS, TORAH_VERSE_COUNTS
+from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION
 from ..sefaria import (
-    fetch_torah_range,
+    fetch_verse_range,
     get_aliyah_ref,
+    get_book_structure,
     get_parasha_structure,
     get_text_for_ref,
     parse_start_ref,
@@ -39,30 +40,47 @@ _STATIC_DIR = Path(__file__).parent / "static"
 
 
 class Api:
-    """Holds the mutable state a session needs (cache, last-fetched verse
+    """Holds the mutable state a session needs (cache, accumulated verse
     data) -- one instance is created per app run and shared by every JS
-    call, mirroring how ``AnkiPasukApp`` held this as instance state."""
+    call, mirroring how ``AnkiPasukApp`` held this as instance state.
+
+    Verse data accumulates across calls to fetch_chapter_verse /
+    fetch_parashah_aliyah rather than being replaced -- each call appends
+    its verses (each stamped with its own "book") to the same running
+    list, so a session can concatenate ranges from different books (e.g.
+    the end of Genesis plus the start of Exodus) simply by fetching each
+    range in turn. clear_ranges() resets back to empty.
+    """
 
     def __init__(self) -> None:
         self._cache = SefariaCache()
         self._current_verse_data: list[dict] = []
-        self._current_book: str = "Genesis"
         self._window: webview.Window | None = None
 
     # =============================================================
     #  Static reference data (no network)
     # =============================================================
-    def get_books(self) -> list[str]:
-        return list(TORAH_BOOKS.keys())
+    def get_books(self) -> dict[str, list[str]]:
+        """{"Torah": [...], "Nevi'im": [...], "Megillot": [...]} -- the
+        frontend uses this to build a book <select> with one <optgroup>
+        per category."""
+        return BOOK_CATEGORIES
 
-    def get_chapter_count(self, book: str) -> int:
-        return len(TORAH_VERSE_COUNTS[book])
+    def get_chapter_count(self, book: str) -> dict:
+        try:
+            return {"ok": True, "count": len(get_book_structure(book, self._cache))}
+        except Exception as e:  # noqa: BLE001 - reported to the JS side
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
 
-    def get_verse_count(self, book: str, chapter: int) -> int:
-        counts = TORAH_VERSE_COUNTS[book]
-        if 1 <= chapter <= len(counts):
-            return counts[chapter - 1]
-        return 1
+    def get_verse_count(self, book: str, chapter: int) -> dict:
+        try:
+            counts = get_book_structure(book, self._cache)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        count = counts[chapter - 1] if 1 <= chapter <= len(counts) else 1
+        return {"ok": True, "count": count}
 
     # =============================================================
     #  Live Sefaria data (network on first call per book, cached after)
@@ -93,36 +111,49 @@ class Api:
     def fetch_chapter_verse(
         self, book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int
     ) -> dict:
+        """Fetch one range and APPEND it to the accumulated verse data
+        (does not replace what's already there -- see clear_ranges to
+        start over). Returns the full accumulated list so far, so the
+        frontend can just replace its display with result["verses"]."""
         try:
-            data = fetch_torah_range(book, start_ch, start_vs, end_ch, end_vs, self._cache, POINTED_VERSION)
+            new_verses = fetch_verse_range(
+                book, start_ch, start_vs, end_ch, end_vs, self._cache, POINTED_VERSION
+            )
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data = data
-        self._current_book = book
-        return {"ok": True, "verses": data, "cache_status": self._cache_status_text()}
+        self._current_verse_data.extend(new_verses)
+        return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     def fetch_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
+        """Like fetch_chapter_verse, but for a named parashah/aliyah
+        (Torah only -- parashot don't exist for Nevi'im or the
+        Megillot). Also appends to the accumulated verse data."""
         try:
             ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self._cache)
             pointed_verses = get_text_for_ref(ref_str, POINTED_VERSION, self._cache)
             start_ch, start_vs = parse_start_ref(ref_str)
+            chapter_lengths = get_book_structure(book, self._cache)
 
-            data = []
+            new_verses = []
             ch, vs = start_ch, start_vs
             for pointed in pointed_verses:
                 plain = strip_vowels_and_trope(pointed)
-                data.append({"ch": ch, "vs": vs, "pointed": pointed, "plain": plain})
+                new_verses.append({"book": book, "ch": ch, "vs": vs, "pointed": pointed, "plain": plain})
                 vs += 1
-                if ch <= self.get_chapter_count(book) and vs > self.get_verse_count(book, ch):
+                if ch <= len(chapter_lengths) and vs > chapter_lengths[ch - 1]:
                     vs = 1
                     ch += 1
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data = data
-        self._current_book = book
-        return {"ok": True, "verses": data, "cache_status": self._cache_status_text()}
+        self._current_verse_data.extend(new_verses)
+        return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
+
+    def clear_ranges(self) -> dict:
+        """Discard all accumulated verse data, starting a fresh session."""
+        self._current_verse_data = []
+        return {"ok": True, "verses": self._current_verse_data}
 
     def _cache_status_text(self) -> str:
         s = self._cache.stats()
@@ -179,7 +210,6 @@ class Api:
             return {"ok": False, "error": "Fetch a range of verses first."}
 
         max_leaf_disj = max(1, max_leaf_disj)
-        hebrew_book = BOOK_HEBREW_NAMES.get(self._current_book, self._current_book)
         rows = []
         next_start = 1
         total = len(self._current_verse_data)
@@ -196,6 +226,7 @@ class Api:
             plain = item["plain"]
             prev_plain = self._current_verse_data[i - 1]["plain"] if i > 0 else ""
             next_plain = self._current_verse_data[i + 1]["plain"] if i + 1 < total else ""
+            hebrew_book = BOOK_HEBREW_NAMES.get(item["book"], item["book"])
             verse_label = f"{hebrew_book} {item['ch']}:{item['vs']}"
 
             rows.append([str(i + 1), verse_label, cl, plain, prev_plain, next_plain, "", CSV_FLAGS])

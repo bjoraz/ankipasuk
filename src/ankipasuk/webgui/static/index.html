@@ -13,32 +13,16 @@
 </div>
 
 <fieldset class="panel">
-  <legend>Source (Sefaria, Torah only)</legend>
+  <legend>Source (Sefaria: Torah, Nevi'im, Megillot)</legend>
+
+  <div id="ranges-container"></div>
+
   <div class="row">
-    <label>Mode:
-      <select id="mode">
-        <option>Chapter / Verse</option>
-        <option>Parashah / Aliyah</option>
-      </select>
-    </label>
-    <label>Book:
-      <select id="book"></select>
-    </label>
-
-    <span id="cv-controls" class="inline-group">
-      <label>Start chapter: <select id="start-ch"></select></label>
-      <label>Start verse: <select id="start-vs"></select></label>
-      <label>End chapter: <select id="end-ch"></select></label>
-      <label>End verse: <select id="end-vs"></select></label>
-    </span>
-
-    <span id="pa-controls" class="inline-group" hidden>
-      <label>Parashah: <select id="parasha"></select></label>
-      <label>Aliyah: <select id="aliyah"></select></label>
-    </span>
-
-    <button id="btn-fetch">Fetch range from Sefaria</button>
+    <button id="btn-add-range" type="button">+ Add another range</button>
+    <button id="btn-fetch">Fetch all ranges</button>
+    <button id="btn-clear-ranges" type="button">Clear ranges</button>
   </div>
+
   <div class="row">
     <span id="cache-status" class="muted"></span>
     <button id="btn-clear-cache">Clear cache</button>

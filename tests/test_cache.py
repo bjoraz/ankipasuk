@@ -87,3 +87,25 @@ def test_get_text_for_ref_only_hits_network_once(tmp_path, monkeypatch):
     third = sefaria_module.get_text_for_ref("Genesis 1", "source", fresh_cache)
     assert third == ["cached verse text"]
     assert call_count["n"] == 1
+
+
+def test_book_structure_cache_round_trips(tmp_path):
+    cache = SefariaCache(cache_dir=tmp_path)
+    assert cache.get_book_structure("Isaiah") is None
+
+    cache.set_book_structure("Isaiah", [26, 22, 26])
+    assert cache.get_book_structure("Isaiah") == [26, 22, 26]
+
+    # A fresh instance backed by the same directory sees it too.
+    fresh_cache = SefariaCache(cache_dir=tmp_path)
+    assert fresh_cache.get_book_structure("Isaiah") == [26, 22, 26]
+
+
+def test_book_structure_cache_included_in_clear_and_stats(tmp_path):
+    cache = SefariaCache(cache_dir=tmp_path)
+    cache.set_book_structure("Ruth", [22, 23, 18, 22])
+    assert cache.stats()["cached_book_structures"] == 1
+
+    cache.clear()
+    assert cache.get_book_structure("Ruth") is None
+    assert cache.stats()["cached_book_structures"] == 0

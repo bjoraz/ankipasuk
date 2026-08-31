@@ -56,6 +56,14 @@ body.main-window {
     font-weight: 600;
 }
 
+.range-row {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: #fafafa;
+    padding: 6px 8px;
+    margin: 6px 0;
+}
+
 .row {
     display: flex;
     align-items: center;
