@@ -3,11 +3,13 @@ from ankipasuk.text_processing import strip_vowels_and_trope
 
 
 def _verse_data(genesis_1_1, genesis_1_2):
+    plain_1 = strip_vowels_and_trope(genesis_1_1)
+    plain_2 = strip_vowels_and_trope(genesis_1_2)
     return [
-        {"ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": strip_vowels_and_trope(genesis_1_1)},
-        {"ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": strip_vowels_and_trope(genesis_1_2)},
+        {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": plain_1},
+        {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": plain_2},
         # A second chapter, to exercise the by-chapter aggregation.
-        {"ch": 2, "vs": 1, "pointed": genesis_1_1, "plain": strip_vowels_and_trope(genesis_1_1)},
+        {"book": "Genesis", "ch": 2, "vs": 1, "pointed": genesis_1_1, "plain": plain_1},
     ]
 
 
@@ -31,25 +33,28 @@ def test_longest_and_shortest_are_consistent(genesis_1_1, genesis_1_2):
     longest_words, longest_label = stats["longest"]
     shortest_words, shortest_label = stats["shortest"]
     assert longest_words >= shortest_words
-    assert longest_label == "1:2"  # the 12-word verse
-    assert shortest_label in ("1:1", "2:1")  # both are the 7-word verse
+    assert longest_label == "Genesis 1:2"  # the 12-word verse
+    assert shortest_label in ("Genesis 1:1", "Genesis 2:1")  # both are the 7-word verse
 
 
 def test_chapter_aggregation_groups_correctly(genesis_1_1, genesis_1_2):
     verse_data = _verse_data(genesis_1_1, genesis_1_2)
     stats = compute_corpus_stats(verse_data, max_leaf_disj=2)
 
-    assert stats["chapters"] == [1, 2]
-    assert set(stats["chapter_bins"][1]) == {"1:1", "1:2"}
-    assert set(stats["chapter_bins"][2]) == {"2:1"}
+    # Chapters are keyed by (book, chapter) rather than bare chapter
+    # number -- necessary once a session can mix books, so "chapter 1"
+    # from two different books doesn't silently merge into one bucket.
+    assert stats["chapters"] == [("Genesis", 1), ("Genesis", 2)]
+    assert set(stats["chapter_bins"][("Genesis", 1)]) == {"Genesis 1:1", "Genesis 1:2"}
+    assert set(stats["chapter_bins"][("Genesis", 2)]) == {"Genesis 2:1"}
 
 
 def test_verse_lookup_contains_original_text(genesis_1_1, genesis_1_2):
     verse_data = _verse_data(genesis_1_1, genesis_1_2)
     stats = compute_corpus_stats(verse_data, max_leaf_disj=2)
 
-    assert stats["verse_lookup"]["1:1"]["pointed"] == genesis_1_1
-    assert stats["verse_lookup"]["1:2"]["pointed"] == genesis_1_2
+    assert stats["verse_lookup"]["Genesis 1:1"]["pointed"] == genesis_1_1
+    assert stats["verse_lookup"]["Genesis 1:2"]["pointed"] == genesis_1_2
 
 
 def test_format_stats_summary_is_non_empty(genesis_1_1, genesis_1_2):

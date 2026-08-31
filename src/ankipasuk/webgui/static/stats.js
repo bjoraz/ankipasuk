@@ -24,11 +24,20 @@ function switchSubtab(container, subtabId) {
 // =============================================================
 //  Verse popup
 // =============================================================
+function parseVerseLabel(label) {
+    // Labels are "book ch:vs" (e.g. "Genesis 1:1", "I Samuel 3:16") --
+    // book can itself contain spaces, so split off the trailing
+    // "ch:vs" token rather than splitting on the first space.
+    const m = label.match(/^(.*) (\d+):(\d+)$/);
+    if (!m) return { book: "", ch: 0, vs: 0 };
+    return { book: m[1], ch: Number(m[2]), vs: Number(m[3]) };
+}
+
 function showVersePopup(title, labels) {
     const sorted = [...new Set(labels)].sort((a, b) => {
-        const [ca, va] = a.split(":").map(Number);
-        const [cb, vb] = b.split(":").map(Number);
-        return ca - cb || va - vb;
+        const pa = parseVerseLabel(a);
+        const pb = parseVerseLabel(b);
+        return pa.book.localeCompare(pb.book) || pa.ch - pb.ch || pa.vs - pb.vs;
     });
     let html = `<div class="modal-overlay" id="modal-overlay"><div class="modal">`;
     html += `<h3>${title}</h3><div class="muted">${sorted.length} verse(s)</div>`;
@@ -114,8 +123,9 @@ async function loadChapterData() {
     let html = "";
     for (const c of data.chapters) {
         const pct = (c.avg_words / maxWords) * 100;
-        html += `<div class="bar-row" data-verses='${JSON.stringify(c.verses)}' data-key="${c.chapter}">
-            <div class="bar-label">Ch ${c.chapter}</div>
+        const key = `${c.book} ${c.chapter}`;
+        html += `<div class="bar-row" data-verses='${JSON.stringify(c.verses)}' data-key="${key}">
+            <div class="bar-label">${c.book} Ch ${c.chapter}</div>
             <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
             <div class="bar-count">${c.avg_words.toFixed(1)}w / ${c.avg_disj.toFixed(1)}dg</div>
         </div>`;

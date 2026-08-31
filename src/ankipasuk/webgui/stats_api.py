@@ -58,12 +58,13 @@ class StatsApi:
         return {
             "chapters": [
                 {
+                    "book": book,
                     "chapter": ch,
-                    "avg_words": s["chapter_avg_words"][ch],
-                    "avg_disj": s["chapter_avg_disj"][ch],
-                    "verses": s["chapter_bins"][ch],
+                    "avg_words": s["chapter_avg_words"][(book, ch)],
+                    "avg_disj": s["chapter_avg_disj"][(book, ch)],
+                    "verses": s["chapter_bins"][(book, ch)],
                 }
-                for ch in s["chapters"]
+                for (book, ch) in s["chapters"]
             ]
         }
 
