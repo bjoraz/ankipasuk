@@ -69,7 +69,7 @@ def tree_to_html(node, depth: int = 0, indent_level: float = 0, extra_bias: floa
 
     if isinstance(node, dict):
         left, right = node["left"], node["right"]
-        half_bump = 0.5 if not isinstance(left, dict) and not isinstance(right, dict) else 0
+        half_bump = -0.25 if not isinstance(left, dict) and not isinstance(right, dict) else 0
 
         left_html = tree_to_html(left, depth + 1, indent_level + 1 + half_bump, extra_bias)
         right_html = tree_to_html(right, depth + 1, indent_level, extra_bias + 1)

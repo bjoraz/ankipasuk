@@ -135,16 +135,18 @@ def _guide_widths(html: str) -> list[float]:
 def test_sibling_leaf_pair_first_leaf_gets_half_indent_bump():
     """A node whose BOTH children are leaves (no further nesting on
     either side) is a genuine sibling leaf pair -- its first (upper)
-    leaf should render with an extra half indent step compared to what
+    leaf renders with a quarter-step indent adjustment relative to what
     it would get without the bump, while the second (lower) leaf is
-    unaffected."""
+    unaffected. (half_bump is currently -0.25: the first leaf ends up
+    LESS indented than the second, by design -- a deliberate reversal
+    from an earlier +0.5 version, kept as-is per explicit direction.)"""
     tree = {"left": _leaf("first"), "right": _leaf("second")}
     widths = _guide_widths(tree_to_html(tree))
-    assert widths == [21.0, 14.0]
+    assert widths == [10.5, 14.0]
     # The relationship that actually matters, independent of the exact
     # absolute values above: the first leaf of a genuine pair is always
-    # exactly half an indent step (7px = 0.5 * 14) wider than the second.
-    assert widths[0] - widths[1] == 7.0
+    # exactly 3.5px (0.25 * 14) LESS indented than the second.
+    assert widths[0] - widths[1] == -3.5
 
 
 def test_leaf_paired_with_further_nesting_gets_no_half_indent():
@@ -156,14 +158,15 @@ def test_leaf_paired_with_further_nesting_gets_no_half_indent():
         "right": {"left": _leaf("second"), "right": _leaf("third")},
     }
     widths = _guide_widths(tree_to_html(tree))
-    assert widths == [14.0, 35.0, 28.0]
+    assert widths == [14.0, 24.5, 28.0]
     # "first" (root's left, paired with further nesting on the right) is
     # NOT bumped -- confirmed by there being no other leaf at the same
-    # nominal indent level to compare it to changing by 7px.
+    # nominal indent level to compare it to changing by 3.5px.
     # "second" and "third", one level down, ARE a genuine sibling leaf
-    # pair -- "second" (first/upper) is exactly half a step ahead of
-    # "third" (second/lower), same relationship as the simple pair case.
-    assert widths[1] - widths[2] == 7.0
+    # pair -- "second" (first/upper) is exactly a quarter-step LESS
+    # indented than "third" (second/lower), same relationship as the
+    # simple pair case.
+    assert widths[1] - widths[2] == -3.5
 
 
 def test_half_indent_does_not_apply_transitively():
@@ -181,14 +184,15 @@ def test_half_indent_does_not_apply_transitively():
         },
     }
     widths = _guide_widths(tree_to_html(tree))
-    assert widths == [14.0, 49.0, 42.0, 28.0]
+    assert widths == [14.0, 38.5, 42.0, 28.0]
     # A: root.left is a leaf, root.right is a dict -> not a sibling pair
     # at the root level -> no bump (nothing to compare against here, but
     # confirmed by the exact value matching plain indent_level 1 = 14px,
-    # not 21px which is what a bump at that level would produce).
+    # not the bumped value a pair at that level would produce).
     # B and C: a genuine sibling leaf pair one level inside root.right ->
-    # B (first/upper) is exactly half a step ahead of C (second/lower).
-    assert widths[1] - widths[2] == 7.0
+    # B (first/upper) is exactly a quarter-step LESS indented than C
+    # (second/lower).
+    assert widths[1] - widths[2] == -3.5
     # D: paired with a dict (not C directly) at its own level -> not a
     # sibling leaf pair -> no bump, and critically not "transitively"
     # bumped just because ITS subtree happens to contain a bumped leaf.
