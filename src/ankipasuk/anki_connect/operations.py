@@ -118,54 +118,6 @@ def unsuspend(card_ids: list[int], *, url: str, dry_run: bool, log: Logger = _no
         _log_batch_progress(log, "Un-suspended", done, len(card_ids))
 
 
-def ensure_model(
-    model_name: str, fields: list[str], css: str, card_templates: list[dict], *, url: str,
-) -> None:
-    """Make sure an Anki note type named ``model_name`` exists, creating it
-    via AnkiConnect's ``createModel`` if it doesn't. Idempotent: does
-    nothing (no request beyond the existence check) if the model is
-    already there, so it's safe to call before every export.
-
-    Does not attempt to reconcile an existing model's fields/templates
-    with what's passed in -- if ``model_name`` already exists with a
-    different shape (e.g. hand-edited by the user), this silently leaves
-    it as-is, matching AnkiConnect's own ``createModel`` semantics.
-    """
-    existing = invoke("modelNames", url=url)
-    if model_name in existing:
-        return
-    invoke(
-        "createModel", url=url,
-        modelName=model_name,
-        inOrderFields=fields,
-        css=css,
-        isCloze=False,
-        cardTemplates=card_templates,
-    )
-
-
-def add_notes(
-    notes: list[dict], *, url: str, dry_run: bool, log: Logger = _noop,
-) -> list[int | None]:
-    """Add a batch of full Anki notes (each a dict with ``deckName``,
-    ``modelName``, ``fields``, and optionally ``tags``/``options``) via
-    AnkiConnect's ``addNotes``. Returns one entry per input note: the new
-    note ID, or ``None`` for any note AnkiConnect rejected (e.g. a
-    duplicate) -- same shape ``addNotes`` itself returns, just batched.
-    """
-    if not notes:
-        return []
-    if dry_run:
-        return [None] * len(notes)
-
-    added: list[int | None] = []
-    for batch in _batched(notes):
-        result = invoke("addNotes", url=url, notes=batch)
-        added.extend(result)
-        _log_batch_progress(log, "Added", len(added), len(notes))
-    return added
-
-
 def answer_again(card_ids: list[int], *, url: str, dry_run: bool, log: Logger = _noop) -> None:
     """Answer every card in ``card_ids`` as 'Again' (ease 1)."""
     if not card_ids or dry_run:
