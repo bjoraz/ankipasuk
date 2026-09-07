@@ -1,7 +1,16 @@
-"""Tests for ankipasuk.anki_connect.operations.ensure_model / add_notes."""
+"""Tests for ankipasuk.anki_connect.operations.ensure_model / add_notes /
+ensure_media_file / ensure_model_fields / sync_model_css /
+sync_model_templates."""
 
 from ankipasuk.anki_connect.client import DEFAULT_URL
-from ankipasuk.anki_connect.operations import add_notes, ensure_model
+from ankipasuk.anki_connect.operations import (
+    add_notes,
+    ensure_media_file,
+    ensure_model,
+    ensure_model_fields,
+    sync_model_css,
+    sync_model_templates,
+)
 
 CARD_TEMPLATES = [{"Name": "Card 1", "Front": "{{Front}}", "Back": "{{Back}}"}]
 
@@ -71,3 +80,44 @@ def test_add_notes_dry_run_makes_no_changes(fake_anki):
 def test_add_notes_empty_list_is_a_noop(fake_anki):
     assert add_notes([], url=DEFAULT_URL, dry_run=False) == []
     assert fake_anki.calls == []
+
+
+def test_sync_model_css_updates_an_existing_models_styling(fake_anki):
+    ensure_model("MyModel", ["Front", "Back"], "old css", CARD_TEMPLATES, url=DEFAULT_URL)
+    sync_model_css("MyModel", "new css", url=DEFAULT_URL)
+    assert fake_anki.models["MyModel"]["css"] == "new css"
+
+
+def test_ensure_model_fields_appends_a_missing_field(fake_anki):
+    ensure_model("MyModel", ["Front", "Back"], "css", CARD_TEMPLATES, url=DEFAULT_URL)
+    ensure_model_fields("MyModel", ["Front", "Back", "Extra"], url=DEFAULT_URL)
+    assert fake_anki.models["MyModel"]["fields"] == ["Front", "Back", "Extra"]
+
+
+def test_ensure_model_fields_leaves_existing_fields_untouched(fake_anki):
+    ensure_model("MyModel", ["Front", "Back"], "css", CARD_TEMPLATES, url=DEFAULT_URL)
+    ensure_model_fields("MyModel", ["Front", "Back"], url=DEFAULT_URL)
+    assert fake_anki.models["MyModel"]["fields"] == ["Front", "Back"]
+
+
+def test_sync_model_templates_updates_an_existing_models_templates(fake_anki):
+    ensure_model("MyModel", ["Front", "Back"], "css", CARD_TEMPLATES, url=DEFAULT_URL)
+    new_templates = [{"Name": "Card 1", "Front": "new front", "Back": "new back"}]
+    sync_model_templates("MyModel", new_templates, url=DEFAULT_URL)
+    assert fake_anki.models["MyModel"]["cardTemplates"] == {
+        "Card 1": {"Front": "new front", "Back": "new back"},
+    }
+
+
+def test_ensure_media_file_uploads_missing_file(fake_anki):
+    ensure_media_file("_stam.ttf", "YmFzZTY0", url=DEFAULT_URL)
+    assert fake_anki.media["_stam.ttf"] == "YmFzZTY0"
+
+
+def test_ensure_media_file_is_idempotent(fake_anki):
+    ensure_media_file("_stam.ttf", "YmFzZTY0", url=DEFAULT_URL)
+    calls_after_first = len(fake_anki.calls)
+    ensure_media_file("_stam.ttf", "YmFzZTY0", url=DEFAULT_URL)
+    # Second call should only check (retrieveMediaFile), never re-upload.
+    assert len(fake_anki.calls) == calls_after_first + 1
+    assert fake_anki.calls[-1][0] == "retrieveMediaFile"

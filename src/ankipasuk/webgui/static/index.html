@@ -76,6 +76,41 @@
 <label>Visualization:</label>
 <div id="viz-box" class="text-box viz"></div>
 
+<fieldset class="panel">
+  <legend>Export aliyah range to Anki (LPCG-style recitation cards)</legend>
+
+  <div class="row">
+    <label>Book: <select id="lpcg-book"></select></label>
+    <label>Start parashah: <select id="lpcg-start-parasha"></select></label>
+    <label>Start aliyah: <select id="lpcg-start-aliyah"></select></label>
+    <label>End parashah: <select id="lpcg-end-parasha"></select></label>
+    <label>End aliyah: <select id="lpcg-end-aliyah"></select></label>
+  </div>
+
+  <div class="row space-between">
+    <span class="muted">&mdash; or export a single amud (scroll column), ignoring the range above &mdash;</span>
+  </div>
+  <div class="row">
+    <label>Amud (1&ndash;245): <input type="number" id="lpcg-amud" min="1" max="245" style="width:5em"></label>
+    <button id="btn-export-amud">Export amud to Anki</button>
+  </div>
+
+  <div class="row">
+    <label>Anki deck name: <input type="text" id="lpcg-deck" style="width:16em"></label>
+    <label>Context lines: <input type="number" id="lpcg-context-lines" value="2" min="0" style="width:4em"></label>
+    <label>Recite lines: <input type="number" id="lpcg-recite-lines" value="1" min="1" style="width:4em"></label>
+    <label>Group size: <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>
+  </div>
+  <div class="row">
+    <span class="muted">Font size and line spacing are adjustable directly on each card (small controls in its corner).</span>
+  </div>
+
+  <div class="row space-between">
+    <span id="lpcg-status" class="muted"></span>
+    <button id="btn-export-lpcg">Export aliyah range to Anki</button>
+  </div>
+</fieldset>
+
 <div id="toast" class="toast" hidden></div>
 
 <script src="app.js"></script>

@@ -22,7 +22,11 @@ import webview
 
 from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
 from ..anki_connect.operations import add_notes as anki_add_notes
+from ..anki_connect.operations import ensure_media_file as anki_ensure_media_file
 from ..anki_connect.operations import ensure_model as anki_ensure_model
+from ..anki_connect.operations import ensure_model_fields as anki_ensure_model_fields
+from ..anki_connect.operations import sync_model_css as anki_sync_model_css
+from ..anki_connect.operations import sync_model_templates as anki_sync_model_templates
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
 from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION
@@ -39,7 +43,15 @@ from ..sefaria import (
     get_text_for_ref,
     parse_start_ref,
 )
+from ..settings import Settings
 from ..text_processing import format_units, strip_vowels_and_trope
+from ..tikkun import (
+    FONT_ANKI_FILENAME,
+    get_amud_lines,
+    get_book_for_page,
+    get_font_base64,
+    get_scroll_lines_for_range,
+)
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
 from .tree_html import tree_to_html
@@ -62,6 +74,7 @@ class Api:
 
     def __init__(self) -> None:
         self._cache = SefariaCache()
+        self._settings = Settings()
         self._current_verse_data: list[dict] = []
         self._window: webview.Window | None = None
 
@@ -165,7 +178,10 @@ class Api:
 
     def _cache_status_text(self) -> str:
         s = self._cache.stats()
-        return f"Cache: {s['cached_refs']} ref(s), {s['cached_books']} book structure(s)"
+        return (
+            f"Cache: {s['cached_refs']} ref(s), {s['cached_books']} book structure(s), "
+            f"{s['cached_tikkun_pages']} tikkun.io page(s)"
+        )
 
     def get_cache_status(self) -> str:
         return self._cache_status_text()
@@ -269,6 +285,70 @@ class Api:
     #  Aliyah recitation export (overlapping-context notes, pushed
     #  directly to Anki via AnkiConnect)
     # =============================================================
+    DEFAULT_LPCG_DECK_NAME = "Master::Leyning::Aliyot"
+
+    def get_lpcg_deck_name(self) -> str:
+        """The deck name to prefill the export form with: whatever was
+        last used (see export_aliyot_to_anki / export_amud_to_anki), or
+        DEFAULT_LPCG_DECK_NAME the first time the app is ever run."""
+        return self._settings.get("lpcg_deck_name", self.DEFAULT_LPCG_DECK_NAME)
+
+    def _push_lpcg_notes(
+        self, line_groups: list[tuple[list[dict], str, list[str]]],
+        deck_name: str, context_lines: int, recite_lines: int, group_size: int,
+    ) -> dict:
+        """Shared by export_aliyot_to_anki and export_amud_to_anki: given
+        one or more (lines, title, tags) groups -- each its own LPCG
+        "poem", so cards from different groups never share a context
+        window -- build every card and push them all to ``deck_name`` in
+        one AnkiConnect batch, ensuring the font/note-type/CSS/templates
+        are in place (and refreshed if stale) first.
+
+        Returns ``{"ok": False, "error": ...}`` on any failure, otherwise
+        ``{"ok": True, "notes_added": ..., "notes_skipped": ...}`` --
+        callers add their own extra result fields (e.g. "aliyot" or
+        "amud") on top of this.
+        """
+        self._settings.set("lpcg_deck_name", deck_name)
+
+        notes = []
+        for lines, title, tags in line_groups:
+            if not lines:
+                continue
+            for fields in build_lpcg_fields(
+                lines, title=title, context_lines=context_lines,
+                recite_lines=recite_lines, group_size=group_size,
+            ):
+                notes.append({
+                    "deckName": deck_name,
+                    "modelName": LPCG_MODEL_NAME,
+                    "fields": fields,
+                    "tags": tags,
+                    "options": {"allowDuplicate": True},
+                })
+
+        if not notes:
+            return {"ok": False, "error": "No text was found to export."}
+
+        try:
+            font_base64 = get_font_base64(self._cache)
+        except RuntimeError as e:
+            return {"ok": False, "error": str(e)}
+
+        try:
+            anki_ensure_media_file(FONT_ANKI_FILENAME, font_base64, url=DEFAULT_URL)
+            anki_ensure_model(LPCG_MODEL_NAME, LPCG_FIELD_NAMES, LPCG_CSS, CARD_TEMPLATES, url=DEFAULT_URL)
+            anki_ensure_model_fields(LPCG_MODEL_NAME, LPCG_FIELD_NAMES, url=DEFAULT_URL)
+            anki_sync_model_css(LPCG_MODEL_NAME, LPCG_CSS, url=DEFAULT_URL)
+            anki_sync_model_templates(LPCG_MODEL_NAME, CARD_TEMPLATES, url=DEFAULT_URL)
+            result_ids = anki_add_notes(notes, url=DEFAULT_URL, dry_run=False)
+        except AnkiConnectError as e:
+            return {"ok": False, "error": str(e)}
+
+        added = sum(1 for r in result_ids if r is not None)
+        skipped = len(result_ids) - added
+        return {"ok": True, "notes_added": added, "notes_skipped": skipped}
+
     def export_aliyot_to_anki(
         self,
         book: str,
@@ -288,6 +368,16 @@ class Api:
         own Title, so cards from different aliyot never overlap each
         other's context window).
 
+        Each card's text is a real Torah scroll line (see
+        :mod:`ankipasuk.tikkun`): unvoweled block letters, justified and
+        broken exactly where a kosher Sefer Torah's column would break
+        (petuchot/setumot rendered too) -- not a per-verse paragraph -- so
+        reciting through the deck trains the same line-by-line memory a
+        reader uses from the actual scroll. Rendered in the same STAM-style
+        font tikkun.io itself uses, pushed into Anki as a media file on
+        first use. Font size and line spacing are adjustable directly on
+        the card (small controls in the corner), not export-time settings.
+
         Anki must be running with the AnkiConnect add-on installed. Does
         not require the AnkiLPCG add-on itself -- the note type
         (:data:`ankipasuk.lpcg.MODEL_NAME`) is created automatically on
@@ -303,40 +393,77 @@ class Api:
             return {"ok": False, "error": str(e)}
 
         hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-        notes = []
+        line_groups = []
         for aliyah in aliyot:
-            lines = [v["pointed"] for v in aliyah["verses"] if v["pointed"].strip()]
-            if not lines:
+            verses = aliyah["verses"]
+            if not verses:
                 continue
+            try:
+                lines = get_scroll_lines_for_range(
+                    book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"],
+                    self._cache,
+                )
+            except (RuntimeError, ValueError) as e:
+                traceback.print_exc()
+                return {"ok": False, "error": str(e)}
             title = f"{hebrew_book} {aliyah['parasha']} {aliyah['aliyah_num']} ({aliyah['ref']})"
             tags = [
                 "ankipasuk-aliyah",
                 f"parasha::{aliyah['parasha'].replace(' ', '-')}",
             ]
-            for fields in build_lpcg_fields(
-                lines, title=title, context_lines=context_lines,
-                recite_lines=recite_lines, group_size=group_size,
-            ):
-                notes.append({
-                    "deckName": deck_name,
-                    "modelName": LPCG_MODEL_NAME,
-                    "fields": fields,
-                    "tags": tags,
-                    "options": {"allowDuplicate": True},
-                })
+            line_groups.append((lines, title, tags))
 
-        if not notes:
-            return {"ok": False, "error": "No aliyot with text were found in that range."}
+        result = self._push_lpcg_notes(line_groups, deck_name, context_lines, recite_lines, group_size)
+        if result["ok"]:
+            result["aliyot"] = len(aliyot)
+        elif result["error"] == "No text was found to export.":
+            result["error"] = "No aliyot with text were found in that range."
+        return result
 
+    def export_amud_to_anki(
+        self,
+        amud_num: int,
+        deck_name: str,
+        context_lines: int = 2,
+        recite_lines: int = 1,
+        group_size: int = 1,
+    ) -> dict:
+        """Push one Anki note per recitation card for the single amud
+        (Torah scroll column) ``amud_num`` (1-245, see
+        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name`` via
+        AnkiConnect -- the whole amud is one LPCG "poem", i.e. one
+        continuous sliding-context window top to bottom.
+
+        A kosher Sefer Torah always starts each of its 5 books at the top
+        of a fresh column, so an amud is always entirely within one book
+        (see :func:`ankipasuk.tikkun.get_book_for_page`) -- no book-
+        boundary handling is needed beyond looking up which book this
+        amud belongs to, for the card title.
+
+        See export_aliyot_to_anki for what the card content/styling looks
+        like and what must be running (Anki + AnkiConnect) -- identical
+        here, just for a single amud instead of an aliyah range.
+        """
         try:
-            anki_ensure_model(LPCG_MODEL_NAME, LPCG_FIELD_NAMES, LPCG_CSS, CARD_TEMPLATES, url=DEFAULT_URL)
-            result_ids = anki_add_notes(notes, url=DEFAULT_URL, dry_run=False)
-        except AnkiConnectError as e:
+            book = get_book_for_page(amud_num, self._cache)
+            lines = get_amud_lines(amud_num, self._cache)
+        except (RuntimeError, ValueError) as e:
+            traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-        added = sum(1 for r in result_ids if r is not None)
-        skipped = len(result_ids) - added
-        return {"ok": True, "aliyot": len(aliyot), "notes_added": added, "notes_skipped": skipped}
+        hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
+        title = f"{hebrew_book} Amud {amud_num}"
+        tags = [f"amud::{amud_num:03d}"]
+
+        result = self._push_lpcg_notes(
+            [(lines, title, tags)], deck_name, context_lines, recite_lines, group_size,
+        )
+        if result["ok"]:
+            result["amud"] = amud_num
+            result["book"] = book
+        elif result["error"] == "No text was found to export.":
+            result["error"] = f"Amud {amud_num} has no text."
+        return result
 
     # =============================================================
     #  Secondary windows

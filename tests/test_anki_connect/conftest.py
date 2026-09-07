@@ -19,6 +19,7 @@ class FakeAnki:
         self.cards: dict[int, dict] = {}   # cardId -> card dict
         self.notes: dict[int, dict] = {}   # noteId -> {"deck", "tags", "fields"}
         self.models: dict[str, dict] = {}  # modelName -> {"fields", "css", "cardTemplates"}
+        self.media: dict[str, str] = {}    # filename -> base64 content
         self.calls: list[tuple[str, dict]] = []
 
     def add_note(self, note_id: int, deck: str, ords_and_intervals: list[tuple[int, int]]) -> None:
@@ -167,6 +168,30 @@ class FakeAnki:
             }
             results.append(note_id)
         return results
+
+    def _do_updateModelStyling(self, model: dict):
+        self.models[model["name"]]["css"] = model["css"]
+        return None
+
+    def _do_modelFieldNames(self, modelName: str):
+        return list(self.models[modelName]["fields"])
+
+    def _do_modelFieldAdd(self, modelName: str, fieldName: str, index: int | None = None):
+        fields = self.models[modelName]["fields"]
+        if fieldName not in fields:
+            fields.append(fieldName)
+        return None
+
+    def _do_updateModelTemplates(self, model: dict):
+        self.models[model["name"]]["cardTemplates"] = model["templates"]
+        return None
+
+    def _do_retrieveMediaFile(self, filename: str):
+        return self.media.get(filename, False)
+
+    def _do_storeMediaFile(self, filename: str, data: str):
+        self.media[filename] = data
+        return filename
 
     def _do_addTags(self, notes: list[int], tags: str):
         for nid in notes:

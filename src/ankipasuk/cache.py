@@ -58,9 +58,11 @@ class SefariaCache:
         self.text_path = self.cache_dir / "text_cache.json"
         self.parasha_path = self.cache_dir / "parasha_cache.json"
         self.book_structure_path = self.cache_dir / "book_structure_cache.json"
+        self.tikkun_path = self.cache_dir / "tikkun_cache.json"
         self._text_cache: dict = {}
         self._parasha_cache: dict = {}
         self._book_structure_cache: dict = {}
+        self._tikkun_cache: dict = {}
         self._defer_depth = 0  # >0 while inside a defer_saves() block
         self._dirty: set[str] = set()  # which cache(s) changed since the last flush, while deferred
         self._load()
@@ -70,6 +72,7 @@ class SefariaCache:
         self._text_cache = self._read_json(self.text_path) or {}
         self._parasha_cache = self._read_json(self.parasha_path) or {}
         self._book_structure_cache = self._read_json(self.book_structure_path) or {}
+        self._tikkun_cache = self._read_json(self.tikkun_path) or {}
 
     @staticmethod
     def _read_json(path: Path) -> dict | None:
@@ -126,6 +129,8 @@ class SefariaCache:
             self._write_json_atomic(self.parasha_path, self._parasha_cache)
         if "book_structure" in self._dirty:
             self._write_json_atomic(self.book_structure_path, self._book_structure_cache)
+        if "tikkun" in self._dirty:
+            self._write_json_atomic(self.tikkun_path, self._tikkun_cache)
         self._dirty.clear()
 
     @staticmethod
@@ -186,6 +191,12 @@ class SefariaCache:
             return
         self._write_json_atomic(self.book_structure_path, self._book_structure_cache)
 
+    def _save_tikkun(self) -> None:
+        if self._defer_depth:
+            self._dirty.add("tikkun")
+            return
+        self._write_json_atomic(self.tikkun_path, self._tikkun_cache)
+
     # --- verse text cache -------------------------------------------------
     @staticmethod
     def _text_key(ref_str: str, version_param: str) -> str:
@@ -221,13 +232,41 @@ class SefariaCache:
         self._book_structure_cache[book] = chapter_lengths
         self._save_book_structure()
 
+    # --- tikkun.io line-layout cache ----------------------------------------
+    # The table of contents (verse -> page/line) and each page's line data,
+    # both fetched from tikkun.io (see ankipasuk.tikkun) and immutable once
+    # published, so cached forever the same way Sefaria data is.
+    def get_tikkun_toc(self):
+        return self._tikkun_cache.get("toc")
+
+    def set_tikkun_toc(self, toc) -> None:
+        self._tikkun_cache["toc"] = toc
+        self._save_tikkun()
+
+    def get_tikkun_page(self, page_num: int):
+        return self._tikkun_cache.get("pages", {}).get(str(page_num))
+
+    def set_tikkun_page(self, page_num: int, page_data) -> None:
+        self._tikkun_cache.setdefault("pages", {})[str(page_num)] = page_data
+        self._save_tikkun()
+
+    def get_tikkun_font(self):
+        """The tikkun.io STAM font, base64-encoded (JSON has no native
+        binary type), or None if not fetched yet."""
+        return self._tikkun_cache.get("font_base64")
+
+    def set_tikkun_font(self, font_base64: str) -> None:
+        self._tikkun_cache["font_base64"] = font_base64
+        self._save_tikkun()
+
     # --- maintenance --------------------------------------------------------
     def clear(self) -> None:
         """Forget everything, both in memory and on disk."""
         self._text_cache = {}
         self._parasha_cache = {}
         self._book_structure_cache = {}
-        for path in (self.text_path, self.parasha_path, self.book_structure_path):
+        self._tikkun_cache = {}
+        for path in (self.text_path, self.parasha_path, self.book_structure_path, self.tikkun_path):
             try:
                 path.unlink()
             except FileNotFoundError:
@@ -238,5 +277,6 @@ class SefariaCache:
             "cached_refs": len(self._text_cache),
             "cached_books": len(self._parasha_cache),
             "cached_book_structures": len(self._book_structure_cache),
+            "cached_tikkun_pages": len(self._tikkun_cache.get("pages", {})),
             "location": str(self.cache_dir),
         }

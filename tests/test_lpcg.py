@@ -10,6 +10,18 @@ import pytest
 from ankipasuk.lpcg import FIELD_NAMES, build_lpcg_fields, group_lines
 
 
+def _row(text: str, extra_class: str = "") -> str:
+    """A plain-string line's expected rendering: its own block-level div,
+    wrapped in the column/fragment markup CSS hooks the justify trick to."""
+    classes = "line" + (f" {extra_class}" if extra_class else "")
+    inner = f'<div class="column"><span class="fragment">{text}</span></div>'
+    return f'<div class="{classes}">{inner}</div>'
+
+
+def _beginning_row() -> str:
+    return '<div class="line beginning-marker">[Beginning]</div>'
+
+
 def test_group_lines_default_size_one_is_a_noop():
     assert group_lines(["a", "b", "c"], 1) == [["a"], ["b"], ["c"]]
 
@@ -35,22 +47,22 @@ def test_sequence_numbers_are_one_based_and_consecutive():
 
 def test_first_card_context_is_beginning_only():
     fields = build_lpcg_fields(["a", "b", "c"], title="T", context_lines=2)
-    assert fields[0]["Context"] == "<p>[Beginning]</p>"
-    assert fields[0]["Line"] == "<p>a</p>"
+    assert fields[0]["Context"] == _beginning_row()
+    assert fields[0]["Line"] == _row("a", "cloze")
 
 
 def test_second_card_context_is_beginning_plus_one_line_when_not_enough_yet():
     fields = build_lpcg_fields(["a", "b", "c"], title="T", context_lines=2)
-    assert fields[1]["Context"] == "<p>[Beginning]</p><p>a</p>"
-    assert fields[1]["Line"] == "<p>b</p>"
+    assert fields[1]["Context"] == _beginning_row() + _row("a")
+    assert fields[1]["Line"] == _row("b", "cloze")
 
 
 def test_third_card_onward_has_full_sliding_window_no_beginning_marker():
     fields = build_lpcg_fields(["a", "b", "c", "d"], title="T", context_lines=2)
-    assert fields[2]["Context"] == "<p>a</p><p>b</p>"
-    assert fields[2]["Line"] == "<p>c</p>"
-    assert fields[3]["Context"] == "<p>b</p><p>c</p>"
-    assert fields[3]["Line"] == "<p>d</p>"
+    assert fields[2]["Context"] == _row("a") + _row("b")
+    assert fields[2]["Line"] == _row("c", "cloze")
+    assert fields[3]["Context"] == _row("b") + _row("c")
+    assert fields[3]["Line"] == _row("d", "cloze")
     assert "[Beginning]" not in fields[2]["Context"]
     assert "[Beginning]" not in fields[3]["Context"]
 
@@ -62,7 +74,7 @@ def test_single_line_recite_has_no_prompt():
 
 def test_multi_line_recite_gets_bracketed_count_prompt():
     fields = build_lpcg_fields(["a", "b", "c", "d"], title="T", recite_lines=2)
-    assert fields[0]["Line"] == "<p>a</p><p>b</p>"
+    assert fields[0]["Line"] == _row("a", "cloze") + _row("b", "cloze")
     assert fields[0]["Prompt"] == "[...2]"
 
 
@@ -73,10 +85,10 @@ def test_recite_lines_truncates_gracefully_at_the_end():
     recites whatever's left, with the prompt count adjusted accordingly."""
     fields = build_lpcg_fields(["a", "b", "c"], title="T", recite_lines=2)
     assert len(fields) == 3
-    assert fields[0]["Line"] == "<p>a</p><p>b</p>"
+    assert fields[0]["Line"] == _row("a", "cloze") + _row("b", "cloze")
     assert fields[0]["Prompt"] == "[...2]"
-    assert fields[1]["Line"] == "<p>b</p><p>c</p>"
-    assert fields[2]["Line"] == "<p>c</p>"
+    assert fields[1]["Line"] == _row("b", "cloze") + _row("c", "cloze")
+    assert fields[2]["Line"] == _row("c", "cloze")
     assert fields[2]["Prompt"] == ""  # only 1 line left to recite
 
 
@@ -97,6 +109,11 @@ def test_lines_may_contain_html_without_being_treated_as_a_comment():
 
 def test_group_size_greater_than_one_groups_physical_lines_together():
     fields = build_lpcg_fields(["a", "b", "c", "d"], title="T", group_size=2, context_lines=1, recite_lines=1)
-    assert fields[0]["Line"] == "<p>a</p><p>b</p>"
-    assert fields[1]["Context"] == "<p>a</p><p>b</p>"
-    assert fields[1]["Line"] == "<p>c</p><p>d</p>"
+    assert fields[0]["Line"] == _row("a", "cloze") + _row("b", "cloze")
+    assert fields[1]["Context"] == _row("a") + _row("b")
+    assert fields[1]["Line"] == _row("c", "cloze") + _row("d", "cloze")
+
+
+def test_box_width_is_the_same_on_every_card_from_the_longest_line():
+    fields = build_lpcg_fields(["ab", "abcdefghij"], title="T")
+    assert fields[0]["BoxWidth"] == fields[1]["BoxWidth"] == "9ch"  # round(10 * 0.9)

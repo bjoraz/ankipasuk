@@ -126,10 +126,10 @@ def ensure_model(
     nothing (no request beyond the existence check) if the model is
     already there, so it's safe to call before every export.
 
-    Does not attempt to reconcile an existing model's fields/templates
-    with what's passed in -- if ``model_name`` already exists with a
-    different shape (e.g. hand-edited by the user), this silently leaves
-    it as-is, matching AnkiConnect's own ``createModel`` semantics.
+    Does not itself reconcile an existing model's fields/templates with
+    what's passed in, matching AnkiConnect's own ``createModel``
+    semantics -- see :func:`ensure_model_fields` and
+    :func:`sync_model_templates` (and :func:`sync_model_css`) for that.
     """
     existing = invoke("modelNames", url=url)
     if model_name in existing:
@@ -142,6 +142,49 @@ def ensure_model(
         isCloze=False,
         cardTemplates=card_templates,
     )
+
+
+def ensure_model_fields(model_name: str, fields: list[str], *, url: str) -> None:
+    """Make sure every name in ``fields`` exists on ``model_name``,
+    appending any that's missing (via AnkiConnect's ``modelFieldAdd``,
+    itself already a no-op for a field that's already there) without
+    touching already-present fields or their order/content. The
+    field-list equivalent of :func:`sync_model_css`: a field added to this
+    project's own note-type definition in a later version must still
+    reach a note type an older version already created, or the new field
+    (and anything in the template that references it) would be silently
+    invisible on it forever.
+    """
+    existing = invoke("modelFieldNames", url=url, modelName=model_name)
+    for field in fields:
+        if field not in existing:
+            invoke("modelFieldAdd", url=url, modelName=model_name, fieldName=field)
+            existing.append(field)
+
+
+def sync_model_templates(model_name: str, card_templates: list[dict], *, url: str) -> None:
+    """Push each card template's Front/Back HTML unconditionally, whether
+    the model already existed or :func:`ensure_model` just created it --
+    the template equivalent of :func:`sync_model_css`, for the same
+    reason: a later template fix must not be silently ignored forever by
+    a note type an older version of this project already created.
+    """
+    templates = {t["Name"]: {"Front": t["Front"], "Back": t["Back"]} for t in card_templates}
+    invoke("updateModelTemplates", url=url, model={"name": model_name, "templates": templates})
+
+
+def sync_model_css(model_name: str, css: str, *, url: str) -> None:
+    """Push ``css`` as ``model_name``'s note-type styling unconditionally,
+    whether the model already existed or :func:`ensure_model` just created
+    it. ``ensure_model`` (like AnkiConnect's own ``createModel``)
+    deliberately never touches an existing model's styling, which means a
+    styling change shipped in a later version of this project -- a font, a
+    layout fix -- would otherwise be silently ignored forever by anyone
+    whose note type was created by an older version. CSS-only, unlike a
+    fields/templates change, can never corrupt existing card data, so it's
+    always safe to push again on every export.
+    """
+    invoke("updateModelStyling", url=url, model={"name": model_name, "css": css})
 
 
 def add_notes(
@@ -164,6 +207,24 @@ def add_notes(
         added.extend(result)
         _log_batch_progress(log, "Added", len(added), len(notes))
     return added
+
+
+def ensure_media_file(filename: str, data_base64: str, *, url: str) -> None:
+    """Make sure ``filename`` exists in Anki's media collection with this
+    exact content, uploading it via AnkiConnect's ``storeMediaFile`` if it
+    doesn't already. Idempotent: does nothing (no upload request) if the
+    file is already there -- safe to call before every export even for a
+    large font file.
+
+    Does not attempt to reconcile a same-named file with *different*
+    content already in the collection (e.g. hand-replaced by the user) --
+    it's left as-is, matching :func:`ensure_model`'s own semantics for a
+    same-named model.
+    """
+    existing = invoke("retrieveMediaFile", url=url, filename=filename)
+    if existing:
+        return
+    invoke("storeMediaFile", url=url, filename=filename, data=data_base64)
 
 
 def answer_again(card_ids: list[int], *, url: str, dry_run: bool, log: Logger = _noop) -> None:

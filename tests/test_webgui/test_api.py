@@ -12,6 +12,7 @@ Api-wide _current_book) threaded through correctly between calls.
 from ankipasuk.cache import SefariaCache
 from ankipasuk.config import POINTED_VERSION
 from ankipasuk.lpcg import MODEL_NAME as LPCG_MODEL_NAME
+from ankipasuk.settings import Settings
 from ankipasuk.webgui.api import Api
 
 
@@ -184,8 +185,16 @@ def test_export_csv_uses_each_verses_own_book_for_the_label(genesis_1_1, tmp_pat
 def _seed_two_aliyah_parasha(api, tmp_path):
     """Pre-seed api._cache with a single parashah ("Bereshit") of two
     one-verse aliyot, entirely within Genesis chapter 1 -- enough for
-    export_aliyot_to_anki to run with zero network access."""
+    export_aliyot_to_anki to run with zero network access.
+
+    Card content comes from tikkun.io's scroll-line data (see
+    ankipasuk.tikkun), not Sefaria's per-verse text, so both a fake
+    parasha structure/text AND a fake tikkun table-of-contents/page are
+    seeded here -- each of the two verses given its own scroll line, so
+    each aliyah still produces exactly one card in these tests.
+    """
     api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
     api._cache.set_parasha_structure(
         "Genesis",
         [{"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}],
@@ -194,6 +203,16 @@ def _seed_two_aliyah_parasha(api, tmp_path):
     # string (single verses here), not per chapter.
     api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
     api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
+
+    api._cache.set_tikkun_toc({
+        "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 2}, "3": {"p": 1, "l": 3}}},
+    })
+    api._cache.set_tikkun_page(1, [
+        {"text": [["אאא"]], "verses": [{"chapter": 1, "verse": 1}],
+         "aliyot": [{"standard": 1}], "isPetucha": False},
+        {"text": [["בבב"]], "verses": [{"chapter": 1, "verse": 2}], "aliyot": [], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
 def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_path, fake_anki):
@@ -206,9 +225,55 @@ def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_pat
 
     assert result["ok"] is True
     assert result["aliyot"] == 2
-    assert result["notes_added"] == 2  # one verse per aliyah -> one card per aliyah
+    assert result["notes_added"] == 2  # one scroll line per aliyah -> one card per aliyah
     assert LPCG_MODEL_NAME in fake_anki.models
     assert all(n["deck"] == "Leyning::Recitation" for n in fake_anki.notes.values())
+
+
+def test_get_lpcg_deck_name_defaults_when_nothing_saved_yet(tmp_path):
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    assert api.get_lpcg_deck_name() == Api.DEFAULT_LPCG_DECK_NAME
+
+
+def test_export_aliyot_to_anki_remembers_the_deck_name_for_next_time(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Leyning::Aliyot")
+    assert api.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+
+    # Simulates a fresh app launch reading the same on-disk settings.
+    api2 = Api()
+    api2._settings = Settings(cache_dir=tmp_path)
+    assert api2.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+
+
+def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
+
+    (note,) = fake_anki.notes.values()
+    assert note["fields"]["BoxWidth"] == "3ch"  # round(len("אאא") * 0.9)
+
+
+def test_export_aliyot_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki):
+    """A note type created by an older version of this code (before a CSS
+    change, e.g. adding the STAM font or setumah-gap styling) must not be
+    stuck with stale styling forever -- ensure_model alone never updates
+    an existing model, so export_aliyot_to_anki must also refresh it."""
+    from ankipasuk.anki_connect.operations import ensure_model
+    from ankipasuk.lpcg import CARD_TEMPLATES, FIELD_NAMES
+
+    ensure_model(LPCG_MODEL_NAME, FIELD_NAMES, "stale old css", CARD_TEMPLATES, url="http://localhost:8765")
+
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
+
+    assert fake_anki.models[LPCG_MODEL_NAME]["css"] != "stale old css"
 
 
 def test_export_aliyot_to_anki_tags_notes_with_the_parasha(tmp_path, fake_anki):
@@ -229,6 +294,59 @@ def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
     result = api.export_aliyot_to_anki(
         "Genesis", "Not A Parasha", 1, "Bereshit", 1, "Deck",
     )
+    assert result["ok"] is False
+    assert "error" in result
+
+
+def _seed_one_amud(api, tmp_path, monkeypatch):
+    """Pre-seed api._cache with a single one-line amud (amud 1, wholly
+    within a fake single-chapter Genesis) -- enough for export_amud_to_anki
+    to run with zero network access."""
+    monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [1]})
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_tikkun_toc({"1": {"1": {"1": {"p": 1, "l": 1}}}})
+    api._cache.set_tikkun_page(1, [
+        {"text": [["אאא"]], "verses": [{"chapter": 1, "verse": 1}],
+         "aliyot": [{"standard": 1}], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
+
+
+def test_export_amud_to_anki_pushes_notes_for_the_whole_amud(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+
+    result = api.export_amud_to_anki(1, "Deck")
+
+    assert result["ok"] is True
+    assert result["amud"] == 1
+    assert result["book"] == "Genesis"
+    assert result["notes_added"] == 1
+    assert all(n["deck"] == "Deck" for n in fake_anki.notes.values())
+
+
+def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+
+    api.export_amud_to_anki(1, "Deck")
+
+    (note,) = fake_anki.notes.values()
+    assert note["tags"] == ["amud::001"]
+
+
+def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+
+    api.export_amud_to_anki(1, "Master::Leyning::Aliyot")
+    assert api.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+
+
+def test_export_amud_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):
+    api = Api()
+    result = api.export_amud_to_anki(0, "Deck")
     assert result["ok"] is False
     assert "error" in result
 
