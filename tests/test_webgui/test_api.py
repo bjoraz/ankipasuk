@@ -9,6 +9,9 @@ and stamped per-verse with "book" rather than tracked as a single
 Api-wide _current_book) threaded through correctly between calls.
 """
 
+from ankipasuk.cache import SefariaCache
+from ankipasuk.config import POINTED_VERSION
+from ankipasuk.lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ankipasuk.webgui.api import Api
 
 
@@ -176,6 +179,58 @@ def test_export_csv_uses_each_verses_own_book_for_the_label(genesis_1_1, tmp_pat
     assert "Bereshit 1:1" in content
     assert "Yeshayahu 6:1" in content
 
+
+
+def _seed_two_aliyah_parasha(api, tmp_path):
+    """Pre-seed api._cache with a single parashah ("Bereshit") of two
+    one-verse aliyot, entirely within Genesis chapter 1 -- enough for
+    export_aliyot_to_anki to run with zero network access."""
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._cache.set_parasha_structure(
+        "Genesis",
+        [{"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}],
+    )
+    # fetch_aliyot_in_range fetches text keyed by each aliyah's own ref
+    # string (single verses here), not per chapter.
+    api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
+    api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
+
+
+def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+
+    result = api.export_aliyot_to_anki(
+        "Genesis", "Bereshit", 1, "Bereshit", 2, "Leyning::Recitation",
+    )
+
+    assert result["ok"] is True
+    assert result["aliyot"] == 2
+    assert result["notes_added"] == 2  # one verse per aliyah -> one card per aliyah
+    assert LPCG_MODEL_NAME in fake_anki.models
+    assert all(n["deck"] == "Leyning::Recitation" for n in fake_anki.notes.values())
+
+
+def test_export_aliyot_to_anki_tags_notes_with_the_parasha(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
+
+    (note,) = fake_anki.notes.values()
+    assert "ankipasuk-aliyah" in note["tags"]
+    assert "parasha::Bereshit" in note["tags"]
+
+
+def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+
+    result = api.export_aliyot_to_anki(
+        "Genesis", "Not A Parasha", 1, "Bereshit", 1, "Deck",
+    )
+    assert result["ok"] is False
+    assert "error" in result
 
 
 def test_cache_status_text_reflects_stats():

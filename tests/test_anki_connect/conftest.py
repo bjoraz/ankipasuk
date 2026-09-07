@@ -15,8 +15,10 @@ class FakeAnki:
 
     def __init__(self):
         self._next_card_id = 1
+        self._next_note_id = 1
         self.cards: dict[int, dict] = {}   # cardId -> card dict
         self.notes: dict[int, dict] = {}   # noteId -> {"deck", "tags", "fields"}
+        self.models: dict[str, dict] = {}  # modelName -> {"fields", "css", "cardTemplates"}
         self.calls: list[tuple[str, dict]] = []
 
     def add_note(self, note_id: int, deck: str, ords_and_intervals: list[tuple[int, int]]) -> None:
@@ -120,6 +122,51 @@ class FakeAnki:
                 "tags": list(n["tags"]), "fields": fields,
             })
         return out
+
+    def _do_modelNames(self):
+        return list(self.models.keys())
+
+    def _do_createModel(
+        self, modelName: str, inOrderFields: list[str], css: str,
+        cardTemplates: list[dict], isCloze: bool = False,
+    ):
+        assert modelName not in self.models, f"Model {modelName!r} already exists"
+        self.models[modelName] = {
+            "fields": list(inOrderFields), "css": css, "cardTemplates": list(cardTemplates),
+        }
+        return {"name": modelName}
+
+    def _do_addNotes(self, notes: list[dict]):
+        # Mirrors real AnkiConnect's per-note dup-check-by-first-field
+        # behavior closely enough for tests: a note is rejected (None) iff
+        # another note already exists in the same deck+model with the same
+        # value in the note type's first field, unless allowDuplicate is set.
+        results: list[int | None] = []
+        for note in notes:
+            model = note["modelName"]
+            deck = note["deckName"]
+            fields = note["fields"]
+            allow_dup = note.get("options", {}).get("allowDuplicate", False)
+            first_field_name = self.models[model]["fields"][0]
+            first_value = fields.get(first_field_name, "")
+
+            is_dup = not allow_dup and any(
+                n["fields"].get(first_field_name, "") == first_value
+                and n.get("model") == model and n["deck"] == deck
+                for n in self.notes.values()
+            )
+            if is_dup:
+                results.append(None)
+                continue
+
+            note_id = self._next_note_id
+            self._next_note_id += 1
+            self.notes[note_id] = {
+                "deck": deck, "model": model,
+                "tags": list(note.get("tags", [])), "fields": dict(fields),
+            }
+            results.append(note_id)
+        return results
 
     def _do_addTags(self, notes: list[int], tags: str):
         for nid in notes:

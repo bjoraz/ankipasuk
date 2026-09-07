@@ -20,10 +20,18 @@ from pathlib import Path
 
 import webview
 
+from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
+from ..anki_connect.operations import add_notes as anki_add_notes
+from ..anki_connect.operations import ensure_model as anki_ensure_model
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
 from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION
+from ..lpcg import CARD_TEMPLATES, build_lpcg_fields
+from ..lpcg import CSS as LPCG_CSS
+from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
+from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..sefaria import (
+    fetch_aliyot_in_range,
     fetch_verse_range,
     get_aliyah_ref,
     get_book_structure,
@@ -256,6 +264,79 @@ class Api:
             return {"ok": False, "error": str(e)}
 
         return {"ok": True, "count": len(rows), "path": target}
+
+    # =============================================================
+    #  Aliyah recitation export (overlapping-context notes, pushed
+    #  directly to Anki via AnkiConnect)
+    # =============================================================
+    def export_aliyot_to_anki(
+        self,
+        book: str,
+        start_parasha: str,
+        start_aliyah: int,
+        end_parasha: str,
+        end_aliyah: int,
+        deck_name: str,
+        context_lines: int = 2,
+        recite_lines: int = 1,
+        group_size: int = 1,
+    ) -> dict:
+        """Fetch every aliyah from (start_parasha, start_aliyah) through
+        (end_parasha, end_aliyah) and push one Anki note per recitation
+        card to ``deck_name`` via AnkiConnect, using the overlapping-context
+        windowing in :mod:`ankipasuk.lpcg` -- one aliyah = one "poem" (its
+        own Title, so cards from different aliyot never overlap each
+        other's context window).
+
+        Anki must be running with the AnkiConnect add-on installed. Does
+        not require the AnkiLPCG add-on itself -- the note type
+        (:data:`ankipasuk.lpcg.MODEL_NAME`) is created automatically on
+        first use if missing.
+        """
+        try:
+            aliyot = fetch_aliyot_in_range(
+                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
+                self._cache, POINTED_VERSION,
+            )
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+
+        hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
+        notes = []
+        for aliyah in aliyot:
+            lines = [v["pointed"] for v in aliyah["verses"] if v["pointed"].strip()]
+            if not lines:
+                continue
+            title = f"{hebrew_book} {aliyah['parasha']} {aliyah['aliyah_num']} ({aliyah['ref']})"
+            tags = [
+                "ankipasuk-aliyah",
+                f"parasha::{aliyah['parasha'].replace(' ', '-')}",
+            ]
+            for fields in build_lpcg_fields(
+                lines, title=title, context_lines=context_lines,
+                recite_lines=recite_lines, group_size=group_size,
+            ):
+                notes.append({
+                    "deckName": deck_name,
+                    "modelName": LPCG_MODEL_NAME,
+                    "fields": fields,
+                    "tags": tags,
+                    "options": {"allowDuplicate": True},
+                })
+
+        if not notes:
+            return {"ok": False, "error": "No aliyot with text were found in that range."}
+
+        try:
+            anki_ensure_model(LPCG_MODEL_NAME, LPCG_FIELD_NAMES, LPCG_CSS, CARD_TEMPLATES, url=DEFAULT_URL)
+            result_ids = anki_add_notes(notes, url=DEFAULT_URL, dry_run=False)
+        except AnkiConnectError as e:
+            return {"ok": False, "error": str(e)}
+
+        added = sum(1 for r in result_ids if r is not None)
+        skipped = len(result_ids) - added
+        return {"ok": True, "aliyot": len(aliyot), "notes_added": added, "notes_skipped": skipped}
 
     # =============================================================
     #  Secondary windows
