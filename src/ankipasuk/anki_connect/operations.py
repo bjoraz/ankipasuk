@@ -145,21 +145,27 @@ def ensure_model(
 
 
 def ensure_model_fields(model_name: str, fields: list[str], *, url: str) -> None:
-    """Make sure every name in ``fields`` exists on ``model_name``,
-    appending any that's missing (via AnkiConnect's ``modelFieldAdd``,
-    itself already a no-op for a field that's already there) without
-    touching already-present fields or their order/content. The
-    field-list equivalent of :func:`sync_model_css`: a field added to this
-    project's own note-type definition in a later version must still
-    reach a note type an older version already created, or the new field
-    (and anything in the template that references it) would be silently
-    invisible on it forever.
+    """Make sure ``model_name`` has exactly the fields in ``fields``, in
+    this exact order -- via AnkiConnect's ``modelFieldAdd``, called once
+    per field with its target index: that action both creates a field
+    that doesn't exist yet AND repositions one that already does (real
+    AnkiConnect's own implementation applies the ``index`` unconditionally
+    whenever it's given, whether or not the field is new), so a single
+    pass fixes both a missing field and one sitting in the wrong slot.
+
+    Order matters because Anki refuses to create a note whose FIRST field
+    (by the note type's own field order, not by name) is empty -- see
+    :data:`ankipasuk.lpcg.FIELD_NAMES`'s own comment on why "Title" is
+    listed first. Content in any field beyond that isn't touched.
+
+    The field-list equivalent of :func:`sync_model_css`: a field added
+    (or reordered) in this project's own note-type definition in a later
+    version must still reach a note type an older version already
+    created, not be silently invisible -- or, worse, leave the wrong
+    field first -- on it forever.
     """
-    existing = invoke("modelFieldNames", url=url, modelName=model_name)
-    for field in fields:
-        if field not in existing:
-            invoke("modelFieldAdd", url=url, modelName=model_name, fieldName=field)
-            existing.append(field)
+    for index, field in enumerate(fields):
+        invoke("modelFieldAdd", url=url, modelName=model_name, fieldName=field, index=index)
 
 
 def sync_model_templates(model_name: str, card_templates: list[dict], *, url: str) -> None:

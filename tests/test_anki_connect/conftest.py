@@ -177,9 +177,15 @@ class FakeAnki:
         return list(self.models[modelName]["fields"])
 
     def _do_modelFieldAdd(self, modelName: str, fieldName: str, index: int | None = None):
+        # Mirrors real AnkiConnect: adds the field if it's missing, THEN
+        # (independently) repositions it to `index` whenever one is given
+        # -- whether the field was just added or already existed.
         fields = self.models[modelName]["fields"]
         if fieldName not in fields:
             fields.append(fieldName)
+        if index is not None:
+            fields.remove(fieldName)
+            fields.insert(index, fieldName)
         return None
 
     def _do_updateModelTemplates(self, model: dict):

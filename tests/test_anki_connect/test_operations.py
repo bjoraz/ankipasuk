@@ -94,10 +94,20 @@ def test_ensure_model_fields_appends_a_missing_field(fake_anki):
     assert fake_anki.models["MyModel"]["fields"] == ["Front", "Back", "Extra"]
 
 
-def test_ensure_model_fields_leaves_existing_fields_untouched(fake_anki):
+def test_ensure_model_fields_is_a_noop_when_order_already_matches(fake_anki):
     ensure_model("MyModel", ["Front", "Back"], "css", CARD_TEMPLATES, url=DEFAULT_URL)
     ensure_model_fields("MyModel", ["Front", "Back"], url=DEFAULT_URL)
     assert fake_anki.models["MyModel"]["fields"] == ["Front", "Back"]
+
+
+def test_ensure_model_fields_reorders_an_existing_field_to_match(fake_anki):
+    """A field that already exists but isn't first -- e.g. a note type an
+    older version of this code created with a different field order --
+    must be moved, not just left alone (Anki treats a note as empty based
+    on its FIRST field, regardless of field name)."""
+    ensure_model("MyModel", ["Front", "Back"], "css", CARD_TEMPLATES, url=DEFAULT_URL)
+    ensure_model_fields("MyModel", ["Back", "Front"], url=DEFAULT_URL)
+    assert fake_anki.models["MyModel"]["fields"] == ["Back", "Front"]
 
 
 def test_sync_model_templates_updates_an_existing_models_templates(fake_anki):
