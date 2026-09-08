@@ -14,6 +14,7 @@ from pathlib import Path
 
 import webview
 
+from ..cache import default_cache_dir
 from .api import Api
 
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -31,7 +32,20 @@ def main() -> None:
         text_select=True,
     )
     api._window = window
-    webview.start()
+
+    # pywebview's own default is private_mode=True (an incognito-style
+    # profile, thrown away on exit) -- without this, the source section's
+    # own text-size/line-height/width controls (app.js's own
+    # localStorage-backed settings) would silently reset every time the
+    # app is relaunched, unlike an Anki card's own equivalent controls
+    # (persisted in Anki's own, already-persistent profile). storage_path
+    # reuses this project's own existing per-OS data directory (see
+    # ankipasuk.cache.default_cache_dir) rather than pywebview's own
+    # default location, so it lives alongside everything else this
+    # project already stores and is easy to find/clear together.
+    storage_path = default_cache_dir() / "webview_storage"
+    storage_path.mkdir(parents=True, exist_ok=True)
+    webview.start(private_mode=False, storage_path=str(storage_path))
 
 
 if __name__ == "__main__":

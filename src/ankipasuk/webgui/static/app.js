@@ -1,6 +1,7 @@
 "use strict";
 
 let currentVerseData = [];
+let currentTikkunHtml = { plain: "", pointed: "" };
 let cachedBooks = null; // {"Torah": [...], "Nevi'im": [...], "Megillot": [...]}
 
 function api() {
@@ -191,16 +192,24 @@ function addRangeRow() {
 function renderVerseBoxes() {
     const pointedBox = document.getElementById("pointed-box");
     const plainBox = document.getElementById("plain-box");
-    pointedBox.innerHTML = "";
-    plainBox.innerHTML = "";
-    for (const item of currentVerseData) {
-        const p = document.createElement("div");
-        p.textContent = item.pointed;
-        pointedBox.appendChild(p);
+    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
 
-        const t = document.createElement("div");
-        t.textContent = item.plain;
-        plainBox.appendChild(t);
+    if (useTikkun) {
+        const placeholder = "<em>No Torah content in the current range(s).</em>";
+        pointedBox.innerHTML = currentTikkunHtml.pointed || placeholder;
+        plainBox.innerHTML = currentTikkunHtml.plain || placeholder;
+    } else {
+        pointedBox.innerHTML = "";
+        plainBox.innerHTML = "";
+        for (const item of currentVerseData) {
+            const p = document.createElement("div");
+            p.textContent = item.pointed;
+            pointedBox.appendChild(p);
+
+            const t = document.createElement("div");
+            t.textContent = item.plain;
+            plainBox.appendChild(t);
+        }
     }
     document.getElementById("line-count").textContent = "Lines: " + currentVerseData.length;
 }
@@ -216,6 +225,7 @@ async function doFetchAll() {
         // since the backend appends rather than replaces.
         await api().clear_ranges();
         currentVerseData = [];
+        currentTikkunHtml = { plain: "", pointed: "" };
         renderVerseBoxes();
 
         const rows = document.querySelectorAll(".range-row");
@@ -223,16 +233,23 @@ async function doFetchAll() {
             const book = row.querySelector(".range-book").value;
             const mode = row.querySelector(".range-mode").value;
             let result;
+            let tikkunResult;
             if (mode === "Chapter / Verse") {
                 const startCh = parseInt(row.querySelector(".range-start-ch").value, 10);
                 const startVs = parseInt(row.querySelector(".range-start-vs").value, 10);
                 const endCh = parseInt(row.querySelector(".range-end-ch").value, 10);
                 const endVs = parseInt(row.querySelector(".range-end-vs").value, 10);
                 result = await api().fetch_chapter_verse(book, startCh, startVs, endCh, endVs);
+                if (result.ok) {
+                    tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
+                }
             } else {
                 const parasha = row.querySelector(".range-parasha").value;
                 const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
                 result = await api().fetch_parashah_aliyah(book, parasha, aliyah);
+                if (result.ok) {
+                    tikkunResult = await api().fetch_tikkun_parashah_aliyah(book, parasha, aliyah);
+                }
             }
 
             if (!result.ok) {
@@ -240,6 +257,14 @@ async function doFetchAll() {
                 return; // whatever ranges succeeded before this one stay visible
             }
             currentVerseData = result.verses;
+            // A non-Torah range leaves tikkunResult.ok true with nothing
+            // new added -- only a genuine failure here is worth losing
+            // the tikkun display over, and even then the flat text above
+            // already fetched fine, so just drop the tikkun HTML rather
+            // than failing the whole range.
+            if (tikkunResult && tikkunResult.ok) {
+                currentTikkunHtml = { plain: tikkunResult.plain_html, pointed: tikkunResult.pointed_html };
+            }
             renderVerseBoxes();
             document.getElementById("cache-status").textContent = result.cache_status;
         }
@@ -252,6 +277,7 @@ async function doFetchAll() {
 async function doClearRanges() {
     const result = await api().clear_ranges();
     currentVerseData = result.verses;
+    currentTikkunHtml = { plain: "", pointed: "" };
     renderVerseBoxes();
     showToast("Ranges cleared", false);
 }
@@ -321,6 +347,7 @@ async function doExportLpcg() {
     const endParasha = document.getElementById("lpcg-end-parasha").value;
     const endAliyah = parseInt(document.getElementById("lpcg-end-aliyah").value, 10);
     const deckName = document.getElementById("lpcg-deck").value.trim();
+    const cardDivision = document.getElementById("lpcg-card-division").value;
     const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
     const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
     const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
@@ -336,7 +363,7 @@ async function doExportLpcg() {
     try {
         const result = await api().export_aliyot_to_anki(
             book, startParasha, startAliyah, endParasha, endAliyah, deckName,
-            contextLines, reciteLines, groupSize,
+            cardDivision, contextLines, reciteLines, groupSize,
         );
         if (!result.ok) {
             showToast("Export failed: " + result.error, true);
@@ -356,6 +383,7 @@ async function doExportAmud() {
     const status = document.getElementById("lpcg-status");
     const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
     const deckName = document.getElementById("lpcg-deck").value.trim();
+    const cardDivision = document.getElementById("lpcg-card-division").value;
     const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
     const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
     const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
@@ -373,7 +401,9 @@ async function doExportAmud() {
     btn.textContent = "Exporting...";
     status.textContent = "";
     try {
-        const result = await api().export_amud_to_anki(amud, deckName, contextLines, reciteLines, groupSize);
+        const result = await api().export_amud_to_anki(
+            amud, deckName, cardDivision, contextLines, reciteLines, groupSize,
+        );
         if (!result.ok) {
             showToast("Export failed: " + result.error, true);
             return;
@@ -384,6 +414,70 @@ async function doExportAmud() {
         btn.disabled = false;
         btn.textContent = "Export amud to Anki";
     }
+}
+
+// =============================================================
+//  Tikkun.io scroll layout (source section) -- box/line/setumah CSS and
+//  the STAM font itself, injected once from the same source lpcg.py's
+//  own Anki-card CSS uses, so the two never drift apart.
+// =============================================================
+async function injectTikkunCss() {
+    const scrollCss = await api().get_tikkun_scroll_css();
+    const fontResult = await api().get_tikkun_font_css();
+    const style = document.createElement("style");
+    style.textContent = scrollCss + "\n" + (fontResult.ok ? fontResult.css : "");
+    document.head.appendChild(style);
+    if (!fontResult.ok) {
+        console.warn("Could not load the tikkun.io STAM font:", fontResult.error);
+    }
+}
+
+// Mirrors the Anki card's own on-card controls (lpcg.py's own
+// _SIZE_CONTROLS_HTML / --ankipasuk-font-size, --ankipasuk-line-height-scale,
+// --ankipasuk-width-scale) -- render_scroll_html's own CSS already reads
+// these same custom properties (see lpcg.py's SCROLL_CSS), so adjusting
+// them here resizes/respaces the box live with no re-fetch/re-render
+// needed. Each control keeps its own localStorage key/CSS var here,
+// separate from an Anki card's own -- this window and an Anki card's own
+// webview are different browser contexts that share nothing.
+function makeSizeControl(cssVar, storageKey, unit, { step, min, max, defaultValue }) {
+    const read = () => {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? parseFloat(stored) : defaultValue;
+    };
+    const apply = (value) => {
+        document.documentElement.style.setProperty(cssVar, value + unit);
+    };
+    const adjust = (direction) => {
+        const next = Math.min(max, Math.max(min, read() + direction * step));
+        localStorage.setItem(storageKey, next);
+        apply(next);
+    };
+    return { read, apply, adjust };
+}
+
+const tikkunFontSizeControl = makeSizeControl(
+    "--ankipasuk-font-size", "ankipasuk_webgui_font_size_px", "px",
+    { step: 2, min: 8, max: 60, defaultValue: 16 }, // 16 matches .text-box's own default font-size
+);
+const tikkunLineHeightControl = makeSizeControl(
+    "--ankipasuk-line-height-scale", "ankipasuk_webgui_line_height_scale", "",
+    { step: 0.1, min: 0.7, max: 2.5, defaultValue: 1 },
+);
+const tikkunWidthControl = makeSizeControl(
+    "--ankipasuk-width-scale", "ankipasuk_webgui_width_scale", "",
+    { step: 0.1, min: 0.5, max: 2.5, defaultValue: 1 },
+);
+
+function applyStoredTikkunControls() {
+    tikkunFontSizeControl.apply(tikkunFontSizeControl.read());
+    tikkunLineHeightControl.apply(tikkunLineHeightControl.read());
+    tikkunWidthControl.apply(tikkunWidthControl.read());
+}
+
+function updateTikkunViewVisibility() {
+    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
+    document.getElementById("tikkun-display-controls").hidden = !useTikkun;
 }
 
 // =============================================================
@@ -405,10 +499,25 @@ window.addEventListener("pywebviewready", async () => {
     cachedBooks = await api().get_books();
     addRangeRow(); // start with exactly one range row
     document.getElementById("cache-status").textContent = await api().get_cache_status();
+    injectTikkunCss();
+    applyStoredTikkunControls();
 
     document.getElementById("btn-add-range").addEventListener("click", addRangeRow);
     document.getElementById("btn-fetch").addEventListener("click", doFetchAll);
     document.getElementById("btn-clear-ranges").addEventListener("click", doClearRanges);
+    document.getElementById("tikkun-view-toggle").addEventListener("change", () => {
+        updateTikkunViewVisibility();
+        renderVerseBoxes();
+    });
+    updateTikkunViewVisibility();
+    document.getElementById("tikkun-font-minus").addEventListener("click", () => tikkunFontSizeControl.adjust(-1));
+    document.getElementById("tikkun-font-plus").addEventListener("click", () => tikkunFontSizeControl.adjust(1));
+    document.getElementById("tikkun-line-height-minus").addEventListener(
+        "click", () => tikkunLineHeightControl.adjust(-1));
+    document.getElementById("tikkun-line-height-plus").addEventListener(
+        "click", () => tikkunLineHeightControl.adjust(1));
+    document.getElementById("tikkun-width-minus").addEventListener("click", () => tikkunWidthControl.adjust(-1));
+    document.getElementById("tikkun-width-plus").addEventListener("click", () => tikkunWidthControl.adjust(1));
 
     document.getElementById("btn-generate").addEventListener("click", doGenerate);
     document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
@@ -446,4 +555,11 @@ window.addEventListener("pywebviewready", async () => {
     document.getElementById("lpcg-end-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("end"));
     document.getElementById("btn-export-lpcg").addEventListener("click", doExportLpcg);
     document.getElementById("btn-export-amud").addEventListener("click", doExportAmud);
+
+    const updateCardDivisionVisibility = () => {
+        const isRowMode = document.getElementById("lpcg-card-division").value === "row";
+        document.getElementById("lpcg-row-mode-settings").hidden = !isRowMode;
+    };
+    updateCardDivisionVisibility();
+    document.getElementById("lpcg-card-division").addEventListener("change", updateCardDivisionVisibility);
 });

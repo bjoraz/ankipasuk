@@ -30,10 +30,11 @@ from ..anki_connect.operations import sync_model_templates as anki_sync_model_te
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
 from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION
-from ..lpcg import CARD_TEMPLATES, build_lpcg_fields
+from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
+from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
 from ..sefaria import (
     fetch_aliyot_in_range,
     fetch_verse_range,
@@ -52,6 +53,7 @@ from ..tikkun import (
     get_font_base64,
     get_scroll_lines_for_range,
 )
+from ..verse_cards import build_amud_verse_cards, build_verse_cards
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
 from .tree_html import tree_to_html
@@ -70,12 +72,18 @@ class Api:
     list, so a session can concatenate ranges from different books (e.g.
     the end of Genesis plus the start of Exodus) simply by fetching each
     range in turn. clear_ranges() resets back to empty.
+
+    The tikkun.io scroll-style HTML (see _tikkun_html_for_range)
+    accumulates the same way, in _current_tikkun_html -- one growing
+    HTML string per side (plain/pointed), rather than a per-verse list,
+    since a single tikkun.io "line" doesn't correspond 1:1 with a verse.
     """
 
     def __init__(self) -> None:
         self._cache = SefariaCache()
         self._settings = Settings()
         self._current_verse_data: list[dict] = []
+        self._current_tikkun_html: dict[str, str] = {"plain": "", "pointed": ""}
         self._window: webview.Window | None = None
 
     # =============================================================
@@ -171,9 +179,118 @@ class Api:
         self._current_verse_data.extend(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
+    # =============================================================
+    #  Tikkun-style scroll display for the source section (Torah only --
+    #  a deliberately SEPARATE call from fetch_chapter_verse /
+    #  fetch_parashah_aliyah above, not folded into them: those two are
+    #  the core verse-fetch path everything else (cloze generation, CSV
+    #  export) depends on, and must stay usable -- and testable without
+    #  a tikkun.io round-trip -- even when this display is never shown.
+    # =============================================================
+    def fetch_tikkun_chapter_verse(
+        self, book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int,
+    ) -> dict:
+        """Like fetch_chapter_verse, but fetches and APPENDS this range's
+        tikkun.io scroll-style HTML instead (see _tikkun_html_for_range)
+        -- call alongside fetch_chapter_verse for the same range, not
+        instead of it. A range outside the Torah is a harmless no-op
+        (nothing appended, still "ok") -- tikkun.io simply has nothing to
+        show there."""
+        try:
+            tikkun = self._tikkun_html_for_range(book, start_ch, start_vs, end_ch, end_vs)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        if tikkun is not None:
+            plain_html, pointed_html = tikkun
+            self._current_tikkun_html["plain"] += plain_html
+            self._current_tikkun_html["pointed"] += pointed_html
+        return self._tikkun_fetch_result()
+
+    def fetch_tikkun_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
+        """Like fetch_tikkun_chapter_verse, but for a named parashah/
+        aliyah -- call alongside fetch_parashah_aliyah for the same
+        range."""
+        try:
+            ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self._cache)
+            start_ch, start_vs = parse_start_ref(ref_str)
+            verse_count = len(get_text_for_ref(ref_str, POINTED_VERSION, self._cache))
+            chapter_lengths = get_book_structure(book, self._cache)
+
+            end_ch, end_vs = start_ch, start_vs
+            for _ in range(verse_count - 1):
+                end_vs += 1
+                if end_ch <= len(chapter_lengths) and end_vs > chapter_lengths[end_ch - 1]:
+                    end_vs = 1
+                    end_ch += 1
+
+            tikkun = self._tikkun_html_for_range(book, start_ch, start_vs, end_ch, end_vs)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        if tikkun is not None:
+            plain_html, pointed_html = tikkun
+            self._current_tikkun_html["plain"] += plain_html
+            self._current_tikkun_html["pointed"] += pointed_html
+        return self._tikkun_fetch_result()
+
+    def _tikkun_html_for_range(
+        self, book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int,
+    ) -> tuple[str, str] | None:
+        """The tikkun.io scroll-style (plain, pointed) HTML for this
+        range, or None if tikkun.io has no layout data for ``book``
+        (Nevi'im and the Megillot aren't the Torah) -- the source
+        section's own tikkun display simply has nothing to add for such
+        a range, rather than erroring the whole fetch."""
+        try:
+            plain_lines = get_scroll_lines_for_range(book, start_ch, start_vs, end_ch, end_vs, self._cache)
+            pointed_lines = get_scroll_lines_for_range(
+                book, start_ch, start_vs, end_ch, end_vs, self._cache, pointed=True,
+            )
+        except ValueError:
+            return None
+        return render_scroll_html(plain_lines), render_scroll_html(pointed_lines)
+
+    def _tikkun_fetch_result(self) -> dict:
+        return {
+            "ok": True,
+            "plain_html": self._current_tikkun_html["plain"],
+            "pointed_html": self._current_tikkun_html["pointed"],
+        }
+
+    def get_tikkun_scroll_css(self) -> str:
+        """The tikkun-style scroll layout's own CSS (box/line/setumah
+        structure -- see :data:`ankipasuk.lpcg.SCROLL_CSS`), for the
+        frontend to inject once alongside the STAM font (see
+        get_tikkun_font_css) so the HTML from fetch_chapter_verse /
+        fetch_parashah_aliyah renders correctly outside Anki too."""
+        return LPCG_SCROLL_CSS
+
+    def get_tikkun_font_css(self) -> dict:
+        """The STAM font as a ``@font-face`` rule with the font itself
+        embedded as a base64 data URI (fetched live and cached forever
+        after, like everything else in :mod:`ankipasuk.tikkun`) -- so the
+        webgui can render tikkun-style text with the same font an Anki
+        card does, without needing a font file checked into the repo or
+        served as a separate static asset."""
+        try:
+            font_base64 = get_font_base64(self._cache)
+        except RuntimeError as e:
+            return {"ok": False, "error": str(e)}
+        css = (
+            '@font-face { font-family: "ShlomosemiStam"; '
+            f'src: url(data:font/ttf;base64,{font_base64}); }} '
+            '.lines { font-family: "ShlomosemiStam", "SBL Hebrew", '
+            '"Ezra SIL", "Noto Serif Hebrew", arial; }'
+        )
+        return {"ok": True, "css": css}
+
     def clear_ranges(self) -> dict:
-        """Discard all accumulated verse data, starting a fresh session."""
+        """Discard all accumulated verse data (and any accumulated tikkun
+        scroll HTML, see fetch_tikkun_chapter_verse), starting a fresh
+        session."""
         self._current_verse_data = []
+        self._current_tikkun_html = {"plain": "", "pointed": ""}
         return {"ok": True, "verses": self._current_verse_data}
 
     def _cache_status_text(self) -> str:
@@ -294,15 +411,15 @@ class Api:
         return self._settings.get("lpcg_deck_name", self.DEFAULT_LPCG_DECK_NAME)
 
     def _push_lpcg_notes(
-        self, line_groups: list[tuple[list[dict], str, list[str]]],
-        deck_name: str, context_lines: int, recite_lines: int, group_size: int,
+        self, note_groups: list[tuple[list[dict[str, str]], list[str]]], deck_name: str,
     ) -> dict:
         """Shared by export_aliyot_to_anki and export_amud_to_anki: given
-        one or more (lines, title, tags) groups -- each its own LPCG
-        "poem", so cards from different groups never share a context
-        window -- build every card and push them all to ``deck_name`` in
-        one AnkiConnect batch, ensuring the font/note-type/CSS/templates
-        are in place (and refreshed if stale) first.
+        one or more (fields_list, tags) groups -- ``fields_list`` already
+        built by :func:`ankipasuk.lpcg.build_lpcg_fields` or
+        :mod:`ankipasuk.verse_cards`'s builders -- turn every field dict
+        into an AnkiConnect note and push them all to ``deck_name`` in one
+        batch, ensuring the font/note-type/CSS/templates are in place
+        (and refreshed if stale) first.
 
         Returns ``{"ok": False, "error": ...}`` on any failure, otherwise
         ``{"ok": True, "notes_added": ..., "notes_skipped": ...}`` --
@@ -312,13 +429,8 @@ class Api:
         self._settings.set("lpcg_deck_name", deck_name)
 
         notes = []
-        for lines, title, tags in line_groups:
-            if not lines:
-                continue
-            for fields in build_lpcg_fields(
-                lines, title=title, context_lines=context_lines,
-                recite_lines=recite_lines, group_size=group_size,
-            ):
+        for fields_list, tags in note_groups:
+            for fields in fields_list:
                 notes.append({
                     "deckName": deck_name,
                     "modelName": LPCG_MODEL_NAME,
@@ -357,18 +469,34 @@ class Api:
         end_parasha: str,
         end_aliyah: int,
         deck_name: str,
+        card_division: str = "verse",
         context_lines: int = 2,
         recite_lines: int = 1,
         group_size: int = 1,
     ) -> dict:
         """Fetch every aliyah from (start_parasha, start_aliyah) through
         (end_parasha, end_aliyah) and push one Anki note per recitation
-        card to ``deck_name`` via AnkiConnect, using the overlapping-context
-        windowing in :mod:`ankipasuk.lpcg` -- one aliyah = one "poem" (its
-        own Title, so cards from different aliyot never overlap each
-        other's context window).
+        card to ``deck_name`` via AnkiConnect -- one aliyah = one LPCG
+        "poem", so cards from different aliyot never overlap each other's
+        context window.
 
-        Each card's text is a real Torah scroll line (see
+        ``card_division`` picks how each aliyah's rows are grouped into
+        cards:
+
+        - "verse" (default, recommended): one card per verse, word-precise
+          at any row it shares with the verse just before/after (see
+          :mod:`ankipasuk.verse_cards`) -- only that verse's own words are
+          tested; a neighbor's words on the same row show as plain
+          context instead. Exactly one extra row before as further
+          context. ``context_lines``/``recite_lines``/``group_size`` are
+          ignored in this mode.
+        - "row": the original AnkiLPCG-style sliding window over physical
+          rows, tuned by ``context_lines``/``recite_lines``/``group_size``
+          (see :func:`ankipasuk.lpcg.build_lpcg_fields`) -- a shared
+          row's full text (both verses' words) is tested on whichever
+          side's card includes it.
+
+        Either way, each card's text is a real Torah scroll line (see
         :mod:`ankipasuk.tikkun`): unvoweled block letters, justified and
         broken exactly where a kosher Sefer Torah's column would break
         (petuchot/setumot rendered too) -- not a per-verse paragraph -- so
@@ -393,27 +521,35 @@ class Api:
             return {"ok": False, "error": str(e)}
 
         hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-        line_groups = []
+        note_groups = []
         for aliyah in aliyot:
             verses = aliyah["verses"]
             if not verses:
                 continue
-            try:
-                lines = get_scroll_lines_for_range(
-                    book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"],
-                    self._cache,
-                )
-            except (RuntimeError, ValueError) as e:
-                traceback.print_exc()
-                return {"ok": False, "error": str(e)}
             title = f"{hebrew_book} {aliyah['parasha']} {aliyah['aliyah_num']} ({aliyah['ref']})"
             tags = [
                 "ankipasuk-aliyah",
                 f"parasha::{aliyah['parasha'].replace(' ', '-')}",
             ]
-            line_groups.append((lines, title, tags))
+            try:
+                if card_division == "verse":
+                    verse_refs = [(v["ch"], v["vs"]) for v in verses]
+                    fields_list = build_verse_cards(book, verse_refs, self._cache, title=title)
+                else:
+                    lines = get_scroll_lines_for_range(
+                        book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"],
+                        self._cache,
+                    )
+                    fields_list = build_lpcg_fields(
+                        lines, title=title, context_lines=context_lines,
+                        recite_lines=recite_lines, group_size=group_size,
+                    )
+            except (RuntimeError, ValueError) as e:
+                traceback.print_exc()
+                return {"ok": False, "error": str(e)}
+            note_groups.append((fields_list, tags))
 
-        result = self._push_lpcg_notes(line_groups, deck_name, context_lines, recite_lines, group_size)
+        result = self._push_lpcg_notes(note_groups, deck_name)
         if result["ok"]:
             result["aliyot"] = len(aliyot)
         elif result["error"] == "No text was found to export.":
@@ -424,6 +560,7 @@ class Api:
         self,
         amud_num: int,
         deck_name: str,
+        card_division: str = "verse",
         context_lines: int = 2,
         recite_lines: int = 1,
         group_size: int = 1,
@@ -431,8 +568,14 @@ class Api:
         """Push one Anki note per recitation card for the single amud
         (Torah scroll column) ``amud_num`` (1-245, see
         :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name`` via
-        AnkiConnect -- the whole amud is one LPCG "poem", i.e. one
-        continuous sliding-context window top to bottom.
+        AnkiConnect.
+
+        ``card_division`` (see export_aliyot_to_anki for the full
+        explanation) picks "verse" (default -- one card per verse that
+        starts on this amud, via
+        :func:`ankipasuk.verse_cards.build_amud_verse_cards`) or "row"
+        (the whole amud as one continuous AnkiLPCG-style sliding-context
+        window, tuned by ``context_lines``/``recite_lines``/``group_size``).
 
         A kosher Sefer Torah always starts each of its 5 books at the top
         of a fresh column, so an amud is always entirely within one book
@@ -446,18 +589,22 @@ class Api:
         """
         try:
             book = get_book_for_page(amud_num, self._cache)
-            lines = get_amud_lines(amud_num, self._cache)
+            hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
+            title = f"{hebrew_book} Amud {amud_num}"
+            if card_division == "verse":
+                fields_list = build_amud_verse_cards(book, amud_num, self._cache, title=title)
+            else:
+                lines = get_amud_lines(amud_num, self._cache)
+                fields_list = build_lpcg_fields(
+                    lines, title=title, context_lines=context_lines,
+                    recite_lines=recite_lines, group_size=group_size,
+                )
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-        hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-        title = f"{hebrew_book} Amud {amud_num}"
         tags = [f"amud::{amud_num:03d}"]
-
-        result = self._push_lpcg_notes(
-            [(lines, title, tags)], deck_name, context_lines, recite_lines, group_size,
-        )
+        result = self._push_lpcg_notes([(fields_list, tags)], deck_name)
         if result["ok"]:
             result["amud"] = amud_num
             result["book"] = book

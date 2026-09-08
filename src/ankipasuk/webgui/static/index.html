@@ -29,6 +29,23 @@
   </div>
 </fieldset>
 
+<div class="row">
+  <label title="Renders the current range(s) laid out exactly as a real Torah scroll column would break -- unvoweled/pointed block letters, justified, petuchot/setumot shown as real gaps. Torah only; other books fall back to the plain display below.">
+    <input type="checkbox" id="tikkun-view-toggle"> Tikkun.io scroll layout (Torah only)
+  </label>
+  <span class="inline-group" id="tikkun-display-controls" hidden>
+    Text size:
+    <button type="button" id="tikkun-font-minus">A-</button>
+    <button type="button" id="tikkun-font-plus">A+</button>
+    Line spacing:
+    <button type="button" id="tikkun-line-height-minus">≡-</button>
+    <button type="button" id="tikkun-line-height-plus">≡+</button>
+    Width:
+    <button type="button" id="tikkun-width-minus">↔-</button>
+    <button type="button" id="tikkun-width-plus">↔+</button>
+  </span>
+</div>
+
 <div class="two-col">
   <div class="col">
     <div class="row space-between">
@@ -97,6 +114,15 @@
 
   <div class="row">
     <label>Anki deck name: <input type="text" id="lpcg-deck" style="width:16em"></label>
+    <label title="Verse: one card per verse, with exactly the one row before it as context. Row: the classic AnkiLPCG sliding window over physical scroll rows, tuned by the settings below.">
+      Card division:
+      <select id="lpcg-card-division">
+        <option value="verse" selected>Verse (recommended)</option>
+        <option value="row">Row (sliding window)</option>
+      </select>
+    </label>
+  </div>
+  <div class="row" id="lpcg-row-mode-settings">
     <label>Context lines: <input type="number" id="lpcg-context-lines" value="2" min="0" style="width:4em"></label>
     <label>Recite lines: <input type="number" id="lpcg-recite-lines" value="1" min="1" style="width:4em"></label>
     <label>Group size: <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>

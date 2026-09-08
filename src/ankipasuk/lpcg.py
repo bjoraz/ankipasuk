@@ -26,6 +26,14 @@ unjustified when it's a petucha, since a petucha's whole point is that it
 stops short of the line's end. Callers are responsible for grouping the
 returned field dicts under "deckName"/"modelName"/"tags" and pushing them
 via :func:`ankipasuk.anki_connect.operations.add_notes`.
+
+Two field shapes share this one note type/CSS: :func:`build_lpcg_fields`'s
+row-anchored "Context"/"Line"/"Prompt" (a fixed-size sliding window over
+physical rows), and :mod:`ankipasuk.verse_cards`'s verse-anchored
+"FrontRows"/"BackRows" (one whole verse per card, word-precise at shared
+row boundaries -- a row-level split can't be, see that module's
+docstring). The card templates below render whichever pair is populated
+on a given note, via Anki's own ``{{#Field}}``/``{{^Field}}`` sections.
 """
 
 from __future__ import annotations
@@ -33,34 +41,57 @@ from __future__ import annotations
 from .tikkun import FONT_ANKI_FILENAME
 
 MODEL_NAME = "Ankipasuk Aliyah"
-FIELD_NAMES = ["Line", "Context", "Title", "Author", "Sequence", "Prompt", "BoxWidth"]
+FIELD_NAMES = [
+    # "Title" is deliberately first: Anki refuses to create a note whose
+    # FIRST field (by the note type's own field order) is empty -- and
+    # since the two card "shapes" sharing this note type each leave the
+    # OTHER shape's fields unpopulated (row-mode never sets
+    # FrontRows/BackRows; verse-mode never sets Line/Context/Prompt), no
+    # single one of those fields is safe to put first. "Title" is the one
+    # field both shapes always populate.
+    "Title", "Line", "Context", "Prompt", "FrontRows", "BackRows",
+    "Author", "Sequence", "BoxWidth",
+]
 BEGINNING_MARKER = "[Beginning]"
 
-# Small on-card controls (not a export-time setting) for font size and
-# line spacing -- identical block embedded in both Front and Back, since
-# Anki templates are independent HTML fragments with no shared-partial
-# mechanism. Persisted via localStorage (same origin/profile across every
-# card and both review sides), and applied as CSS custom properties on the
-# document root so the CSS below can reference them.
+# Small on-card controls (not a export-time setting) for font size, line
+# spacing, and box width -- identical block embedded in both Front and
+# Back, since Anki templates are independent HTML fragments with no
+# shared-partial mechanism. Persisted via localStorage (same origin/
+# profile across every card and both review sides), and applied as CSS
+# custom properties on the document root so the CSS below can reference
+# them.
 #
 # Bumping font size doesn't need any width recalculation of its own: the
 # "BoxWidth" field is in CSS "ch" units (see _box_width), which are
 # already defined relative to the element's own font-size -- so as
 # --ankipasuk-font-size changes, every ch-based width recomputes in the
 # same ratio automatically.
+#
+# Width is a multiplier on top of "BoxWidth" (see the templates' own
+# `calc({{BoxWidth}} * var(--ankipasuk-width-scale, 1))`), not a
+# replacement for it -- BoxWidth still sets each export's own
+# content-driven floor/minimum (see MIN_BOX_WIDTH_CH), and the ↔-/↔+
+# buttons scale that up or down live, shared -- like font size and line
+# spacing -- across every card of this note type instead of needing a
+# re-export to change.
 _SIZE_CONTROLS_HTML = """\
 <div class="ankipasuk-controls">
     <button type="button" onclick="ankipasukAdjustFont(-1)">A-</button>
     <button type="button" onclick="ankipasukAdjustFont(1)">A+</button>
     <button type="button" onclick="ankipasukAdjustLineHeight(-1)">≡-</button>
     <button type="button" onclick="ankipasukAdjustLineHeight(1)">≡+</button>
+    <button type="button" onclick="ankipasukAdjustWidth(-1)">↔-</button>
+    <button type="button" onclick="ankipasukAdjustWidth(1)">↔+</button>
 </div>
 <script>
 (function () {
     var FONT_KEY = "ankipasuk_font_size_px";
     var LINE_KEY = "ankipasuk_line_height_scale";
+    var WIDTH_KEY = "ankipasuk_width_scale";
     var FONT_STEP = 2, FONT_MIN = 8, FONT_MAX = 60, FONT_DEFAULT = 14;
     var LINE_STEP = 0.1, LINE_MIN = 0.7, LINE_MAX = 2.5, LINE_DEFAULT = 1;
+    var WIDTH_STEP = 0.1, WIDTH_MIN = 0.5, WIDTH_MAX = 2.5, WIDTH_DEFAULT = 1;
 
     function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
@@ -72,11 +103,18 @@ _SIZE_CONTROLS_HTML = """\
         var stored = localStorage.getItem(LINE_KEY);
         return stored ? parseFloat(stored) : LINE_DEFAULT;
     }
+    function readWidthScale() {
+        var stored = localStorage.getItem(WIDTH_KEY);
+        return stored ? parseFloat(stored) : WIDTH_DEFAULT;
+    }
     function applyFontSize(px) {
         document.documentElement.style.setProperty("--ankipasuk-font-size", px + "px");
     }
     function applyLineHeight(scale) {
         document.documentElement.style.setProperty("--ankipasuk-line-height-scale", scale);
+    }
+    function applyWidthScale(scale) {
+        document.documentElement.style.setProperty("--ankipasuk-width-scale", scale);
     }
 
     window.ankipasukAdjustFont = function (direction) {
@@ -89,11 +127,25 @@ _SIZE_CONTROLS_HTML = """\
         localStorage.setItem(LINE_KEY, next);
         applyLineHeight(next);
     };
+    window.ankipasukAdjustWidth = function (direction) {
+        var next = clamp(readWidthScale() + direction * WIDTH_STEP, WIDTH_MIN, WIDTH_MAX);
+        localStorage.setItem(WIDTH_KEY, next);
+        applyWidthScale(next);
+    };
 
     applyFontSize(readFontSize());
     applyLineHeight(readLineHeight());
+    applyWidthScale(readWidthScale());
 })();
 </script>"""
+
+# The width scale (see _SIZE_CONTROLS_HTML above) multiplies BoxWidth
+# rather than replacing it -- BoxWidth is still each export's own
+# content-driven floor. A plain (non-f-string) constant, so its literal
+# "{{BoxWidth}}" needs no f-string brace-doubling; interpolated by name
+# into the templates below to keep their own lines under the line-length
+# limit.
+_LINES_STYLE = "width: calc({{BoxWidth}} * var(--ankipasuk-width-scale, 1))"
 
 _FRONT_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
@@ -103,13 +155,18 @@ _FRONT_TEMPLATE = f"""\
 
 <br>
 
-<div class="lines" style="width: {{{{BoxWidth}}}}">
+{{{{#FrontRows}}}}
+<div class="lines" style="{_LINES_STYLE}">{{{{FrontRows}}}}</div>
+{{{{/FrontRows}}}}
+{{{{^FrontRows}}}}
+<div class="lines" style="{_LINES_STYLE}">
     {{{{Context}}}}
     <div class="line cloze">
         {{{{#Prompt}}}}{{{{Prompt}}}}{{{{/Prompt}}}}
         {{{{^Prompt}}}}[...]{{{{/Prompt}}}}
     </div>
-</div>"""
+</div>
+{{{{/FrontRows}}}}"""
 
 _BACK_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
@@ -119,10 +176,15 @@ _BACK_TEMPLATE = f"""\
 
 <br>
 
-<div class="lines" style="width: {{{{BoxWidth}}}}">
+{{{{#BackRows}}}}
+<div class="lines" style="{_LINES_STYLE}">{{{{BackRows}}}}</div>
+{{{{/BackRows}}}}
+{{{{^BackRows}}}}
+<div class="lines" style="{_LINES_STYLE}">
     {{{{Context}}}}
     {{{{Line}}}}
-</div>"""
+</div>
+{{{{/BackRows}}}}"""
 
 CARD_TEMPLATES = [{"Name": "Recite", "Front": _FRONT_TEMPLATE, "Back": _BACK_TEMPLATE}]
 
@@ -154,6 +216,58 @@ CARD_TEMPLATES = [{"Name": "Recite", "Front": _FRONT_TEMPLATE, "Back": _BACK_TEM
 #    "justify-content: space-between" real gap between the two fragments,
 #    each sized to its own content -- a visibly distinct gap, not just
 #    another wide word-spacing stretch.
+# The core scroll-layout rules -- box/line/setumah structure only, no
+# Anki-specific bits (night mode, card-only font-size/line-height
+# controls, cloze styling) -- factored out so
+# :mod:`ankipasuk.webgui.api` can reuse the exact same rendering outside
+# Anki too (the source section's own tikkun-style display, via
+# :func:`render_scroll_html`), rather than maintaining a second,
+# possibly-drifting copy. CSS below interpolates this in and then layers
+# its own Anki-only additions/overrides on top (see the comment blocks
+# there for why each addition exists).
+SCROLL_CSS = """\
+.lines {
+    direction: rtl;
+    margin: 0 auto;
+    /* The ", 16px"/", 1" fallbacks make these safe to use even before a
+       caller ever sets the variable (e.g. the webgui's own source
+       section, on first render before its own width/size controls have
+       touched it) -- an Anki card always sets both explicitly (see
+       CSS's own :root block below), so the fallback never applies
+       there. */
+    font-size: var(--ankipasuk-font-size, 16px);
+}
+
+.lines .line {
+    text-align: justify;
+    text-align-last: justify;
+    line-height: calc(130% * var(--ankipasuk-line-height-scale, 1));
+}
+
+/* A petucha ends its paragraph partway through the line on purpose -- the
+   rest of the line is blank on the actual scroll, so unlike an ordinary
+   line it must NOT be stretched to fill the box's width. */
+.lines .line.petucha {
+    text-align: start;
+    text-align-last: start;
+}
+
+.column {
+    display: flex;
+    justify-content: space-between;
+}
+
+.fragment {
+    width: 100%;
+}
+
+/* A setumah -- more than one fragment in a column -- gets real space
+   between its two halves, each sized to its own content. */
+.fragment.setuma {
+    width: auto;
+}
+"""
+
 CSS = f"""\
 @font-face {{
     font-family: "ShlomosemiStam";
@@ -166,6 +280,7 @@ CSS = f"""\
        runs. */
     --ankipasuk-font-size: 14px;
     --ankipasuk-line-height-scale: 1;
+    --ankipasuk-width-scale: 1;
 }}
 
 .card {{
@@ -196,40 +311,41 @@ CSS = f"""\
     cursor: pointer;
 }}
 
-.lines {{
-    direction: rtl;
-    margin: 0 auto;
-}}
-
-.lines .line {{
-    text-align: justify;
-    text-align-last: justify;
-    line-height: calc(130% * var(--ankipasuk-line-height-scale));
-}}
-
-/* A petucha ends its paragraph partway through the line on purpose -- the
-   rest of the line is blank on the actual scroll, so unlike an ordinary
-   line it must NOT be stretched to fill the box's width. Same for the
-   synthetic "[Beginning]" marker, which isn't scroll text at all. */
+{SCROLL_CSS}
+/* Anki-only addition on top of SCROLL_CSS above: the synthetic
+   "[Beginning]" marker (not real scroll text, so also unjustified like a
+   petucha) only exists on a card, never in the plain webgui display
+   SCROLL_CSS is shared with. */
 .lines .line.petucha,
 .lines .line.beginning-marker {{
     text-align: start;
     text-align-last: start;
 }}
 
-.column {{
+/* ankipasuk.verse_cards's own marker for a real transition to a new
+   physical scroll column, e.g. when a verse's own tail crosses an amud
+   boundary -- a clear divider, not just another line of scroll text, so
+   it's set off with its own rule on either side rather than folded into
+   the justified/unjustified text flow above. */
+.lines .amud-break {{
+    direction: ltr;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0.5em 0;
+    font-size: small;
+    color: #888;
 }}
 
-.fragment {{
-    width: 100%;
+.lines .amud-break::before,
+.lines .amud-break::after {{
+    content: "";
+    flex: 1;
+    border-top: 1px solid #ccc;
 }}
 
-/* A setumah -- more than one fragment in a column -- gets real space
-   between its two halves, each sized to its own content. */
-.fragment.setuma {{
-    width: auto;
+.nightMode .lines .amud-break {{
+    filter: invert(85%);
 }}
 
 .lines .line.cloze {{
@@ -238,6 +354,45 @@ CSS = f"""\
 }}
 
 .nightMode .lines .line.cloze {{
+    filter: invert(85%);
+}}
+
+/* ankipasuk.verse_cards's own inline cloze span, nested INSIDE a
+   .fragment above (not a replacement for it) -- a fragment can be split
+   between this verse's own tested words and a neighboring verse's
+   context words, so it needs its own span-level class distinct from the
+   row-level .line.cloze above, where the whole row is tested at once. */
+.cloze-inline {{
+    font-weight: bold;
+    color: blue;
+}}
+
+/* The Front side's hidden state: same literal words as .cloze-inline
+   alone (see verse_cards._render_split_fragment for why), just painted
+   over with a solid bar instead of shown -- so the row's
+   text-align: justify has identical text to work with on both sides of
+   the card, and stretches identically either way. */
+.cloze-inline.redacted {{
+    color: transparent;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+}}
+
+/* The NEXT verse's own opening words, sharing a row with this verse's
+   own last row -- masked on BOTH sides, always (see
+   verse_cards._render_split_fragment for why "own" reveals on the Back
+   but this never does): showing it here would spoil that verse's own
+   card before the reader gets to it. A visibly darker grey than
+   .redacted's, so the two are easy to tell apart at a glance -- .redacted
+   marks "you'll see this in a moment, on THIS card's own Back", this
+   marks "not on this card at all". */
+.cloze-inline.masked {{
+    color: transparent;
+    background-color: #c0c0c0;
+    border-radius: 2px;
+}}
+
+.nightMode .cloze-inline {{
     filter: invert(85%);
 }}
 
@@ -304,8 +459,30 @@ def _prompt_for(n_lines: int) -> str:
 # Hebrew letter; empirically (tested directly against real Anki reviews,
 # not guessed) 0.9x the longest line's raw letter count gives the ideal
 # word spacing once justified, tight enough to look like real scroll
-# text without the longest line actually wrapping.
-_BOX_WIDTH_FACTOR = 0.9
+# text without the longest line actually wrapping. Public (not
+# underscore-prefixed) since :mod:`ankipasuk.verse_cards` reuses it too,
+# for the exact same reason on the exact same font.
+BOX_WIDTH_FACTOR = 0.9
+
+# A short aliyah's longest line can compute to a noticeably narrower box
+# than a typical one -- narrow enough to feel cramped rather than
+# scroll-accurate. 40ch is comfortable even for a short one; anything
+# whose own content genuinely needs more still gets it, since this is
+# only a floor.
+MIN_BOX_WIDTH_CH = 40
+
+
+def box_width_from_char_counts(char_counts) -> str:
+    """One shared box width, in CSS "ch" units, from the single longest
+    ``char_counts`` value (or :data:`MIN_BOX_WIDTH_CH`, whichever is
+    larger) -- see the module-level CSS comment for why this is computed
+    here in Python rather than left to the browser to guess from HTML
+    content. Shared by :func:`_box_width` (row-mode, counting each
+    rendered line's own letters) and :mod:`ankipasuk.verse_cards`
+    (verse-mode, counting each row's words joined with spaces the same
+    way)."""
+    max_chars = max(char_counts, default=0)
+    return f"{max(MIN_BOX_WIDTH_CH, round(max_chars * BOX_WIDTH_FACTOR))}ch"
 
 
 def _box_width(lines: list) -> str:
@@ -313,8 +490,32 @@ def _box_width(lines: list) -> str:
     "ch" units, from the single longest line's own visible letter count --
     see the module-level CSS comment for why this is computed here in
     Python rather than left to the browser to guess from HTML content."""
-    max_chars = max((_normalize_line(line)["char_count"] for line in lines), default=0)
-    return f"{max(1, round(max_chars * _BOX_WIDTH_FACTOR))}ch"
+    return box_width_from_char_counts(_normalize_line(line)["char_count"] for line in lines)
+
+
+def render_scroll_html(lines: list) -> str:
+    """Render ``lines`` (:func:`ankipasuk.tikkun.get_scroll_lines_for_range`'s
+    own shape, or plain strings) into one self-contained
+    ``<div class="lines" style="width: ...">`` block -- the exact same
+    ``.line``/``.column``/``.fragment`` markup and box-width computation
+    an Anki card uses (see :data:`SCROLL_CSS`), for display OUTSIDE Anki
+    too -- :mod:`ankipasuk.webgui.api` uses this for the source section's
+    own tikkun-style display. Empty string if ``lines`` is empty (no
+    range to show, rather than an empty box).
+
+    The width is ``calc(<box_width> * var(--ankipasuk-width-scale, 1))``,
+    the same pattern the Anki card templates use (see ``_LINES_STYLE``)
+    -- lets the caller wire up its own live ↔-/↔+ control (a CSS custom
+    property on the document root) without needing to re-render this
+    HTML on every click; the ``, 1`` fallback keeps the box at its
+    computed width if nothing ever sets that variable.
+    """
+    if not lines:
+        return ""
+    box_width = _box_width(lines)
+    rows_html = _as_rows(group_lines(lines, 1))
+    style = f"width: calc({box_width} * var(--ankipasuk-width-scale, 1))"
+    return f'<div class="lines" style="{style}">{rows_html}</div>'
 
 
 def build_lpcg_fields(

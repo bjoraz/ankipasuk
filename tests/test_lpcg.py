@@ -7,7 +7,7 @@ since this module is an independent reimplementation of it.
 
 import pytest
 
-from ankipasuk.lpcg import FIELD_NAMES, build_lpcg_fields, group_lines
+from ankipasuk.lpcg import FIELD_NAMES, build_lpcg_fields, group_lines, render_scroll_html
 
 
 def _row(text: str, extra_class: str = "") -> str:
@@ -36,8 +36,14 @@ def test_group_lines_rejects_size_below_one():
 
 
 def test_field_dict_has_every_expected_field():
+    # build_lpcg_fields only ever populates its own row-mode fields --
+    # "FrontRows"/"BackRows" (ankipasuk.verse_cards's verse-mode fields)
+    # are left unset, which is fine: AnkiConnect defaults an omitted
+    # field to empty, and the card template's {{^FrontRows}} section
+    # falls back to this row-mode rendering exactly when it's empty.
     fields = build_lpcg_fields(["a", "b"], title="T")
-    assert set(fields[0].keys()) == set(FIELD_NAMES)
+    assert set(fields[0].keys()) == {"Line", "Context", "Prompt", "Title", "Author", "Sequence", "BoxWidth"}
+    assert set(fields[0].keys()) <= set(FIELD_NAMES)
 
 
 def test_sequence_numbers_are_one_based_and_consecutive():
@@ -115,5 +121,27 @@ def test_group_size_greater_than_one_groups_physical_lines_together():
 
 
 def test_box_width_is_the_same_on_every_card_from_the_longest_line():
+    fields = build_lpcg_fields(["ab", "a" * 50], title="T")
+    assert fields[0]["BoxWidth"] == fields[1]["BoxWidth"] == "45ch"  # round(50 * 0.9)
+
+
+def test_box_width_has_a_floor_for_short_content():
     fields = build_lpcg_fields(["ab", "abcdefghij"], title="T")
-    assert fields[0]["BoxWidth"] == fields[1]["BoxWidth"] == "9ch"  # round(10 * 0.9)
+    assert fields[0]["BoxWidth"] == fields[1]["BoxWidth"] == "40ch"  # MIN_BOX_WIDTH_CH floor
+
+
+def test_render_scroll_html_wraps_lines_in_a_shared_width_box():
+    html = render_scroll_html(["a", "b"])
+    style = "width: calc(40ch * var(--ankipasuk-width-scale, 1))"
+    assert html == f'<div class="lines" style="{style}">{_row("a")}{_row("b")}</div>'
+
+
+def test_render_scroll_html_marks_a_petucha_line_unjustified():
+    html = render_scroll_html([
+        {"html": "<span>a</span>", "is_petucha": True, "char_count": 1},
+    ])
+    assert '<div class="line petucha">' in html
+
+
+def test_render_scroll_html_empty_lines_gives_an_empty_string():
+    assert render_scroll_html([]) == ""

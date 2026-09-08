@@ -138,6 +138,95 @@ def test_clear_ranges_empties_accumulated_verse_data(genesis_1_1):
     assert api._current_verse_data == []
 
 
+def _seed_tikkun_source(api, tmp_path, monkeypatch):
+    """A tiny 2-verse fake Genesis chapter with real nikud/trope in its
+    tikkun.io row text, for exercising fetch_tikkun_chapter_verse /
+    fetch_tikkun_parashah_aliyah with zero network access."""
+    monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_tikkun_toc({
+        "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 2}}},
+    })
+    api._cache.set_tikkun_page(1, [
+        {"text": [["בְּרֵאשִׁ֖ית"]], "verses": [{"chapter": 1, "verse": 1}],
+         "aliyot": [{"standard": 1}], "isPetucha": False},
+        {"text": [["בָּרָ֣א"]], "verses": [{"chapter": 1, "verse": 2}], "aliyot": [], "isPetucha": False},
+    ])
+    # For fetch_parashah_aliyah/fetch_tikkun_parashah_aliyah's own range resolution.
+    api._cache.set_parasha_structure(
+        "Genesis", [{"name": "Bereshit", "refs": ["Genesis 1:1-1:2"]}],
+    )
+    api._cache.set_text("Genesis 1:1-1:2", POINTED_VERSION, ["v1", "v2"])
+
+
+def test_fetch_tikkun_chapter_verse_renders_plain_and_pointed_html(tmp_path, monkeypatch):
+    api = Api()
+    _seed_tikkun_source(api, tmp_path, monkeypatch)
+
+    result = api.fetch_tikkun_chapter_verse("Genesis", 1, 1, 1, 2)
+
+    assert result["ok"] is True
+    assert '<div class="lines"' in result["plain_html"]
+    assert "בראשית" in result["plain_html"]
+    assert "בְּרֵאשִׁ֖ית" in result["pointed_html"]
+    assert "בראשית" not in result["pointed_html"]  # the unpointed form never appears there
+
+
+def test_fetch_tikkun_chapter_verse_is_a_noop_for_non_torah_books(tmp_path, monkeypatch):
+    api = Api()
+    _seed_tikkun_source(api, tmp_path, monkeypatch)
+
+    result = api.fetch_tikkun_chapter_verse("Isaiah", 6, 1, 6, 1)
+
+    assert result["ok"] is True
+    assert result["plain_html"] == ""
+    assert result["pointed_html"] == ""
+
+
+def test_fetch_tikkun_chapter_verse_accumulates_across_calls(tmp_path, monkeypatch):
+    api = Api()
+    _seed_tikkun_source(api, tmp_path, monkeypatch)
+
+    first = api.fetch_tikkun_chapter_verse("Genesis", 1, 1, 1, 1)
+    second = api.fetch_tikkun_chapter_verse("Genesis", 1, 2, 1, 2)
+
+    assert second["plain_html"].startswith(first["plain_html"])
+    assert second["plain_html"] != first["plain_html"]
+    assert "בראשית" in second["plain_html"]
+    assert "ברא" in second["plain_html"]
+
+
+def test_fetch_tikkun_parashah_aliyah_renders_the_resolved_range(tmp_path, monkeypatch):
+    api = Api()
+    _seed_tikkun_source(api, tmp_path, monkeypatch)
+
+    result = api.fetch_tikkun_parashah_aliyah("Genesis", "Bereshit", 1)
+
+    assert result["ok"] is True
+    assert "בראשית" in result["plain_html"]
+    assert "ברא" in result["plain_html"]
+
+
+def test_get_tikkun_scroll_css_contains_the_shared_selectors():
+    api = Api()
+    css = api.get_tikkun_scroll_css()
+    assert ".lines" in css
+    assert ".fragment" in css
+
+
+def test_get_tikkun_font_css_embeds_the_cached_font(tmp_path):
+    api = Api()
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._cache.set_tikkun_font("ZmFrZS1mb250")
+
+    result = api.get_tikkun_font_css()
+
+    assert result["ok"] is True
+    assert "ZmFrZS1mb250" in result["css"]
+    assert "@font-face" in result["css"]
+
+
 def test_export_csv_without_fetched_verses_reports_error():
     api = Api()
     result = api.export_csv(2, True)
@@ -192,6 +281,12 @@ def _seed_two_aliyah_parasha(api, tmp_path):
     parasha structure/text AND a fake tikkun table-of-contents/page are
     seeded here -- each of the two verses given its own scroll line, so
     each aliyah still produces exactly one card in these tests.
+
+    verse-mode (the default) additionally needs a Sefaria word count per
+    verse (see ankipasuk.verse_cards), fetched by chapter ref
+    ("Genesis 1") rather than aliyah ref -- seeded here too (one word per
+    verse, matching each verse's own one-word tikkun row below), so that
+    lookup doesn't fall back to a real network fetch.
     """
     api._cache = SefariaCache(cache_dir=tmp_path)
     api._settings = Settings(cache_dir=tmp_path)
@@ -203,6 +298,7 @@ def _seed_two_aliyah_parasha(api, tmp_path):
     # string (single verses here), not per chapter.
     api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
     api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
+    api._cache.set_text("Genesis 1", POINTED_VERSION, ["א", "ב"])
 
     api._cache.set_tikkun_toc({
         "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 2}, "3": {"p": 1, "l": 3}}},
@@ -228,6 +324,145 @@ def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_pat
     assert result["notes_added"] == 2  # one scroll line per aliyah -> one card per aliyah
     assert LPCG_MODEL_NAME in fake_anki.models
     assert all(n["deck"] == "Leyning::Recitation" for n in fake_anki.notes.values())
+
+
+def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
+    """A single aliyah covering two verses that share a physical scroll
+    row: verse 1 is one word ("אאא") and verse 2 (three words: "בבב",
+    "גגג", "דדד") starts on that same row, then continues across two more
+    rows on its own. Exercises the "tail ends cohabiting a shared row"
+    case verse-mode cards must handle -- row0 ("אאא בבב") holds verse 1's
+    whole content AND the first word of verse 2's.
+
+    verse-mode's word-alignment (ankipasuk.verse_cards) needs each verse's
+    own Sefaria word count too, fetched (like ankipasuk.sefaria elsewhere)
+    by chapter ref ("Genesis 1"), not by aliyah ref -- unrelated to (and a
+    different cache key than) the aliyah-ref text fetch_aliyot_in_range
+    itself uses to discover aliyah boundaries.
+    """
+    monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_parasha_structure(
+        "Genesis",
+        [{"name": "Bereshit", "refs": ["Genesis 1:1-1:2"]}],
+    )
+    api._cache.set_text("Genesis 1:1-1:2", POINTED_VERSION, ["v1", "v2"])
+    # Chapter-keyed text, for verse_cards' own per-verse word counts.
+    api._cache.set_text("Genesis 1", POINTED_VERSION, ["א", "ב ג ד"])
+
+    api._cache.set_tikkun_toc({
+        "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 1}}},
+    })
+    api._cache.set_tikkun_page(1, [
+        {"text": [["אאא בבב"]], "verses": [{"chapter": 1, "verse": 1}, {"chapter": 1, "verse": 2}],
+         "aliyot": [{"standard": 1}], "isPetucha": False},
+        {"text": [["גגג"]], "verses": [], "aliyot": [], "isPetucha": False},
+        {"text": [["דדד"]], "verses": [], "aliyot": [], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
+
+
+def test_export_aliyot_to_anki_verse_mode_shares_a_boundary_row(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch)
+
+    result = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
+
+    assert result["ok"] is True
+    assert result["notes_added"] == 2  # one card per verse, not per row
+    back_rows = sorted(n["fields"]["BackRows"] for n in fake_anki.notes.values())
+    # Verse 1's card tests only its own word ("אאא") -- verse 2's word on
+    # that same row ("בבב") still occupies the row (a real Torah scroll
+    # doesn't blank out the next verse's opening word), but must be
+    # masked rather than shown, so verse 2's own card isn't spoiled.
+    short_card, long_card = back_rows
+    assert '<span class="cloze-inline">אאא</span>' in short_card
+    assert '<span class="cloze-inline">בבב</span>' not in short_card
+    assert '<span class="cloze-inline masked">בבב</span>' in short_card
+
+    # Verse 2's card tests its own 3 words across all 3 rows, with verse
+    # 1's word ("אאא") showing as plain (untested) context on the shared row.
+    assert '<span class="cloze-inline">בבב</span>' in long_card
+    assert '<span class="cloze-inline">גגג</span>' in long_card
+    assert '<span class="cloze-inline">דדד</span>' in long_card
+    assert '<span class="cloze-inline">אאא</span>' not in long_card
+    # verse 1's word as plain context, sharing one (non-setuma) fragment
+    # with verse 2's own cloze span -- see verse_cards._render_row_html.
+    assert '<div class="line"><div class="column"><span class="fragment">אאא ' in long_card
+
+
+def _seed_aliyah_starting_mid_row(api, tmp_path, monkeypatch):
+    """Two one-verse aliyot sharing a physical scroll row -- but unlike
+    _seed_two_verses_sharing_a_row, the EXPORT only covers the SECOND
+    aliyah (verse 2), excluding verse 1 entirely. Verse 1's own word
+    ("קקק") still shares row 0 with verse 2's own first word ("בבב"),
+    exactly as Exodus 20:1's row also carries the last word of 19:25 --
+    the regression this fixture targets: without accounting for the
+    excluded verse just before the range, its word would get silently
+    counted as part of verse 2's OWN tested content (see
+    ankipasuk.verse_cards's module docstring on "leading bleed").
+    """
+    monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_parasha_structure(
+        "Genesis",
+        [{"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}],
+    )
+    api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
+    api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
+    # Chapter-keyed text, for verse_cards' own per-verse word counts.
+    api._cache.set_text("Genesis 1", POINTED_VERSION, ["קקק", "בבב גגג"])
+
+    api._cache.set_tikkun_toc({
+        "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 1}}},
+    })
+    api._cache.set_tikkun_page(1, [
+        {"text": [["קקק בבב"]], "verses": [{"chapter": 1, "verse": 1}, {"chapter": 1, "verse": 2}],
+         "aliyot": [{"standard": 1}, {"standard": 2}], "isPetucha": False},
+        {"text": [["גגג"]], "verses": [], "aliyot": [], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
+
+
+def test_export_aliyot_to_anki_excludes_a_prior_verses_bleed_from_the_first_card(
+    tmp_path, fake_anki, monkeypatch,
+):
+    api = Api()
+    _seed_aliyah_starting_mid_row(api, tmp_path, monkeypatch)
+
+    result = api.export_aliyot_to_anki("Genesis", "Bereshit", 2, "Bereshit", 2, "Deck")
+
+    assert result["ok"] is True
+    assert result["notes_added"] == 1  # only verse 2's own card -- verse 1 isn't in range
+    (note,) = fake_anki.notes.values()
+    back_rows = note["fields"]["BackRows"]
+
+    # Verse 2's own tested content is ONLY its own 2 words -- verse 1's
+    # word, sharing the same row, must show as plain context, never as
+    # part of what's tested.
+    assert '<span class="cloze-inline">בבב</span>' in back_rows
+    assert '<span class="cloze-inline">גגג</span>' in back_rows
+    assert '<span class="cloze-inline">קקק</span>' not in back_rows
+    # "[Beginning]" still applies -- verse 1's own row has nothing before
+    # it either in this fixture (it's the chapter's first verse).
+    assert back_rows.startswith(
+        '<div class="line beginning-marker">[Beginning]</div>'
+        '<div class="line"><div class="column"><span class="fragment">קקק '
+    )
+
+
+def test_export_aliyot_to_anki_row_mode_still_available(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch)
+
+    result = api.export_aliyot_to_anki(
+        "Genesis", "Bereshit", 1, "Bereshit", 1, "Deck", card_division="row",
+    )
+
+    assert result["ok"] is True
+    assert result["notes_added"] == 3  # one card per physical row, the old behavior
 
 
 def test_get_lpcg_deck_name_defaults_when_nothing_saved_yet(tmp_path):
@@ -256,7 +491,10 @@ def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fa
     api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
 
     (note,) = fake_anki.notes.values()
-    assert note["fields"]["BoxWidth"] == "3ch"  # round(len("אאא") * 0.9)
+    # "אאא" alone is far short of MIN_BOX_WIDTH_CH, so the floor -- not
+    # the verse-text-derived factor -- is what actually sets this field
+    # here; see test_lpcg.py for the content-driven case.
+    assert note["fields"]["BoxWidth"] == "40ch"
 
 
 def test_export_aliyot_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki):
@@ -301,10 +539,17 @@ def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
 def _seed_one_amud(api, tmp_path, monkeypatch):
     """Pre-seed api._cache with a single one-line amud (amud 1, wholly
     within a fake single-chapter Genesis) -- enough for export_amud_to_anki
-    to run with zero network access."""
+    to run with zero network access.
+
+    verse-mode (the default) needs a Sefaria word count per verse too
+    (see ankipasuk.verse_cards), fetched by chapter ref ("Genesis 1") --
+    seeded here to match the tikkun row's own single word ("אאא"), so the
+    word-alignment doesn't fall back to a real network fetch.
+    """
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [1]})
     api._cache = SefariaCache(cache_dir=tmp_path)
     api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_text("Genesis 1", POINTED_VERSION, ["א"])
     api._cache.set_tikkun_toc({"1": {"1": {"1": {"p": 1, "l": 1}}}})
     api._cache.set_tikkun_page(1, [
         {"text": [["אאא"]], "verses": [{"chapter": 1, "verse": 1}],
