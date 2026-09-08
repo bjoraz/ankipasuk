@@ -43,7 +43,7 @@ Flag 2 + stem interval < PROMOTION_INTERVAL   (i.e. the stem lapsed)
 Three equivalent ways to run each step:
 
 - **From the GUI** -- launch `ankipasuk` (or `python -m ankipasuk`), then
-  **Tools → AnkiConnect Tools...**. Each operation has its own tab with a
+  **AnkiConnect Tools**. Each operation has its own tab with a
   deck field, a dry-run checkbox, and a live log pane.
 - **Double-click the script** (Windows-friendly, config at the top of the
   file).

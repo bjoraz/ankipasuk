@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nested Anki Cloze Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="main-window">
+
+<div class="toolbar">
+  <button id="btn-stats" class="link-btn">Corpus statistics</button>
+  <button id="btn-anki-tools" class="link-btn">AnkiConnect Tools</button>
+</div>
+
+<fieldset class="panel">
+  <legend>Source (Sefaria: Torah, Nevi'im, Megillot)</legend>
+
+  <div id="ranges-container"></div>
+
+  <div class="row">
+    <button id="btn-add-range" type="button">+ Add another range</button>
+    <button id="btn-fetch">Fetch all ranges</button>
+    <button id="btn-clear-ranges" type="button">Clear ranges</button>
+  </div>
+
+  <div class="row">
+    <span id="cache-status" class="muted"></span>
+    <button id="btn-clear-cache">Clear cache</button>
+  </div>
+</fieldset>
+
+<div class="row">
+  <label title="Renders the current range(s) laid out exactly as a real Torah scroll column would break -- unvoweled/pointed block letters, justified, petuchot/setumot shown as real gaps. Torah only; other books fall back to the plain display below.">
+    <input type="checkbox" id="tikkun-view-toggle"> Tikkun.io scroll layout (Torah only)
+  </label>
+  <span class="inline-group" id="tikkun-display-controls" hidden>
+    Text size:
+    <button type="button" id="tikkun-font-minus">A-</button>
+    <button type="button" id="tikkun-font-plus">A+</button>
+    Line spacing:
+    <button type="button" id="tikkun-line-height-minus">≡-</button>
+    <button type="button" id="tikkun-line-height-plus">≡+</button>
+    Width:
+    <button type="button" id="tikkun-width-minus">↔-</button>
+    <button type="button" id="tikkun-width-plus">↔+</button>
+  </span>
+</div>
+
+<div class="two-col">
+  <div class="col">
+    <div class="row space-between">
+      <label>Pointed text (display only):</label>
+      <button id="btn-copy-pointed">Copy pointed text</button>
+    </div>
+    <div id="pointed-box" class="text-box" dir="rtl"></div>
+  </div>
+  <div class="col">
+    <div class="row space-between">
+      <label>Text only (display only):</label>
+      <button id="btn-copy-plain">Copy text-only</button>
+    </div>
+    <div id="plain-box" class="text-box" dir="rtl"></div>
+  </div>
+</div>
+<div class="row space-between">
+  <span></span>
+  <span id="line-count" class="muted"></span>
+</div>
+
+<div class="row space-between">
+  <span class="inline-group">
+    <label>Max disjunctive groups per leaf: <input type="number" id="max-leaf-disj" value="2" min="1" style="width:4em"></label>
+    <label><input type="checkbox" id="reset-per-line" checked> Reset cloze numbering for each line</label>
+  </span>
+  <span class="inline-group">
+    <button id="btn-generate">Generate cloze cards</button>
+    <button id="btn-copy-cloze">Copy cloze output</button>
+    <button id="btn-export-csv">Export to CSV</button>
+  </span>
+</div>
+
+<div class="two-col">
+  <div class="col" style="flex:3">
+    <label>Output:</label>
+    <div id="output-box" class="text-box mono"></div>
+  </div>
+  <div class="col" style="flex:1">
+    <label>Minimum disjunctive groups:</label>
+    <div id="tokens-box" class="text-box mono" dir="rtl"></div>
+  </div>
+</div>
+
+<label>Visualization:</label>
+<div id="viz-box" class="text-box viz"></div>
+
+<fieldset class="panel">
+  <legend>Export aliyah range to Anki (LPCG-style recitation cards)</legend>
+
+  <div class="row">
+    <label>Book: <select id="lpcg-book"></select></label>
+    <label>Start parashah: <select id="lpcg-start-parasha"></select></label>
+    <label>Start aliyah: <select id="lpcg-start-aliyah"></select></label>
+    <label>End parashah: <select id="lpcg-end-parasha"></select></label>
+    <label>End aliyah: <select id="lpcg-end-aliyah"></select></label>
+  </div>
+
+  <div class="row space-between">
+    <span class="muted">&mdash; or export a single amud (scroll column), ignoring the range above &mdash;</span>
+  </div>
+  <div class="row">
+    <label>Amud (1&ndash;245): <input type="number" id="lpcg-amud" min="1" max="245" style="width:5em"></label>
+    <button id="btn-export-amud">Export amud to Anki</button>
+  </div>
+
+  <div class="row">
+    <label>Anki deck name: <input type="text" id="lpcg-deck" style="width:16em"></label>
+    <label title="Verse: one card per verse, with exactly the one row before it as context. Row: the classic AnkiLPCG sliding window over physical scroll rows, tuned by the settings below.">
+      Card division:
+      <select id="lpcg-card-division">
+        <option value="verse" selected>Verse (recommended)</option>
+        <option value="row">Row (sliding window)</option>
+      </select>
+    </label>
+  </div>
+  <div class="row" id="lpcg-row-mode-settings">
+    <label>Context lines: <input type="number" id="lpcg-context-lines" value="2" min="0" style="width:4em"></label>
+    <label>Recite lines: <input type="number" id="lpcg-recite-lines" value="1" min="1" style="width:4em"></label>
+    <label>Group size: <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>
+  </div>
+  <div class="row">
+    <span class="muted">Font size and line spacing are adjustable directly on each card (small controls in its corner).</span>
+  </div>
+
+  <div class="row space-between">
+    <span id="lpcg-status" class="muted"></span>
+    <button id="btn-export-lpcg">Export aliyah range to Anki</button>
+  </div>
+</fieldset>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -14,12 +14,28 @@ from .text_processing import disj_count, group_into_units, tokenize_pasuk
 
 
 def _label_sort_key(label: str):
-    """Sort verse labels like '3:16' numerically by chapter then verse."""
+    """Sort verse labels like 'Genesis 3:16' by book (as it appears in
+    the label, alphabetically) then numerically by chapter then verse --
+    good enough to keep each book's own verses in chapter:verse order
+    within a mixed-book session, even though it isn't canonical Torah/
+    Nevi'im/Megillot book order."""
     try:
-        ch, vs = label.split(":")
-        return (int(ch), int(vs))
+        book, chvs = label.rsplit(" ", 1)
+        ch, vs = chvs.split(":")
+        return (book, int(ch), int(vs))
     except (ValueError, AttributeError):
-        return (0, 0)
+        return ("", 0, 0)
+
+
+def _verse_label(item: dict) -> str:
+    """The "book ch:vs" label used everywhere a verse needs a unique,
+    human-readable identifier (e.g. "Genesis 1:1") -- book is part of
+    the label, not just "ch:vs", because a session can now concatenate
+    ranges from more than one book, and chapter:verse alone stops being
+    unique the moment that happens (Genesis 1:1 and Isaiah 1:1 would
+    otherwise collide, and worse, silently overwrite each other in
+    verse_lookup below rather than just looking ambiguous)."""
+    return f"{item['book']} {item['ch']}:{item['vs']}"
 
 
 def analyze_verse_for_stats(pointed: str, max_leaf_disj: int) -> dict:
@@ -94,7 +110,7 @@ def compute_corpus_stats(verse_data, max_leaf_disj: int):
             continue
 
         s = analyze_verse_for_stats(pointed, max_leaf_disj)
-        label = f"{item['ch']}:{item['vs']}"
+        label = _verse_label(item)
         verse_lookup[label] = {
             "ch": item["ch"],
             "vs": item["vs"],
@@ -123,10 +139,11 @@ def compute_corpus_stats(verse_data, max_leaf_disj: int):
             trope_bins[name].append(label)
         trope_freq.update(s["trope_names"])
 
-        chapter_word_totals[item["ch"]] += s["word_count"]
-        chapter_disj_totals[item["ch"]] += s["disj_count"]
-        chapter_verse_counts[item["ch"]] += 1
-        chapter_bins[item["ch"]].append(label)
+        chapter_key = (item["book"], item["ch"])
+        chapter_word_totals[chapter_key] += s["word_count"]
+        chapter_disj_totals[chapter_key] += s["disj_count"]
+        chapter_verse_counts[chapter_key] += 1
+        chapter_bins[chapter_key].append(label)
 
         scatter_points[(s["word_count"], s["tree_depth"])].append(label)
 

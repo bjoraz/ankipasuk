@@ -32,7 +32,7 @@ def test_verse_structure_signature_is_independent_of_cloze_splitting_setting(gen
 
 def _verse_data(entries):
     """entries: list of (ch, vs, pointed_text)."""
-    return [{"ch": ch, "vs": vs, "pointed": text, "plain": ""} for ch, vs, text in entries]
+    return [{"book": "Genesis", "ch": ch, "vs": vs, "pointed": text, "plain": ""} for ch, vs, text in entries]
 
 
 def test_group_verses_by_structure_groups_identical_shapes(genesis_1_1, genesis_1_2):
@@ -44,10 +44,10 @@ def test_group_verses_by_structure_groups_identical_shapes(genesis_1_1, genesis_
     groups = st.group_verses_by_structure(verse_data)
 
     bereshit_sig = st.verse_structure_signature(genesis_1_1)
-    assert sorted(groups[bereshit_sig]) == ["1:1", "5:3"]
+    assert sorted(groups[bereshit_sig]) == ["Genesis 1:1", "Genesis 5:3"]
 
     other_sig = st.verse_structure_signature(genesis_1_2)
-    assert groups[other_sig] == ["1:2"]
+    assert groups[other_sig] == ["Genesis 1:2"]
     assert len(groups) == 2
 
 
@@ -60,7 +60,7 @@ def test_group_verses_by_structure_skips_blank_verses(genesis_1_1):
 def test_verses_matching_structure(genesis_1_1, genesis_1_2):
     verse_data = _verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2), (5, 3, genesis_1_1)])
     sig = st.verse_structure_signature(genesis_1_1)
-    assert sorted(st.verses_matching_structure(verse_data, sig)) == ["1:1", "5:3"]
+    assert sorted(st.verses_matching_structure(verse_data, sig)) == ["Genesis 1:1", "Genesis 5:3"]
 
 
 def test_verses_matching_structure_returns_empty_for_unknown_signature(genesis_1_1):
@@ -70,23 +70,23 @@ def test_verses_matching_structure_returns_empty_for_unknown_signature(genesis_1
 
 def test_structure_of_label(genesis_1_1, genesis_1_2):
     verse_data = _verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)])
-    assert st.structure_of_label(verse_data, "1:1") == st.verse_structure_signature(genesis_1_1)
-    assert st.structure_of_label(verse_data, "1:2") == st.verse_structure_signature(genesis_1_2)
+    assert st.structure_of_label(verse_data, "Genesis 1:1") == st.verse_structure_signature(genesis_1_1)
+    assert st.structure_of_label(verse_data, "Genesis 1:2") == st.verse_structure_signature(genesis_1_2)
 
 
 def test_structure_of_label_missing_or_blank(genesis_1_1):
     verse_data = _verse_data([(1, 1, genesis_1_1), (1, 2, "  ")])
-    assert st.structure_of_label(verse_data, "9:9") is None  # not present
-    assert st.structure_of_label(verse_data, "1:2") is None  # blank text
+    assert st.structure_of_label(verse_data, "Genesis 9:9") is None  # not present
+    assert st.structure_of_label(verse_data, "Genesis 1:2") is None  # blank text
 
 
 def test_find_other_verses_shaped_like_this_one_workflow(genesis_1_1, genesis_1_2):
     """The intended end-to-end usage: given one verse's label, find every
     other verse in the range sharing its exact structure."""
     verse_data = _verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2), (5, 3, genesis_1_1)])
-    sig = st.structure_of_label(verse_data, "1:1")
+    sig = st.structure_of_label(verse_data, "Genesis 1:1")
     matches = st.verses_matching_structure(verse_data, sig)
-    assert sorted(matches) == ["1:1", "5:3"]
+    assert sorted(matches) == ["Genesis 1:1", "Genesis 5:3"]
 
 
 def test_structure_summary_orders_by_frequency_then_signature(
@@ -104,7 +104,7 @@ def test_structure_summary_orders_by_frequency_then_signature(
     # genesis_1_1's shape appears 3 times -- must be first.
     top_sig, top_labels = summary[0]
     assert top_sig == st.verse_structure_signature(genesis_1_1)
-    assert sorted(top_labels) == ["1:1", "5:1", "5:2"]
+    assert sorted(top_labels) == ["Genesis 1:1", "Genesis 5:1", "Genesis 5:2"]
 
     # The other two shapes each appear once; total accounted for.
     assert sum(len(labels) for _sig, labels in summary) == 5
@@ -130,11 +130,11 @@ def test_group_verses_by_word_count_and_structure(genesis_1_1, genesis_1_2):
 
     assert set(grouped.keys()) == {7, 12}
     bereshit_sig = st.verse_structure_signature(genesis_1_1)
-    assert sorted(grouped[7][bereshit_sig]) == ["1:1", "5:3"]
+    assert sorted(grouped[7][bereshit_sig]) == ["Genesis 1:1", "Genesis 5:3"]
     assert len(grouped[7]) == 1  # only one distinct shape among the 7-word verses here
 
     other_sig = st.verse_structure_signature(genesis_1_2)
-    assert grouped[12] == {other_sig: ["1:2"]}
+    assert grouped[12] == {other_sig: ["Genesis 1:2"]}
 
 
 def test_group_verses_by_word_count_and_structure_skips_blank_verses(genesis_1_1):
@@ -153,11 +153,11 @@ def test_group_verses_by_disj_count_and_structure(genesis_1_1, genesis_1_2):
 
     bereshit_sig = st.verse_structure_signature(genesis_1_1)
     bereshit_leaves = st.signature_leaf_count(bereshit_sig)
-    assert sorted(grouped[bereshit_leaves][bereshit_sig]) == ["1:1", "5:3"]
+    assert sorted(grouped[bereshit_leaves][bereshit_sig]) == ["Genesis 1:1", "Genesis 5:3"]
 
     other_sig = st.verse_structure_signature(genesis_1_2)
     other_leaves = st.signature_leaf_count(other_sig)
-    assert grouped[other_leaves] == {other_sig: ["1:2"]}
+    assert grouped[other_leaves] == {other_sig: ["Genesis 1:2"]}
 
 
 def test_group_verses_by_disj_count_and_structure_separates_different_shapes_with_same_count():
@@ -178,3 +178,41 @@ def test_format_structure_leaf():
 
 def test_format_structure_nested():
     assert st.format_structure(((3, 1), 2)) == "((L3 L1) L2)"
+
+
+def test_group_verses_by_structure_does_not_collide_across_books(genesis_1_1, genesis_1_2):
+    """The specific regression this whole book-qualified-label change
+    exists to fix: two verses from different books sharing the same
+    chapter:verse must not collide under one ambiguous "ch:vs" label --
+    each must be independently, correctly attributed to its own
+    structure bucket under its own book's label. Before this fix, both
+    would render as bare "1:1" -- indistinguishable in the Structure
+    tab, and if genesis_1_2 (a differently-shaped verse) happened to
+    also be labeled "1:1" in some other book, a user would see "1:1"
+    listed under a structure it doesn't actually match, exactly the
+    reported symptom."""
+    verse_data = [
+        {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+        {"book": "Isaiah", "ch": 1, "vs": 1, "pointed": genesis_1_2, "plain": ""},
+    ]
+    groups = st.group_verses_by_structure(verse_data)
+
+    genesis_sig = st.verse_structure_signature(genesis_1_1)
+    isaiah_sig = st.verse_structure_signature(genesis_1_2)
+    assert genesis_sig != isaiah_sig  # different verses, different shapes -- the whole point
+
+    assert groups[genesis_sig] == ["Genesis 1:1"]
+    assert groups[isaiah_sig] == ["Isaiah 1:1"]
+    # Neither bucket contains the OTHER book's "1:1" -- confirms they
+    # were never merged under a shared bare label in the first place.
+    assert "Isaiah 1:1" not in groups[genesis_sig]
+    assert "Genesis 1:1" not in groups[isaiah_sig]
+
+
+def test_structure_of_label_distinguishes_same_chapter_verse_across_books(genesis_1_1, genesis_1_2):
+    verse_data = [
+        {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+        {"book": "Isaiah", "ch": 1, "vs": 1, "pointed": genesis_1_2, "plain": ""},
+    ]
+    assert st.structure_of_label(verse_data, "Genesis 1:1") == st.verse_structure_signature(genesis_1_1)
+    assert st.structure_of_label(verse_data, "Isaiah 1:1") == st.verse_structure_signature(genesis_1_2)

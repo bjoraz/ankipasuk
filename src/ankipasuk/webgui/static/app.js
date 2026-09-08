@@ -1,0 +1,565 @@
+"use strict";
+
+let currentVerseData = [];
+let currentTikkunHtml = { plain: "", pointed: "" };
+let cachedBooks = null; // {"Torah": [...], "Nevi'im": [...], "Megillot": [...]}
+
+function api() {
+    return window.pywebview.api;
+}
+
+function showToast(message, isError) {
+    const el = document.getElementById("toast");
+    el.textContent = message;
+    el.className = "toast" + (isError ? " error" : "");
+    el.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { el.hidden = true; }, 4000);
+}
+
+function setOptions(select, values, keepSelection) {
+    const prev = select.value;
+    select.innerHTML = "";
+    for (const v of values) {
+        const opt = document.createElement("option");
+        opt.value = String(v);
+        opt.textContent = String(v);
+        select.appendChild(opt);
+    }
+    if (keepSelection && values.map(String).includes(prev)) {
+        select.value = prev;
+    }
+}
+
+function setBookOptions(select, booksByCategory, keepSelection) {
+    const prev = select.value;
+    select.innerHTML = "";
+    for (const [category, books] of Object.entries(booksByCategory)) {
+        const group = document.createElement("optgroup");
+        group.label = category;
+        for (const b of books) {
+            const opt = document.createElement("option");
+            opt.value = b;
+            opt.textContent = b;
+            group.appendChild(opt);
+        }
+        select.appendChild(group);
+    }
+    if (keepSelection && Array.from(select.options).some((o) => o.value === prev)) {
+        select.value = prev;
+    }
+}
+
+// =============================================================
+//  Range rows -- each is an independently configurable
+//  book/mode/chapter-verse-or-parashah-aliyah picker. Multiple rows can
+//  be fetched together and their verses concatenate in the order
+//  they're listed (see doFetchAll).
+// =============================================================
+const RANGE_ROW_TEMPLATE = `
+  <div class="row">
+    <label>Mode:
+      <select class="range-mode">
+        <option>Chapter / Verse</option>
+        <option>Parashah / Aliyah</option>
+      </select>
+    </label>
+    <label>Book:
+      <select class="range-book"></select>
+    </label>
+
+    <span class="range-cv-controls inline-group">
+      <label>Start chapter: <select class="range-start-ch"></select></label>
+      <label>Start verse: <select class="range-start-vs"></select></label>
+      <label>End chapter: <select class="range-end-ch"></select></label>
+      <label>End verse: <select class="range-end-vs"></select></label>
+    </span>
+
+    <span class="range-pa-controls inline-group" hidden>
+      <label>Parashah: <select class="range-parasha"></select></label>
+      <label>Aliyah: <select class="range-aliyah"></select></label>
+    </span>
+
+    <button class="btn-remove-range" type="button" title="Remove this range">Remove</button>
+  </div>
+`;
+
+async function onRangeModeChange(row) {
+    const isCV = row.querySelector(".range-mode").value === "Chapter / Verse";
+    row.querySelector(".range-cv-controls").hidden = !isCV;
+    row.querySelector(".range-pa-controls").hidden = isCV;
+
+    // Parashah/Aliyah only exists for Torah -- restrict the book list to
+    // Torah so an invalid (book, mode) combination can't be selected at
+    // all, rather than only failing later when fetched.
+    const books = isCV ? cachedBooks : { Torah: cachedBooks.Torah };
+    setBookOptions(row.querySelector(".range-book"), books, true);
+
+    await onRangeBookChange(row);
+}
+
+async function onRangeBookChange(row) {
+    const isCV = row.querySelector(".range-mode").value === "Chapter / Verse";
+    if (isCV) {
+        await refreshRangeChapterVerseDropdowns(row);
+    } else {
+        await refreshRangeParashaDropdown(row);
+    }
+}
+
+async function refreshRangeChapterVerseDropdowns(row) {
+    const book = row.querySelector(".range-book").value;
+    const result = await api().get_chapter_count(book);
+    if (!result.ok) {
+        showToast("Could not load " + book + ": " + result.error, true);
+        return;
+    }
+    const chapters = Array.from({ length: result.count }, (_, i) => i + 1);
+    setOptions(row.querySelector(".range-start-ch"), chapters, true);
+    setOptions(row.querySelector(".range-end-ch"), chapters, true);
+    await refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs");
+    await refreshRangeVerseDropdown(row, "range-end-ch", "range-end-vs");
+}
+
+async function refreshRangeVerseDropdown(row, chClass, vsClass) {
+    const book = row.querySelector(".range-book").value;
+    const chapter = parseInt(row.querySelector("." + chClass).value, 10) || 1;
+    const result = await api().get_verse_count(book, chapter);
+    if (!result.ok) {
+        showToast("Could not load verse count: " + result.error, true);
+        return;
+    }
+    const verses = Array.from({ length: result.count }, (_, i) => i + 1);
+    setOptions(row.querySelector("." + vsClass), verses, true);
+}
+
+async function refreshRangeParashaDropdown(row) {
+    const book = row.querySelector(".range-book").value;
+    const parashaSelect = row.querySelector(".range-parasha");
+    parashaSelect.innerHTML = "<option>Loading...</option>";
+    const result = await api().get_parashot(book);
+    if (!result.ok) {
+        showToast("Could not load parashot: " + result.error, true);
+        parashaSelect.innerHTML = "";
+        return;
+    }
+    setOptions(parashaSelect, result.names, false);
+    await refreshRangeAliyahDropdown(row);
+}
+
+async function refreshRangeAliyahDropdown(row) {
+    const book = row.querySelector(".range-book").value;
+    const parasha = row.querySelector(".range-parasha").value;
+    if (!parasha) return;
+    const result = await api().get_aliyah_count(book, parasha);
+    if (!result.ok) {
+        showToast("Could not load aliyot: " + result.error, true);
+        return;
+    }
+    const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
+    setOptions(row.querySelector(".range-aliyah"), aliyot, true);
+}
+
+function addRangeRow() {
+    const container = document.getElementById("ranges-container");
+    const row = document.createElement("div");
+    row.className = "range-row";
+    row.innerHTML = RANGE_ROW_TEMPLATE;
+    container.appendChild(row);
+
+    row.querySelector(".range-mode").addEventListener("change", () => onRangeModeChange(row));
+    row.querySelector(".range-book").addEventListener("change", () => onRangeBookChange(row));
+    row.querySelector(".range-start-ch").addEventListener("change", () =>
+        refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs"));
+    row.querySelector(".range-end-ch").addEventListener("change", () =>
+        refreshRangeVerseDropdown(row, "range-end-ch", "range-end-vs"));
+    row.querySelector(".range-parasha").addEventListener("change", () => refreshRangeAliyahDropdown(row));
+    row.querySelector(".btn-remove-range").addEventListener("click", () => {
+        if (document.querySelectorAll(".range-row").length <= 1) {
+            showToast("At least one range is required.", true);
+            return;
+        }
+        row.remove();
+    });
+
+    onRangeModeChange(row);
+    return row;
+}
+
+// =============================================================
+//  Fetching verses (every range row, concatenated in order)
+// =============================================================
+function renderVerseBoxes() {
+    const pointedBox = document.getElementById("pointed-box");
+    const plainBox = document.getElementById("plain-box");
+    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
+
+    if (useTikkun) {
+        const placeholder = "<em>No Torah content in the current range(s).</em>";
+        pointedBox.innerHTML = currentTikkunHtml.pointed || placeholder;
+        plainBox.innerHTML = currentTikkunHtml.plain || placeholder;
+    } else {
+        pointedBox.innerHTML = "";
+        plainBox.innerHTML = "";
+        for (const item of currentVerseData) {
+            const p = document.createElement("div");
+            p.textContent = item.pointed;
+            pointedBox.appendChild(p);
+
+            const t = document.createElement("div");
+            t.textContent = item.plain;
+            plainBox.appendChild(t);
+        }
+    }
+    document.getElementById("line-count").textContent = "Lines: " + currentVerseData.length;
+}
+
+async function doFetchAll() {
+    const btn = document.getElementById("btn-fetch");
+    btn.disabled = true;
+    btn.textContent = "Fetching...";
+    try {
+        // Always start from a clean accumulated state -- otherwise
+        // clicking "Fetch all ranges" a second time (e.g. after editing
+        // one row) would double up everything fetched the first time,
+        // since the backend appends rather than replaces.
+        await api().clear_ranges();
+        currentVerseData = [];
+        currentTikkunHtml = { plain: "", pointed: "" };
+        renderVerseBoxes();
+
+        const rows = document.querySelectorAll(".range-row");
+        for (const row of rows) {
+            const book = row.querySelector(".range-book").value;
+            const mode = row.querySelector(".range-mode").value;
+            let result;
+            let tikkunResult;
+            if (mode === "Chapter / Verse") {
+                const startCh = parseInt(row.querySelector(".range-start-ch").value, 10);
+                const startVs = parseInt(row.querySelector(".range-start-vs").value, 10);
+                const endCh = parseInt(row.querySelector(".range-end-ch").value, 10);
+                const endVs = parseInt(row.querySelector(".range-end-vs").value, 10);
+                result = await api().fetch_chapter_verse(book, startCh, startVs, endCh, endVs);
+                if (result.ok) {
+                    tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
+                }
+            } else {
+                const parasha = row.querySelector(".range-parasha").value;
+                const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
+                result = await api().fetch_parashah_aliyah(book, parasha, aliyah);
+                if (result.ok) {
+                    tikkunResult = await api().fetch_tikkun_parashah_aliyah(book, parasha, aliyah);
+                }
+            }
+
+            if (!result.ok) {
+                showToast("Fetch failed: " + result.error, true);
+                return; // whatever ranges succeeded before this one stay visible
+            }
+            currentVerseData = result.verses;
+            // A non-Torah range leaves tikkunResult.ok true with nothing
+            // new added -- only a genuine failure here is worth losing
+            // the tikkun display over, and even then the flat text above
+            // already fetched fine, so just drop the tikkun HTML rather
+            // than failing the whole range.
+            if (tikkunResult && tikkunResult.ok) {
+                currentTikkunHtml = { plain: tikkunResult.plain_html, pointed: tikkunResult.pointed_html };
+            }
+            renderVerseBoxes();
+            document.getElementById("cache-status").textContent = result.cache_status;
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Fetch all ranges";
+    }
+}
+
+async function doClearRanges() {
+    const result = await api().clear_ranges();
+    currentVerseData = result.verses;
+    currentTikkunHtml = { plain: "", pointed: "" };
+    renderVerseBoxes();
+    showToast("Ranges cleared", false);
+}
+
+// =============================================================
+//  Cloze generation
+// =============================================================
+async function doGenerate() {
+    const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
+    const resetPerLine = document.getElementById("reset-per-line").checked;
+    const result = await api().generate_cloze(maxLeafDisj, resetPerLine);
+    if (!result.ok) {
+        showToast(result.error, true);
+        return;
+    }
+    document.getElementById("output-box").textContent = result.output;
+    document.getElementById("tokens-box").textContent = result.tokens;
+    document.getElementById("viz-box").innerHTML = result.viz_html;
+}
+
+async function doExportCsv() {
+    const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
+    const resetPerLine = document.getElementById("reset-per-line").checked;
+    const result = await api().export_csv(maxLeafDisj, resetPerLine);
+    if (!result.ok) {
+        if (result.error) showToast(result.error, true);
+        return; // null error = user cancelled the save dialog, not an error
+    }
+    showToast(`Exported ${result.count} card(s) to ${result.path}`, false);
+}
+
+// =============================================================
+//  Aliyah range export to Anki (LPCG-style recitation cards)
+// =============================================================
+async function refreshLpcgParashaDropdowns() {
+    const book = document.getElementById("lpcg-book").value;
+    const result = await api().get_parashot(book);
+    if (!result.ok) {
+        showToast("Could not load parashot: " + result.error, true);
+        return;
+    }
+    setOptions(document.getElementById("lpcg-start-parasha"), result.names, true);
+    setOptions(document.getElementById("lpcg-end-parasha"), result.names, true);
+    await refreshLpcgAliyahDropdown("start");
+    await refreshLpcgAliyahDropdown("end");
+}
+
+async function refreshLpcgAliyahDropdown(which) {
+    const book = document.getElementById("lpcg-book").value;
+    const parasha = document.getElementById("lpcg-" + which + "-parasha").value;
+    if (!parasha) return;
+    const result = await api().get_aliyah_count(book, parasha);
+    if (!result.ok) {
+        showToast("Could not load aliyot: " + result.error, true);
+        return;
+    }
+    const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
+    setOptions(document.getElementById("lpcg-" + which + "-aliyah"), aliyot, true);
+}
+
+async function doExportLpcg() {
+    const btn = document.getElementById("btn-export-lpcg");
+    const status = document.getElementById("lpcg-status");
+    const book = document.getElementById("lpcg-book").value;
+    const startParasha = document.getElementById("lpcg-start-parasha").value;
+    const startAliyah = parseInt(document.getElementById("lpcg-start-aliyah").value, 10);
+    const endParasha = document.getElementById("lpcg-end-parasha").value;
+    const endAliyah = parseInt(document.getElementById("lpcg-end-aliyah").value, 10);
+    const deckName = document.getElementById("lpcg-deck").value.trim();
+    const cardDivision = document.getElementById("lpcg-card-division").value;
+    const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
+    const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
+    const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
+
+    if (!deckName) {
+        showToast("Enter an Anki deck name.", true);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Exporting...";
+    status.textContent = "";
+    try {
+        const result = await api().export_aliyot_to_anki(
+            book, startParasha, startAliyah, endParasha, endAliyah, deckName,
+            cardDivision, contextLines, reciteLines, groupSize,
+        );
+        if (!result.ok) {
+            showToast("Export failed: " + result.error, true);
+            return;
+        }
+        status.textContent =
+            `${result.aliyot} aliyah/aliyot, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+        showToast("Exported to Anki.", false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Export aliyah range to Anki";
+    }
+}
+
+async function doExportAmud() {
+    const btn = document.getElementById("btn-export-amud");
+    const status = document.getElementById("lpcg-status");
+    const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
+    const deckName = document.getElementById("lpcg-deck").value.trim();
+    const cardDivision = document.getElementById("lpcg-card-division").value;
+    const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
+    const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
+    const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
+
+    if (!amud || amud < 1 || amud > 245) {
+        showToast("Enter an amud number from 1 to 245.", true);
+        return;
+    }
+    if (!deckName) {
+        showToast("Enter an Anki deck name.", true);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Exporting...";
+    status.textContent = "";
+    try {
+        const result = await api().export_amud_to_anki(
+            amud, deckName, cardDivision, contextLines, reciteLines, groupSize,
+        );
+        if (!result.ok) {
+            showToast("Export failed: " + result.error, true);
+            return;
+        }
+        status.textContent = `${result.book} amud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+        showToast("Exported to Anki.", false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Export amud to Anki";
+    }
+}
+
+// =============================================================
+//  Tikkun.io scroll layout (source section) -- box/line/setumah CSS and
+//  the STAM font itself, injected once from the same source lpcg.py's
+//  own Anki-card CSS uses, so the two never drift apart.
+// =============================================================
+async function injectTikkunCss() {
+    const scrollCss = await api().get_tikkun_scroll_css();
+    const fontResult = await api().get_tikkun_font_css();
+    const style = document.createElement("style");
+    style.textContent = scrollCss + "\n" + (fontResult.ok ? fontResult.css : "");
+    document.head.appendChild(style);
+    if (!fontResult.ok) {
+        console.warn("Could not load the tikkun.io STAM font:", fontResult.error);
+    }
+}
+
+// Mirrors the Anki card's own on-card controls (lpcg.py's own
+// _SIZE_CONTROLS_HTML / --ankipasuk-font-size, --ankipasuk-line-height-scale,
+// --ankipasuk-width-scale) -- render_scroll_html's own CSS already reads
+// these same custom properties (see lpcg.py's SCROLL_CSS), so adjusting
+// them here resizes/respaces the box live with no re-fetch/re-render
+// needed. Each control keeps its own localStorage key/CSS var here,
+// separate from an Anki card's own -- this window and an Anki card's own
+// webview are different browser contexts that share nothing.
+function makeSizeControl(cssVar, storageKey, unit, { step, min, max, defaultValue }) {
+    const read = () => {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? parseFloat(stored) : defaultValue;
+    };
+    const apply = (value) => {
+        document.documentElement.style.setProperty(cssVar, value + unit);
+    };
+    const adjust = (direction) => {
+        const next = Math.min(max, Math.max(min, read() + direction * step));
+        localStorage.setItem(storageKey, next);
+        apply(next);
+    };
+    return { read, apply, adjust };
+}
+
+const tikkunFontSizeControl = makeSizeControl(
+    "--ankipasuk-font-size", "ankipasuk_webgui_font_size_px", "px",
+    { step: 2, min: 8, max: 60, defaultValue: 16 }, // 16 matches .text-box's own default font-size
+);
+const tikkunLineHeightControl = makeSizeControl(
+    "--ankipasuk-line-height-scale", "ankipasuk_webgui_line_height_scale", "",
+    { step: 0.1, min: 0.7, max: 2.5, defaultValue: 1 },
+);
+const tikkunWidthControl = makeSizeControl(
+    "--ankipasuk-width-scale", "ankipasuk_webgui_width_scale", "",
+    { step: 0.1, min: 0.5, max: 2.5, defaultValue: 1 },
+);
+
+function applyStoredTikkunControls() {
+    tikkunFontSizeControl.apply(tikkunFontSizeControl.read());
+    tikkunLineHeightControl.apply(tikkunLineHeightControl.read());
+    tikkunWidthControl.apply(tikkunWidthControl.read());
+}
+
+function updateTikkunViewVisibility() {
+    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
+    document.getElementById("tikkun-display-controls").hidden = !useTikkun;
+}
+
+// =============================================================
+//  Clipboard
+// =============================================================
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast("Copied to clipboard", false);
+    } catch (e) {
+        showToast("Could not copy: " + e, true);
+    }
+}
+
+// =============================================================
+//  Wiring
+// =============================================================
+window.addEventListener("pywebviewready", async () => {
+    cachedBooks = await api().get_books();
+    addRangeRow(); // start with exactly one range row
+    document.getElementById("cache-status").textContent = await api().get_cache_status();
+    injectTikkunCss();
+    applyStoredTikkunControls();
+
+    document.getElementById("btn-add-range").addEventListener("click", addRangeRow);
+    document.getElementById("btn-fetch").addEventListener("click", doFetchAll);
+    document.getElementById("btn-clear-ranges").addEventListener("click", doClearRanges);
+    document.getElementById("tikkun-view-toggle").addEventListener("change", () => {
+        updateTikkunViewVisibility();
+        renderVerseBoxes();
+    });
+    updateTikkunViewVisibility();
+    document.getElementById("tikkun-font-minus").addEventListener("click", () => tikkunFontSizeControl.adjust(-1));
+    document.getElementById("tikkun-font-plus").addEventListener("click", () => tikkunFontSizeControl.adjust(1));
+    document.getElementById("tikkun-line-height-minus").addEventListener(
+        "click", () => tikkunLineHeightControl.adjust(-1));
+    document.getElementById("tikkun-line-height-plus").addEventListener(
+        "click", () => tikkunLineHeightControl.adjust(1));
+    document.getElementById("tikkun-width-minus").addEventListener("click", () => tikkunWidthControl.adjust(-1));
+    document.getElementById("tikkun-width-plus").addEventListener("click", () => tikkunWidthControl.adjust(1));
+
+    document.getElementById("btn-generate").addEventListener("click", doGenerate);
+    document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
+
+    document.getElementById("btn-clear-cache").addEventListener("click", async () => {
+        if (!confirm("Clear the local Sefaria cache? Future fetches will re-download from the network.")) return;
+        const result = await api().clear_cache();
+        document.getElementById("cache-status").textContent = result.cache_status;
+        showToast("Cache cleared", false);
+    });
+
+    document.getElementById("btn-copy-pointed").addEventListener("click", () => {
+        copyText(currentVerseData.map((v) => v.pointed).join("\n"));
+    });
+    document.getElementById("btn-copy-plain").addEventListener("click", () => {
+        copyText(currentVerseData.map((v) => v.plain).join("\n"));
+    });
+    document.getElementById("btn-copy-cloze").addEventListener("click", () => {
+        copyText(document.getElementById("output-box").textContent);
+    });
+
+    document.getElementById("btn-stats").addEventListener("click", async () => {
+        const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
+        await api().open_stats_window(maxLeafDisj);
+    });
+    document.getElementById("btn-anki-tools").addEventListener("click", async () => {
+        await api().open_anki_connect_window();
+    });
+
+    document.getElementById("lpcg-deck").value = await api().get_lpcg_deck_name();
+    setBookOptions(document.getElementById("lpcg-book"), { Torah: cachedBooks.Torah }, false);
+    await refreshLpcgParashaDropdowns();
+    document.getElementById("lpcg-book").addEventListener("change", refreshLpcgParashaDropdowns);
+    document.getElementById("lpcg-start-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("start"));
+    document.getElementById("lpcg-end-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("end"));
+    document.getElementById("btn-export-lpcg").addEventListener("click", doExportLpcg);
+    document.getElementById("btn-export-amud").addEventListener("click", doExportAmud);
+
+    const updateCardDivisionVisibility = () => {
+        const isRowMode = document.getElementById("lpcg-card-division").value === "row";
+        document.getElementById("lpcg-row-mode-settings").hidden = !isRowMode;
+    };
+    updateCardDivisionVisibility();
+    document.getElementById("lpcg-card-division").addEventListener("change", updateCardDivisionVisibility);
+});

@@ -128,27 +128,33 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     win = tk.Toplevel(parent)
     win.title("Corpus statistics")
     win.geometry("960x720")
+    win.minsize(640, 480)
 
     tk.Label(
         win, text="Click any bar, point, or trope to see the verses behind it.",
         anchor="w", fg="gray30"
-    ).pack(fill="x", padx=8, pady=(8, 0))
+    ).pack(fill="x", padx=10, pady=(10, 4))
 
     notebook = ttk.Notebook(win)
-    notebook.pack(fill="both", expand=True, padx=8, pady=8)
+    notebook.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
     # --- Summary tab ---
-    summary_frame = tk.Frame(notebook)
+    summary_frame = ttk.Frame(notebook)
     notebook.add(summary_frame, text="Summary")
     summary_text = tk.Text(summary_frame, wrap=tk.WORD, font=("Courier", 10))
-    summary_text.pack(fill="both", expand=True)
+    summary_text.pack(fill="both", expand=True, padx=6, pady=6)
     summary_text.insert("1.0", format_stats_summary(stats, max_leaf_disj))
     summary_text.config(state="disabled")
 
-    # --- Words / verse distribution ---
-    wc_frame = tk.Frame(notebook)
-    notebook.add(wc_frame, text="Words / verse")
-    wc_canvas = tk.Canvas(wc_frame, bg="white")
+    # --- Distributions (sub-tabbed: everything that's a single-variable
+    # bar-chart histogram, grouped together so the top-level tab bar
+    # doesn't have to hold all five separately) ---
+    dist_notebook = ttk.Notebook(notebook)
+    notebook.add(dist_notebook, text="Distributions")
+
+    wc_frame = ttk.Frame(dist_notebook)
+    dist_notebook.add(wc_frame, text="Words / verse")
+    wc_canvas = tk.Canvas(wc_frame, bg="white", highlightthickness=0)
     wc_canvas.pack(fill="both", expand=True)
     wc_frame.bind(
         "<Configure>",
@@ -156,10 +162,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
                                   "Words in verse", stats["verse_lookup"])
     )
 
-    # --- Minimum disjunctive groups / verse distribution ---
-    dc_frame = tk.Frame(notebook)
-    notebook.add(dc_frame, text="Disjunctive groups / verse")
-    dc_canvas = tk.Canvas(dc_frame, bg="white")
+    dc_frame = ttk.Frame(dist_notebook)
+    dist_notebook.add(dc_frame, text="Disjunctive groups / verse")
+    dc_canvas = tk.Canvas(dc_frame, bg="white", highlightthickness=0)
     dc_canvas.pack(fill="both", expand=True)
     dc_frame.bind(
         "<Configure>",
@@ -168,10 +173,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
                                   bar_color="#81c784")
     )
 
-    # --- Clauses after splitting (depends on max_leaf_disj) ---
-    cc_frame = tk.Frame(notebook)
-    notebook.add(cc_frame, text=f"Clauses / verse (max {max_leaf_disj}/leaf)")
-    cc_canvas = tk.Canvas(cc_frame, bg="white")
+    cc_frame = ttk.Frame(dist_notebook)
+    dist_notebook.add(cc_frame, text=f"Clauses / verse (max {max_leaf_disj}/leaf)")
+    cc_canvas = tk.Canvas(cc_frame, bg="white", highlightthickness=0)
     cc_canvas.pack(fill="both", expand=True)
     cc_frame.bind(
         "<Configure>",
@@ -180,10 +184,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
                                   bar_color="#ffb74d")
     )
 
-    # --- Split-tree depth (depends on max_leaf_disj) ---
-    depth_frame = tk.Frame(notebook)
-    notebook.add(depth_frame, text=f"Split depth (max {max_leaf_disj}/leaf)")
-    depth_canvas = tk.Canvas(depth_frame, bg="white")
+    depth_frame = ttk.Frame(dist_notebook)
+    dist_notebook.add(depth_frame, text=f"Split depth (max {max_leaf_disj}/leaf)")
+    depth_canvas = tk.Canvas(depth_frame, bg="white", highlightthickness=0)
     depth_canvas.pack(fill="both", expand=True)
     depth_frame.bind(
         "<Configure>",
@@ -191,10 +194,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
                                   "Split-tree depth", stats["verse_lookup"], bar_color="#e57373")
     )
 
-    # --- Words per disjunctive group ---
-    ratio_frame = tk.Frame(notebook)
-    notebook.add(ratio_frame, text="Words / disjunctive group")
-    ratio_canvas = tk.Canvas(ratio_frame, bg="white")
+    ratio_frame = ttk.Frame(dist_notebook)
+    dist_notebook.add(ratio_frame, text="Words / disjunctive group")
+    ratio_canvas = tk.Canvas(ratio_frame, bg="white", highlightthickness=0)
     ratio_canvas.pack(fill="both", expand=True)
     ratio_frame.bind(
         "<Configure>",
@@ -204,9 +206,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     )
 
     # --- By chapter (avg words & avg disjunctive groups) ---
-    chapter_frame = tk.Frame(notebook)
+    chapter_frame = ttk.Frame(notebook)
     notebook.add(chapter_frame, text="By chapter")
-    chapter_canvas = tk.Canvas(chapter_frame, bg="white")
+    chapter_canvas = tk.Canvas(chapter_frame, bg="white", highlightthickness=0)
     chapter_canvas.pack(fill="both", expand=True)
     chapter_series = [
         ("Avg words", "#64b5f6", stats["chapter_avg_words"]),
@@ -219,9 +221,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     )
 
     # --- Verse length vs. split-tree depth correlation ---
-    corr_frame = tk.Frame(notebook)
+    corr_frame = ttk.Frame(notebook)
     notebook.add(corr_frame, text="Length vs. depth")
-    corr_canvas = tk.Canvas(corr_frame, bg="white")
+    corr_canvas = tk.Canvas(corr_frame, bg="white", highlightthickness=0)
     corr_canvas.pack(fill="both", expand=True)
     corr_frame.bind(
         "<Configure>",
@@ -230,25 +232,28 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     )
 
     # --- Trope frequency ---
-    trope_frame = tk.Frame(notebook)
+    trope_frame = ttk.Frame(notebook)
     notebook.add(trope_frame, text="Trope frequency")
     build_trope_frequency_widget(trope_frame, stats)
 
-    # --- Verse structure by word count ---
-    struct_wc_frame = tk.Frame(notebook)
-    notebook.add(struct_wc_frame, text="Structure by word count")
+    # --- Structure (sub-tabbed: the two verse nesting-structure
+    # cross-tabulations, grouped together the same way Distributions is) ---
+    struct_notebook = ttk.Notebook(notebook)
+    notebook.add(struct_notebook, text="Structure")
+
+    struct_wc_frame = ttk.Frame(struct_notebook)
+    struct_notebook.add(struct_wc_frame, text="By word count")
     struct_by_wc = group_verses_by_word_count_and_structure(verse_data)
     build_structure_breakdown_widget(struct_wc_frame, "Words in verse", struct_by_wc, stats["verse_lookup"])
 
-    # --- Verse structure by disjunctive group count ---
-    struct_dc_frame = tk.Frame(notebook)
-    notebook.add(struct_dc_frame, text="Structure by disjunctive groups")
+    struct_dc_frame = ttk.Frame(struct_notebook)
+    struct_notebook.add(struct_dc_frame, text="By disjunctive groups")
     struct_by_dc = group_verses_by_disj_count_and_structure(verse_data)
     build_structure_breakdown_widget(
         struct_dc_frame, "Disjunctive groups in verse", struct_by_dc, stats["verse_lookup"]
     )
 
-    tk.Button(
+    ttk.Button(
         win, text="Export per-verse stats to CSV",
         command=lambda: _export_stats_to_csv(win, stats, max_leaf_disj)
-    ).pack(pady=(0, 8))
+    ).pack(pady=(0, 10))

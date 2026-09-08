@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AnkiConnect Tools</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .tabs { display: flex; gap: 2px; margin-bottom: 0; }
+  .tab-btn { border-radius: 4px 4px 0 0; border-bottom: none; }
+  .tab-btn.active { background: white; font-weight: 600; }
+  .tab-panel { display: none; border: 1px solid var(--border); border-radius: 0 4px 4px 4px; background: white; padding: 10px; }
+  .tab-panel.active { display: block; }
+  .blurb { color: #444; margin-bottom: 8px; }
+  .field-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .log-pane { background: #fafafa; border: 1px solid var(--border); border-radius: 3px; padding: 8px;
+              font-family: "Courier New", monospace; font-size: 12.5px; white-space: pre-wrap;
+              height: 260px; overflow: auto; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="row">
+  <label>AnkiConnect URL: <input type="text" id="url" style="width: 220px;"></label>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab-btn" data-tab="conn">Connection</button>
+  <button class="tab-btn" data-tab="stems">Initialize Stems</button>
+  <button class="tab-btn" data-tab="sched">Sync Scheduling</button>
+  <button class="tab-btn" data-tab="tag">Tag Deck</button>
+</div>
+
+<div class="tab-panel" data-panel="conn">
+  <div class="blurb">Check that Anki is running with the AnkiConnect add-on installed and reachable at the URL above.</div>
+  <button id="run-conn">Run</button>
+  <div class="log-pane" id="log-conn"></div>
+</div>
+
+<div class="tab-panel" data-panel="stems">
+  <div class="blurb">One-time setup: flag the stem (highest-ord cloze) of every note in a deck with flag 1, so the scheduling sync below knows which cards to track. Notes that already have any flag are left untouched -- safe to re-run.</div>
+  <div class="field-row"><label>Deck: <input type="text" id="stems-deck" value="Leyning"></label></div>
+  <div class="field-row"><label><input type="checkbox" id="stems-dry-run" checked> Dry run (preview only)</label></div>
+  <button id="run-stems">Run</button>
+  <div class="log-pane" id="log-stems"></div>
+</div>
+
+<div class="tab-panel" data-panel="sched">
+  <div class="blurb">Run one promotion + lapse-recovery cycle: matures (flag 1 -&gt; 2, suspends leaves) any stem whose interval has reached the threshold, and recovers (flag 2 -&gt; 1, un-suspends + re-queues leaves) any stem that has since lapsed.</div>
+  <div class="field-row"><label>Deck: <input type="text" id="sched-deck" value="Leyning"></label></div>
+  <div class="field-row"><label>Promotion interval (days): <input type="number" id="sched-interval" value="21" style="width:5em"></label></div>
+  <div class="field-row"><label><input type="checkbox" id="sched-dry-run" checked> Dry run (preview only)</label></div>
+  <button id="run-sched">Run</button>
+  <div class="log-pane" id="log-sched"></div>
+</div>
+
+<div class="tab-panel" data-panel="tag">
+  <div class="blurb">Compute and add parasha/aliyah/Maftir/holiday tags for every note in a deck. Never removes or changes an existing tag -- conflicts are reported in the log instead. See docs/anki-tagging.md for details.</div>
+  <div class="field-row"><label>Deck: <input type="text" id="tag-deck" value="Leyning"></label></div>
+  <div class="field-row"><label><input type="checkbox" id="tag-dry-run" checked> Dry run (preview only)</label></div>
+  <button id="run-tag">Run</button>
+  <div class="log-pane" id="log-tag"></div>
+</div>
+
+<script src="anki_connect.js"></script>
+</body>
+</html>

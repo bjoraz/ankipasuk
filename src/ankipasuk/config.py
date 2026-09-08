@@ -52,13 +52,79 @@ TORAH_VERSE_COUNTS = {
 # drift out of sync.
 TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 
+# =============================================================
+#  NEVI'IM / MEGILLOT
+# =============================================================
+# Unlike TORAH_VERSE_COUNTS, these have no hardcoded per-chapter verse
+# counts -- Nevi'im alone is 21 books, several very long (Isaiah,
+# Jeremiah, Ezekiel, Psalms-length material), so hand-maintaining that
+# table the way Torah's is maintained isn't practical. Chapter/verse
+# counts for these are instead discovered live from Sefaria on first use
+# (see sefaria.get_book_chapter_count / get_chapter_lengths) and cached
+# afterward via SefariaCache, the same caching layer everything else here
+# already goes through.
+#
+# All of these use the standard 21-book cantillation system (the same
+# TROPE_UNICODE table below applies unchanged) -- this deliberately
+# excludes Psalms, Proverbs, and Job, which use the distinct "three
+# books" (Sifrei Emet) cantillation system with a different trope
+# hierarchy entirely, not supported here.
+NEVIIM_BOOKS = [
+    "Joshua", "Judges", "I Samuel", "II Samuel", "I Kings", "II Kings",
+    "Isaiah", "Jeremiah", "Ezekiel",
+    "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum",
+    "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
+]
+
+MEGILLOT_BOOKS = [
+    "Song of Songs", "Ruth", "Lamentations", "Ecclesiastes", "Esther",
+]
+
+# Category -> ordered book list, the single source of truth the frontend
+# uses to build a grouped book picker (Torah / Nevi'im / Megillot
+# optgroups) and that ALL_BOOKS is derived from.
+BOOK_CATEGORIES = {
+    "Torah": list(TORAH_BOOKS.keys()),
+    "Nevi'im": NEVIIM_BOOKS,
+    "Megillot": MEGILLOT_BOOKS,
+}
+
+ALL_BOOKS = [book for books in BOOK_CATEGORIES.values() for book in books]
+
 BOOK_HEBREW_NAMES = {
     "Genesis": "Bereshit",
     "Exodus": "Shemot",
     "Leviticus": "Vayikra",
     "Numbers": "Bamidbar",
     "Deuteronomy": "Devarim",
+    "Joshua": "Yehoshua",
+    "Judges": "Shoftim",
+    "I Samuel": "Shmuel Alef",
+    "II Samuel": "Shmuel Bet",
+    "I Kings": "Melachim Alef",
+    "II Kings": "Melachim Bet",
+    "Isaiah": "Yeshayahu",
+    "Jeremiah": "Yirmiyahu",
+    "Ezekiel": "Yechezkel",
+    "Hosea": "Hoshea",
+    "Joel": "Yoel",
+    "Amos": "Amos",
+    "Obadiah": "Ovadiah",
+    "Jonah": "Yonah",
+    "Micah": "Michah",
+    "Nahum": "Nachum",
+    "Habakkuk": "Chavakuk",
+    "Zephaniah": "Tzefaniah",
+    "Haggai": "Chaggai",
+    "Zechariah": "Zechariah",
+    "Malachi": "Malachi",
+    "Song of Songs": "Shir HaShirim",
+    "Ruth": "Rut",
+    "Lamentations": "Eichah",
+    "Ecclesiastes": "Kohelet",
+    "Esther": "Esther",
 }
+
 
 # Anki deck names for the "Leyning" scheduling automation (ankipasuk.anki_connect),
 # one per Torah book, in reading order.
@@ -112,6 +178,28 @@ PASEQ = "\u05C0"
 # --- Bidi helpers (force RTL rendering of Hebrew inside tk.Text widgets) ---
 RLE = "\u202B"
 PDF = "\u202C"
+
+# Fonts that render Hebrew cantillation (trope) combining marks well, most
+# to least capable. Proper trope-mark stacking is a much narrower font
+# requirement than plain Hebrew support -- most system-default fonts (and
+# Tk's silent substitute when none of these are installed) will show
+# niqud/trope crowding or overlap. See gui.fonts.pick_hebrew_font, which
+# picks the first of these actually installed, falling back to Tk's
+# default if none are. For the best rendering, install one of the first
+# three (all free): SBL Hebrew, Ezra SIL, or a Taamey Torah font from
+# https://www.keyman.com/keyboards/taameyfrankcn or https://software.sil.org/ezra/.
+HEBREW_FONT_CANDIDATES = [
+    "SBL Hebrew",
+    "Ezra SIL",
+    "Taamey Frank CLM",
+    "Taamey Ashkenaz",
+    "Cardo",
+    "Noto Serif Hebrew",
+    "Noto Sans Hebrew",
+    "Times New Roman",
+    "David",
+    "Arial",
+]
 
 # =============================================================
 #  VISUALIZATION

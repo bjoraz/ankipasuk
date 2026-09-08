@@ -67,7 +67,13 @@ def group_verses_by_structure(verse_data: list[dict]) -> dict[tuple, list[str]]:
     """Group every verse in ``verse_data`` by its structure signature.
 
     Returns ``{signature: [verse_labels]}``, each verse labeled
-    ``"ch:vs"`` in the order it appears in ``verse_data``.
+    ``"book ch:vs"`` (e.g. ``"Genesis 1:1"``) in the order it appears in
+    ``verse_data``. The book is part of the label -- not just "ch:vs" --
+    because once a session can concatenate ranges from more than one
+    book, chapter:verse alone stops being unique (Genesis 1:1 and Isaiah
+    1:1 would otherwise collide under the same label, silently mixing
+    two unrelated verses' entries in whichever bucket each's own
+    signature happens to land in).
     """
     groups: dict[tuple, list[str]] = defaultdict(list)
     for item in verse_data:
@@ -75,7 +81,7 @@ def group_verses_by_structure(verse_data: list[dict]) -> dict[tuple, list[str]]:
         if not pointed:
             continue
         sig = verse_structure_signature(pointed)
-        groups[sig].append(f"{item['ch']}:{item['vs']}")
+        groups[sig].append(f"{item['book']} {item['ch']}:{item['vs']}")
     return dict(groups)
 
 
@@ -89,7 +95,7 @@ def group_verses_by_word_count_and_structure(verse_data: list[dict]) -> dict[int
         if not pointed:
             continue
         word_count, sig = _word_count_and_structure(pointed)
-        out[word_count][sig].append(f"{item['ch']}:{item['vs']}")
+        out[word_count][sig].append(f"{item['book']} {item['ch']}:{item['vs']}")
     return {wc: dict(structs) for wc, structs in out.items()}
 
 
@@ -121,13 +127,13 @@ def verses_matching_structure(verse_data: list[dict], signature) -> list[str]:
 
 def structure_of_label(verse_data: list[dict], label: str):
     """The structure signature of the verse labeled ``label`` (e.g.
-    ``"1:1"``) within ``verse_data``, or ``None`` if no such verse is
-    present or its text is blank. The natural building block for a "find
-    other verses shaped like this one" query:
+    ``"Genesis 1:1"``) within ``verse_data``, or ``None`` if no such
+    verse is present or its text is blank. The natural building block
+    for a "find other verses shaped like this one" query:
     ``verses_matching_structure(verse_data, structure_of_label(verse_data, label))``.
     """
     for item in verse_data:
-        if f"{item['ch']}:{item['vs']}" == label:
+        if f"{item['book']} {item['ch']}:{item['vs']}" == label:
             pointed = item["pointed"].strip()
             return verse_structure_signature(pointed) if pointed else None
     return None

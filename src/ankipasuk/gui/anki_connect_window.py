@@ -60,17 +60,17 @@ class _OperationTab:
     safely from the worker thread."""
 
     def __init__(self, notebook: ttk.Notebook, title: str, blurb: str):
-        self.frame = tk.Frame(notebook)
+        self.frame = ttk.Frame(notebook)
         notebook.add(self.frame, text=title)
 
-        tk.Label(self.frame, text=blurb, anchor="w", justify="left", wraplength=640).pack(
+        ttk.Label(self.frame, text=blurb, anchor="w", justify="left", wraplength=640).pack(
             fill="x", padx=8, pady=(8, 4)
         )
 
-        self.fields_frame = tk.Frame(self.frame)
+        self.fields_frame = ttk.Frame(self.frame)
         self.fields_frame.pack(fill="x", padx=8, pady=(0, 4))
 
-        self.run_button = tk.Button(self.frame, text="Run")
+        self.run_button = ttk.Button(self.frame, text="Run")
         self.run_button.pack(anchor="w", padx=8, pady=(0, 4))
 
         self.log_text = tk.Text(self.frame, wrap=tk.WORD, height=14, font=("Courier", 10))
@@ -102,9 +102,9 @@ class _OperationTab:
         _run_in_background(root, worker, wrapped_done)
 
 
-def _labeled_entry(parent: tk.Misc, row: int, label: str, default: str, width: int = 30) -> tk.Entry:
-    tk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 6), pady=2)
-    entry = tk.Entry(parent, width=width)
+def _labeled_entry(parent: tk.Misc, row: int, label: str, default: str, width: int = 30) -> ttk.Entry:
+    ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 6), pady=2)
+    entry = ttk.Entry(parent, width=width)
     entry.insert(0, default)
     entry.grid(row=row, column=1, sticky="w", pady=2)
     return entry
@@ -115,15 +115,15 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
     win.title("AnkiConnect Tools")
     win.geometry("760x620")
 
-    url_frame = tk.Frame(win)
-    url_frame.pack(fill="x", padx=8, pady=(8, 0))
-    tk.Label(url_frame, text="AnkiConnect URL:").pack(side="left")
-    url_entry = tk.Entry(url_frame, width=30)
+    url_frame = ttk.Frame(win)
+    url_frame.pack(fill="x", padx=10, pady=(10, 0))
+    ttk.Label(url_frame, text="AnkiConnect URL:").pack(side="left")
+    url_entry = ttk.Entry(url_frame, width=30)
     url_entry.insert(0, DEFAULT_URL)
     url_entry.pack(side="left", padx=(6, 0))
 
     notebook = ttk.Notebook(win)
-    notebook.pack(fill="both", expand=True, padx=8, pady=8)
+    notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
     def get_url() -> str:
         return url_entry.get().strip() or DEFAULT_URL
@@ -137,7 +137,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
         "and reachable at the URL above.",
     )
     conn_status_var = tk.StringVar(value="")
-    tk.Label(conn_tab.frame, textvariable=conn_status_var, anchor="w", fg="gray30").pack(
+    ttk.Label(conn_tab.frame, textvariable=conn_status_var, anchor="w", foreground="gray30").pack(
         fill="x", padx=8, pady=(0, 4)
     )
 
@@ -169,7 +169,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
     )
     stems_deck_entry = _labeled_entry(stems_tab.fields_frame, 0, "Deck:", "Leyning")
     stems_dry_run_var = tk.BooleanVar(value=True)
-    tk.Checkbutton(stems_tab.fields_frame, text="Dry run (preview only)", variable=stems_dry_run_var).grid(
+    ttk.Checkbutton(stems_tab.fields_frame, text="Dry run (preview only)", variable=stems_dry_run_var).grid(
         row=1, column=0, columnspan=2, sticky="w", pady=(4, 0)
     )
 
@@ -214,7 +214,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
         sched_tab.fields_frame, 1, "Promotion interval (days):", "21", width=8
     )
     sched_dry_run_var = tk.BooleanVar(value=True)
-    tk.Checkbutton(sched_tab.fields_frame, text="Dry run (preview only)", variable=sched_dry_run_var).grid(
+    ttk.Checkbutton(sched_tab.fields_frame, text="Dry run (preview only)", variable=sched_dry_run_var).grid(
         row=2, column=0, columnspan=2, sticky="w", pady=(4, 0)
     )
 
@@ -258,7 +258,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
     )
     tag_deck_entry = _labeled_entry(tag_tab.fields_frame, 0, "Deck:", "Leyning")
     tag_dry_run_var = tk.BooleanVar(value=True)
-    tk.Checkbutton(tag_tab.fields_frame, text="Dry run (preview only)", variable=tag_dry_run_var).grid(
+    ttk.Checkbutton(tag_tab.fields_frame, text="Dry run (preview only)", variable=tag_dry_run_var).grid(
         row=1, column=0, columnspan=2, sticky="w", pady=(4, 0)
     )
 

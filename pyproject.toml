@@ -20,6 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.31",
+    "pywebview>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,8 @@ dev = [
 ]
 
 [project.scripts]
-ankipasuk = "ankipasuk.gui.app:main"
+ankipasuk = "ankipasuk.webgui:main"
+ankipasuk-tk-legacy = "ankipasuk.gui.app:main"
 ankipasuk-check-connection = "ankipasuk.anki_connect.cli:_console_check_connection"
 ankipasuk-init-stems = "ankipasuk.anki_connect.cli:_console_init_stems"
 ankipasuk-sync-scheduling = "ankipasuk.anki_connect.cli:_console_sync_scheduling"
@@ -43,6 +45,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "ankipasuk.data" = ["*.json"]
+"ankipasuk.webgui" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
