@@ -17,13 +17,15 @@ function showToast(message, isError) {
     showToast._t = setTimeout(() => { el.hidden = true; }, 4000);
 }
 
-function setOptions(select, values, keepSelection) {
+// labels, if given, is shown instead of values (same order) -- e.g. a
+// parasha's name as AnkiPasuk writes it, while its value stays Sefaria's.
+function setOptions(select, values, keepSelection, labels) {
     const prev = select.value;
     select.innerHTML = "";
-    for (const v of values) {
+    for (const [i, v] of values.entries()) {
         const opt = document.createElement("option");
         opt.value = String(v);
-        opt.textContent = String(v);
+        opt.textContent = String(labels ? labels[i] : v);
         select.appendChild(opt);
     }
     if (keepSelection && values.map(String).includes(prev)) {
@@ -143,7 +145,7 @@ async function refreshRangeParashaDropdown(row) {
         parashaSelect.innerHTML = "";
         return;
     }
-    setOptions(parashaSelect, result.names, false);
+    setOptions(parashaSelect, result.names, false, result.labels);
     await refreshRangeAliyahDropdown(row);
 }
 
@@ -319,8 +321,8 @@ async function refreshLpcgParashaDropdowns() {
         showToast("Could not load parashot: " + result.error, true);
         return;
     }
-    setOptions(document.getElementById("lpcg-start-parasha"), result.names, true);
-    setOptions(document.getElementById("lpcg-end-parasha"), result.names, true);
+    setOptions(document.getElementById("lpcg-start-parasha"), result.names, true, result.labels);
+    setOptions(document.getElementById("lpcg-end-parasha"), result.names, true, result.labels);
     await refreshLpcgAliyahDropdown("start");
     await refreshLpcgAliyahDropdown("end");
 }

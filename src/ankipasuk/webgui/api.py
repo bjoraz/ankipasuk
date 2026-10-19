@@ -35,6 +35,7 @@ from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
+from ..qeriya import TIQQUN_ALIYYA_TAG, parasha_names, tiqqun_ammud_tag, tiqqun_parasha_tag, to_slug
 from ..sefaria import (
     fetch_aliyot_in_range,
     fetch_verse_range,
@@ -115,10 +116,18 @@ class Api:
     #  Live Sefaria data (network on first call per book, cached after)
     # =============================================================
     def get_parashot(self, book: str) -> dict:
-        """{"ok": True, "names": [...]} or {"ok": False, "error": "..."}."""
+        """{"ok": True, "names": [...], "labels": [...]} or {"ok": False,
+        "error": "..."}. ``names`` are Sefaria's, and are what the frontend
+        sends back (they're the keys every other call looks parashiyyot up
+        by); ``labels`` are the same parashiyyot as AnkiPasuk writes them
+        (see docs/transliteration.md and :func:`ankipasuk.qeriya.parasha_names`),
+        for display only."""
         try:
             parashot = get_parasha_structure(book, self._cache)
-            return {"ok": True, "names": [p["name"] for p in parashot]}
+            names = [p["name"] for p in parashot]
+            ours = parasha_names(book, parashot)
+            labels = [ours[n]["name"] if n in ours else n for n in names]
+            return {"ok": True, "names": names, "labels": labels}
         except Exception as e:  # noqa: BLE001 - reported to the JS side
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
@@ -402,7 +411,7 @@ class Api:
     #  Aliyah recitation export (overlapping-context notes, pushed
     #  directly to Anki via AnkiConnect)
     # =============================================================
-    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyot"
+    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyyot"
 
     def get_lpcg_deck_name(self) -> str:
         """The deck name to prefill the export form with: whatever was
@@ -516,6 +525,7 @@ class Api:
                 book, start_parasha, start_aliyah, end_parasha, end_aliyah,
                 self._cache, POINTED_VERSION,
             )
+            ours = parasha_names(book, get_parasha_structure(book, self._cache))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
@@ -526,11 +536,16 @@ class Api:
             verses = aliyah["verses"]
             if not verses:
                 continue
-            title = f"{hebrew_book} {aliyah['parasha']} {aliyah['aliyah_num']} ({aliyah['ref']})"
-            tags = [
-                "ankipasuk-aliyah",
-                f"parasha::{aliyah['parasha'].replace(' ', '-')}",
-            ]
+            # Our name and slug for the parasha (falling back to Sefaria's
+            # if the pairing doesn't hold), and the ref with our book name.
+            entry = ours.get(aliyah["parasha"])
+            parasha_name = entry["name"] if entry else aliyah["parasha"]
+            parasha_slug = entry["slug"] if entry else to_slug(aliyah["parasha"])
+            ref = aliyah["ref"]
+            if ref.startswith(book + " "):
+                ref = hebrew_book + ref[len(book):]
+            title = f"{hebrew_book} {parasha_name} {aliyah['aliyah_num']} ({ref})"
+            tags = [TIQQUN_ALIYYA_TAG, tiqqun_parasha_tag(parasha_slug)]
             try:
                 if card_division == "verse":
                     verse_refs = [(v["ch"], v["vs"]) for v in verses]
@@ -603,7 +618,7 @@ class Api:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-        tags = [f"amud::{amud_num:03d}"]
+        tags = [tiqqun_ammud_tag(amud_num)]
         result = self._push_lpcg_notes([(fields_list, tags)], deck_name)
         if result["ok"]:
             result["amud"] = amud_num

@@ -326,6 +326,43 @@ def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_pat
     assert all(n["deck"] == "Qeriya::Recitation" for n in fake_anki.notes.values())
 
 
+_SEFARIA_GENESIS_NAMES = [
+    "Bereshit", "Noach", "Lech Lecha", "Vayera", "Chayei Sara", "Toldot",
+    "Vayetzei", "Vayishlach", "Vayeshev", "Miketz", "Vayigash", "Vayechi",
+]
+
+
+def _seed_full_genesis(api, tmp_path):
+    """Like _seed_two_aliyah_parasha, but with all twelve of Genesis's
+    parashiyyot in Sefaria's spelling (so they pair with the bundled table
+    by position), the two one-verse aliyot belonging to "Chayei Sara"."""
+    _seed_two_aliyah_parasha(api, tmp_path)
+    api._cache.set_parasha_structure("Genesis", [
+        {"name": name, "refs": ["Genesis 1:1", "Genesis 1:2"] if name == "Chayei Sara" else ["Genesis 1:31"]}
+        for name in _SEFARIA_GENESIS_NAMES
+    ])
+
+
+def test_get_parashot_labels_use_our_names_but_values_stay_sefarias(tmp_path):
+    api = Api()
+    _seed_full_genesis(api, tmp_path)
+    result = api.get_parashot("Genesis")
+    assert result["names"] == _SEFARIA_GENESIS_NAMES
+    assert result["labels"][:5] == ["Bereshit", "Noaḥ", "Lekh Lekha", "Vayyera", "Ḥayye Sara"]
+
+
+def test_export_aliyot_uses_our_names_in_title_and_tags(tmp_path, fake_anki):
+    api = Api()
+    _seed_full_genesis(api, tmp_path)
+
+    result = api.export_aliyot_to_anki("Genesis", "Chayei Sara", 1, "Chayei Sara", 1, "Qeriya::Tiqqun")
+
+    assert result["ok"] is True
+    note = next(iter(fake_anki.notes.values()))
+    assert note["fields"]["Title"] == "Bereshit Ḥayye Sara 1 (Bereshit 1:1)"
+    assert sorted(note["tags"]) == ["ankipasuk-aliyya", "parasha::hayye_sara"]
+
+
 def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
     """A single aliyah covering two verses that share a physical scroll
     row: verse 1 is one word ("אאא") and verse 2 (three words: "בבב",
@@ -521,8 +558,8 @@ def test_export_aliyot_to_anki_tags_notes_with_the_parasha(tmp_path, fake_anki):
     api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
 
     (note,) = fake_anki.notes.values()
-    assert "ankipasuk-aliyah" in note["tags"]
-    assert "parasha::Bereshit" in note["tags"]
+    assert "ankipasuk-aliyya" in note["tags"]
+    assert "parasha::bereshit" in note["tags"]
 
 
 def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
@@ -578,7 +615,7 @@ def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypa
     api.export_amud_to_anki(1, "Deck")
 
     (note,) = fake_anki.notes.values()
-    assert note["tags"] == ["amud::001"]
+    assert note["tags"] == ["ammud::001"]
 
 
 def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkeypatch):
