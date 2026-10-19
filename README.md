@@ -83,6 +83,52 @@ cd ankipasuk
 pip install -e .
 ```
 
+On **Windows** and **macOS** that's everything: the window is rendered by
+WebView2 and WKWebView respectively, and the bindings for both come in as
+pywebview dependencies.
+
+### Linux: one extra step
+
+pywebview drives the web engine the system already has rather than
+bundling one, and on Linux that engine isn't reachable from a fresh
+virtualenv by default. Pick either backend -- the app detects which one is
+present and uses it, preferring WebKitGTK when both are.
+
+**WebKitGTK** (recommended -- the engine your desktop already uses, so the
+window matches the rest of the system and nothing extra is downloaded):
+
+```bash
+sudo apt install python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0  # Debian/Ubuntu
+sudo dnf install python3-gobject webkit2gtk4.1                      # Fedora
+sudo pacman -S python-gobject webkit2gtk-4.1                        # Arch
+sudo zypper install python3-gobject typelib-1_0-WebKit2-4_1         # openSUSE
+```
+
+These are system packages, so a virtualenv has to be allowed to see them:
+
+```bash
+python3 -m venv --system-site-packages .venv    # venv
+pipx install --system-site-packages ankipasuk   # pipx
+```
+
+An existing virtualenv can't be opened up after the fact -- recreate it,
+or set `include-system-site-packages = true` in its `pyvenv.cfg`.
+
+**Qt WebEngine** (no system packages and no root, but a ~100 MB download):
+
+```bash
+pip install -e ".[qt]"
+```
+
+Running `ankipasuk` with neither installed prints these instructions
+rather than failing on an import. `PYWEBVIEW_GUI=gtk` or `PYWEBVIEW_GUI=qt`
+forces a particular backend if the automatic choice ever picks wrong.
+
+The retired Tk interface (`ankipasuk-tk-legacy`) additionally needs
+tkinter, which most distributions package separately -- `python3-tk` on
+Debian/Ubuntu, `python3-tkinter` on Fedora. The current GUI doesn't use
+tkinter at all.
+
 ## Usage
 
 ```bash
