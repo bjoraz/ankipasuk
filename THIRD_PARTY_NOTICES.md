@@ -41,7 +41,7 @@ live from the [Sefaria API](https://www.sefaria.org/) and cached locally
 (see `ankipasuk.sefaria.get_parasha_structure`). The bundled data is used
 only for two things Sefaria's `Parasha` structure doesn't provide:
 
-1. **How many pesukim each parasha's maftir has** (a number, such as 4).
+1. **How many pesuqim each parasha's maftir has** (a number, such as 4).
    This is counted back from the live end of the seventh 'aliya to find the
    actual maftir, so differences in chapter numbering between sources can't
    throw it off (see `docs/anki-tagging.md` for why this matters at

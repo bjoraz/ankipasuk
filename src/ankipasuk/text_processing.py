@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import unicodedata
 
-from .config import MAKEF, MUNACH, PASEQ, TROPE_UNICODE
+from .config import LEGARMEH_NAME, MAKEF, MUNACH, PASEQ, TROPE_UNICODE
 
 
 # =============================================================
@@ -26,7 +26,7 @@ def strip_vowels_and_trope(text: str) -> str:
 
 
 # =============================================================
-#  TOKENIZATION + MUNACH LEGARMEH
+#  TOKENIZATION + PASEQ (MUNACH LEGARMEH)
 # =============================================================
 def contains_char(token: str, ch: str) -> bool:
     return ch in unicodedata.normalize("NFD", token)
@@ -51,7 +51,8 @@ def extract_trope_char(token: str):
 
 def tokenize_pasuk(pasuk: str):
     """Split a pointed verse into word tokens, each annotated with its
-    trope level/name and whether it's a Munach-Legarmeh candidate."""
+    ta'am's rank/name and whether it could be part of a paseq (shofar
+    holekh + pesiq, Unicode's MUNAH + PASEQ)."""
     tokens = []
     for w in pasuk.split():
         ch = extract_trope_char(w)
@@ -70,10 +71,12 @@ def tokenize_pasuk(pasuk: str):
 
 
 def adjust_for_munach_legarmeh(tokens) -> None:
-    """A munach immediately followed by a paseq is "munach legarmeh" -- and
-    is upgraded to a disjunctive at the same rank as Geresh (level 4) -- if
-    and only if the next disjunctive ta'am, skipping over any number of
-    conjunctives in between, is level 3. Mutates ``tokens`` in
+    """A shofar holekh (Unicode MUNAH) immediately followed by a pesiq
+    stroke is read as Paseq (also known as munach legarmeh) -- upgraded to
+    a mafsik at the same rank as Gerish (level 4) -- if and only if the
+    next mafsik, skipping over any number of meshartim in between, is
+    level 3 (normally a ravia'). The pesiq token carries the new rank and
+    the name :data:`ankipasuk.config.LEGARMEH_NAME`. Mutates ``tokens`` in
     place."""
     n = len(tokens)
     for i in range(n - 1):
@@ -83,7 +86,7 @@ def adjust_for_munach_legarmeh(tokens) -> None:
                 j += 1
             if j < n and tokens[j]["level"] == 3:
                 tokens[i + 1]["level"] = 4
-                tokens[i + 1]["trope_name"] = "Munaḥ legarmeh"
+                tokens[i + 1]["trope_name"] = LEGARMEH_NAME
                 tokens[i + 1]["is_legarmeh"] = True
 
 

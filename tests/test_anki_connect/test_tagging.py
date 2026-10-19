@@ -6,15 +6,15 @@ from ankipasuk.anki_connect.tagging import (
 )
 from ankipasuk.cache import SefariaCache
 from ankipasuk.config import POINTED_VERSION, TORAH_VERSE_COUNTS
-from ankipasuk.leyning import parasha_table
+from ankipasuk.qeriya import parasha_table
 
-DECK = "Leyning"
+DECK = "Qeriya"
 
 
 def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
     """Sefaria-shaped parasha list for Genesis: real refs for parshiot named
     in ``overrides`` (by slug), harmless placeholders elsewhere -- same
-    approach as tests/test_leyning.py."""
+    approach as tests/test_qeriya.py."""
     overrides = overrides or {}
     table = parasha_table("Genesis")
     out = []

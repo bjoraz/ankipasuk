@@ -19,8 +19,8 @@ from ankipasuk.webgui.api import Api
 def test_get_books_returns_categorized_dict():
     api = Api()
     books = api.get_books()
-    assert "Genesis" in books["Torah"]
-    assert "Deuteronomy" in books["Torah"]
+    assert "Genesis" in books["Tora"]
+    assert "Deuteronomy" in books["Tora"]
     assert "Isaiah" in books["Nevi'im"]
     assert "I Samuel" in books["Nevi'im"]
     assert "Esther" in books["Megillot"]
@@ -316,14 +316,14 @@ def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_pat
     _seed_two_aliyah_parasha(api, tmp_path)
 
     result = api.export_aliyot_to_anki(
-        "Genesis", "Bereshit", 1, "Bereshit", 2, "Leyning::Recitation",
+        "Genesis", "Bereshit", 1, "Bereshit", 2, "Qeriya::Recitation",
     )
 
     assert result["ok"] is True
     assert result["aliyot"] == 2
     assert result["notes_added"] == 2  # one scroll line per aliyah -> one card per aliyah
     assert LPCG_MODEL_NAME in fake_anki.models
-    assert all(n["deck"] == "Leyning::Recitation" for n in fake_anki.notes.values())
+    assert all(n["deck"] == "Qeriya::Recitation" for n in fake_anki.notes.values())
 
 
 def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
@@ -475,13 +475,13 @@ def test_export_aliyot_to_anki_remembers_the_deck_name_for_next_time(tmp_path, f
     api = Api()
     _seed_two_aliyah_parasha(api, tmp_path)
 
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Leyning::Aliyot")
-    assert api.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Qeriya::Aliyot")
+    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
 
     # Simulates a fresh app launch reading the same on-disk settings.
     api2 = Api()
     api2._settings = Settings(cache_dir=tmp_path)
-    assert api2.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+    assert api2.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
 
 
 def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fake_anki):
@@ -585,8 +585,8 @@ def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkey
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    api.export_amud_to_anki(1, "Master::Leyning::Aliyot")
-    assert api.get_lpcg_deck_name() == "Master::Leyning::Aliyot"
+    api.export_amud_to_anki(1, "Master::Qeriya::Aliyot")
+    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
 
 
 def test_export_amud_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):

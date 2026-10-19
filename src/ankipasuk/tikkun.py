@@ -338,7 +338,7 @@ def _row_entries_for_range(
       built-in filter and must not over-fetch.
     """
     if book not in TIKKUN_BOOK_NUMBERS:
-        raise ValueError(f"No tikkun.io layout data for {book!r} (Torah only).")
+        raise ValueError(f"No tikkun.io layout data for {book!r} (Tora only).")
 
     book_num = str(TIKKUN_BOOK_NUMBERS[book])
     toc = get_toc(cache)
@@ -500,7 +500,7 @@ def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
         if page_num <= last_page:
             return book
 
-    raise ValueError(f"'Amud {page_num} is out of range (the Torah has {TOTAL_AMUDIM} 'amudim).")
+    raise ValueError(f"'Amud {page_num} is out of range (the Tora has {TOTAL_AMUDIM} 'amudim).")
 
 
 def _preceding_entry(book: str, ch: int, vs: int, cache: SefariaCache) -> tuple[dict, int] | None:
@@ -512,7 +512,7 @@ def _preceding_entry(book: str, ch: int, vs: int, cache: SefariaCache) -> tuple[
     to look back to.
     """
     if book not in TIKKUN_BOOK_NUMBERS:
-        raise ValueError(f"No tikkun.io layout data for {book!r} (Torah only).")
+        raise ValueError(f"No tikkun.io layout data for {book!r} (Tora only).")
 
     book_num = str(TIKKUN_BOOK_NUMBERS[book])
     toc = get_toc(cache)

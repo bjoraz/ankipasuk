@@ -15,14 +15,14 @@ def test_get_returns_none_by_default_when_no_default_given(tmp_path):
 
 def test_set_then_get_round_trips(tmp_path):
     settings = Settings(cache_dir=tmp_path)
-    settings.set("deck_name", "Master::Leyning::Aliyot")
-    assert settings.get("deck_name") == "Master::Leyning::Aliyot"
+    settings.set("deck_name", "Master::Qeriya::Aliyot")
+    assert settings.get("deck_name") == "Master::Qeriya::Aliyot"
 
 
 def test_set_persists_to_disk_for_a_fresh_instance(tmp_path):
-    Settings(cache_dir=tmp_path).set("deck_name", "Master::Leyning::Aliyot")
+    Settings(cache_dir=tmp_path).set("deck_name", "Master::Qeriya::Aliyot")
     fresh = Settings(cache_dir=tmp_path)
-    assert fresh.get("deck_name") == "Master::Leyning::Aliyot"
+    assert fresh.get("deck_name") == "Master::Qeriya::Aliyot"
 
 
 def test_set_overwrites_a_previous_value(tmp_path):

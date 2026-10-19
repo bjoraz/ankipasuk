@@ -15,7 +15,7 @@ from ankipasuk.anki_connect.cli import initialize_stems_cli
 # ============================================================
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 
-DECK = "Leyning::5-Devarim"
+DECK = "Qeriya::5-Devarim"
 
 # First run with True.
 # Once the output looks correct, change to False.

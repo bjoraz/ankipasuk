@@ -5,7 +5,7 @@ name here).
 
 Every method here is a thin wrapper around the same core logic the
 original Tk GUI used (``sefaria.py``, ``cloze.py``, ``text_processing.py``,
-``stats.py``, ``structure.py``, ``leyning.py``, ``anki_connect/*``) --
+``stats.py``, ``structure.py``, ``qeriya.py``, ``anki_connect/*``) --
 nothing here reimplements any business logic, it only adapts calling
 conventions (Python objects in, JSON-serializable dicts/lists out) for the
 JS side to consume.
@@ -90,7 +90,7 @@ class Api:
     #  Static reference data (no network)
     # =============================================================
     def get_books(self) -> dict[str, list[str]]:
-        """{"Torah": [...], "Nevi'im": [...], "Megillot": [...]} -- the
+        """{"Tora": [...], "Nevi'im": [...], "Megillot": [...]} -- the
         frontend uses this to build a book <select> with one <optgroup>
         per category."""
         return BOOK_CATEGORIES
@@ -402,7 +402,7 @@ class Api:
     #  Aliyah recitation export (overlapping-context notes, pushed
     #  directly to Anki via AnkiConnect)
     # =============================================================
-    DEFAULT_LPCG_DECK_NAME = "Master::Leyning::Aliyot"
+    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyot"
 
     def get_lpcg_deck_name(self) -> str:
         """The deck name to prefill the export form with: whatever was

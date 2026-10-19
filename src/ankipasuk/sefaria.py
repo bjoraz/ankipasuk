@@ -105,7 +105,7 @@ def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
 def fetch_torah_range(book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int,
                        cache: SefariaCache, version_param: str):
     if book not in TORAH_VERSE_COUNTS:
-        raise ValueError("Invalid Torah book.")
+        raise ValueError("Invalid Tora book.")
 
     book_chapter_count = len(TORAH_VERSE_COUNTS[book])
     if start_ch < 1 or end_ch < 1 or start_ch > book_chapter_count or end_ch > book_chapter_count:
@@ -399,7 +399,7 @@ def get_chapter_lengths(book: str, cache: SefariaCache, version_param: str = POI
     out of sync with what Sefaria's API actually returns -- this has
     happened in practice at contested chapter boundaries (e.g. Genesis
     31/32, where different textual traditions place the boundary a verse
-    apart). Since :mod:`ankipasuk.leyning`'s Maftir computation walks
+    apart). Since :mod:`ankipasuk.qeriya`'s maftir computation walks
     backward from a live-fetched aliyah-7 endpoint using per-chapter verse
     counts, a stale count anywhere silently shifts every subsequent
     chapter's indexing. Deriving the counts live -- cached afterward, same

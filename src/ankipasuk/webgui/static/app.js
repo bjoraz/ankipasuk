@@ -2,7 +2,7 @@
 
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
-let cachedBooks = null; // {"Torah": [...], "Nevi'im": [...], "Megillot": [...]}
+let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 
 function api() {
     return window.pywebview.api;
@@ -92,7 +92,7 @@ async function onRangeModeChange(row) {
     // Parashah/Aliyah only exists for Torah -- restrict the book list to
     // Torah so an invalid (book, mode) combination can't be selected at
     // all, rather than only failing later when fetched.
-    const books = isCV ? cachedBooks : { Torah: cachedBooks.Torah };
+    const books = isCV ? cachedBooks : { Tora: cachedBooks.Tora };
     setBookOptions(row.querySelector(".range-book"), books, true);
 
     await onRangeBookChange(row);
@@ -195,7 +195,7 @@ function renderVerseBoxes() {
     const useTikkun = document.getElementById("tikkun-view-toggle").checked;
 
     if (useTikkun) {
-        const placeholder = "<em>No Torah content in the current range(s).</em>";
+        const placeholder = "<em>No Tora content in the current range(s).</em>";
         pointedBox.innerHTML = currentTikkunHtml.pointed || placeholder;
         plainBox.innerHTML = currentTikkunHtml.plain || placeholder;
     } else {
@@ -548,7 +548,7 @@ window.addEventListener("pywebviewready", async () => {
     });
 
     document.getElementById("lpcg-deck").value = await api().get_lpcg_deck_name();
-    setBookOptions(document.getElementById("lpcg-book"), { Torah: cachedBooks.Torah }, false);
+    setBookOptions(document.getElementById("lpcg-book"), { Tora: cachedBooks.Tora }, false);
     await refreshLpcgParashaDropdowns();
     document.getElementById("lpcg-book").addEventListener("change", refreshLpcgParashaDropdowns);
     document.getElementById("lpcg-start-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("start"));

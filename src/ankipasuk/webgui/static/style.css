@@ -86,8 +86,10 @@ body.main-window {
 /* Higher specificity than .inline-group's display:flex, which otherwise
    ties with (and, being defined later, beats) the browser's default
    [hidden] { display: none } rule -- without this, elements using both
-   the hidden attribute and this class never actually hide. */
-.inline-group[hidden] {
+   the hidden attribute and this class never actually hide. .row has the
+   same problem (e.g. the row-mode export settings, hidden in verse mode). */
+.inline-group[hidden],
+.row[hidden] {
     display: none;
 }
 

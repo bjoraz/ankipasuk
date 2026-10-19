@@ -119,7 +119,7 @@ class FakeAnki:
                 for i, (name, value) in enumerate(n["fields"].items())
             }
             out.append({
-                "noteId": nid, "modelName": "Leyning (by pasuk)",
+                "noteId": nid, "modelName": "Qeriya (by pasuk)",
                 "tags": list(n["tags"]), "fields": fields,
             })
         return out

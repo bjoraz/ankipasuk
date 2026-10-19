@@ -11,7 +11,7 @@ import time
 
 from ankipasuk.webgui.anki_connect_api import AnkiConnectApi
 
-DECK = "Leyning::1-Bereshit"
+DECK = "Qeriya::1-Bereshit"
 
 
 class _FakeWindow:
@@ -127,7 +127,7 @@ def test_tag_deck_reports_summary(fake_anki, tmp_path, monkeypatch):
     _wait_for_done(window, "tag")
 
     logs = _log_lines(window, "tag")
-    assert any("Not a Torah ref: 1" in line for line in logs)
+    assert any("Not a Tora ref: 1" in line for line in logs)
     assert any("DRY RUN" in line for line in logs)
 
 
