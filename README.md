@@ -278,87 +278,47 @@ they produce, are in [`docs/transliteration.md`](docs/transliteration.md).
 
 ## Installing
 
-You need Python 3.10 or newer. On Windows and macOS:
+You need Python 3.10 or newer.
 
 ```bash
 git clone https://github.com/bjoraz/ankipasuk.git
 cd ankipasuk
-python -m venv .venv
-.venv\Scripts\activate           # Windows; on macOS: source .venv/bin/activate
-pip install -e .
-ankipasuk                        # or: python -m ankipasuk
-```
-
-The app window uses [pywebview](https://pywebview.flowrl.com/), which
-draws with the system's own web engine instead of bundling a browser. On
-Windows (WebView2) and macOS (WKWebView) that's all you need. On Linux,
-follow the next section instead.
-
-### Linux
-
-On Debian or Ubuntu, this is the whole thing:
-
-```bash
-git clone https://github.com/bjoraz/ankipasuk.git
-cd ankipasuk
-sudo apt install python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
-python3 -m venv --system-site-packages .venv
-source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
 ankipasuk
 ```
 
-Next time, `source .venv/bin/activate` and `ankipasuk` are enough.
-(A bare `pip install` outside a virtualenv is refused on recent Debian and
-Ubuntu, with an "externally-managed-environment" error.)
+The window uses [pywebview](https://pywebview.flowrl.com/), which draws
+with the system's own web engine (WebView2 on Windows, WKWebView on
+macOS), so nothing else is needed there.
 
-The rest of this section explains the choices. On Linux the web engine
-isn't reachable from a fresh virtualenv, so there's one more step. Install
-either of the two below; the app finds whichever is there, and prefers
-WebKitGTK if you have both.
+### Linux
 
-**WebKitGTK** is the engine your desktop already uses, so the window fits
-in and nothing large is downloaded. Install the system packages:
+pywebview needs WebKitGTK or Qt WebEngine. WebKitGTK is the one your
+desktop already uses. Install its system packages, and create the venv
+with `--system-site-packages` so it can see them:
 
 ```bash
 sudo apt install python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0  # Debian/Ubuntu
 sudo dnf install python3-gobject webkit2gtk4.1                      # Fedora
 sudo pacman -S python-gobject webkit2gtk-4.1                        # Arch
 sudo zypper install python3-gobject typelib-1_0-WebKit2-4_1         # openSUSE
+
+python3 -m venv --system-site-packages .venv
 ```
 
-They live outside any virtualenv, so create the environment with access to
-them (from your `ankipasuk` checkout):
+Then continue as above. With pipx: `pipx install --system-site-packages .`
 
-```bash
-python3 -m venv --system-site-packages .venv    # venv, then activate it and pip install -e .
-pipx install --system-site-packages .           # or pipx, which does all of that itself
-```
+Qt WebEngine installs from pip instead, without root but about 100 MB:
+`pip install -e ".[qt]"`. It needs the system's EGL and OpenGL libraries,
+which minimal installs can lack (`libegl1 libgl1` on Debian/Ubuntu).
 
-An existing virtualenv can't be given access afterwards: recreate it, or
-set `include-system-site-packages = true` in its `pyvenv.cfg`.
+If neither works, `ankipasuk` says what to install. `PYWEBVIEW_GUI=gtk`
+or `PYWEBVIEW_GUI=qt` forces one.
 
-**Qt WebEngine** comes from pip and needs no root, but it's a download of
-about 100 MB:
-
-```bash
-pip install -e ".[qt]"     # inside an activated virtualenv
-```
-
-It does use the system's graphics libraries (EGL and OpenGL). Every normal
-desktop has them, but a minimal install or a container may not, and then Qt
-fails to load with an error like `libEGL.so.1: cannot open shared object
-file`. On Debian/Ubuntu, `sudo apt install libegl1 libgl1` provides them.
-
-If neither works, `ankipasuk` prints these instructions and exits instead
-of failing with a traceback. That includes Qt being installed but missing
-those libraries: the launcher tries loading it first, and shows the error
-it got. To force one backend, set
-`PYWEBVIEW_GUI=gtk` or `PYWEBVIEW_GUI=qt`.
-
-The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter, which
-most distributions package separately: `python3-tk` on Debian and Ubuntu,
-`python3-tkinter` on Fedora.
+The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
+(`python3-tk` on Debian/Ubuntu).
 
 ## Using the app
 
