@@ -278,24 +278,44 @@ they produce, are in [`docs/transliteration.md`](docs/transliteration.md).
 
 ## Installing
 
-You need Python 3.10 or newer.
+You need Python 3.10 or newer. On Windows and macOS:
 
 ```bash
 git clone https://github.com/bjoraz/ankipasuk.git
 cd ankipasuk
+python -m venv .venv
+.venv\Scripts\activate           # Windows; on macOS: source .venv/bin/activate
 pip install -e .
-ankipasuk            # or: python -m ankipasuk
+ankipasuk                        # or: python -m ankipasuk
 ```
 
 The app window uses [pywebview](https://pywebview.flowrl.com/), which
 draws with the system's own web engine instead of bundling a browser. On
-Windows (WebView2) and macOS (WKWebView) that's all you need.
+Windows (WebView2) and macOS (WKWebView) that's all you need. On Linux,
+follow the next section instead.
 
 ### Linux
 
-On Linux the web engine isn't reachable from a fresh virtualenv, so there's
-one more step. Install either of the two below; the app finds whichever is
-there, and prefers WebKitGTK if you have both.
+On Debian or Ubuntu, this is the whole thing:
+
+```bash
+git clone https://github.com/bjoraz/ankipasuk.git
+cd ankipasuk
+sudo apt install python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install -e .
+ankipasuk
+```
+
+Next time, `source .venv/bin/activate` and `ankipasuk` are enough.
+(A bare `pip install` outside a virtualenv is refused on recent Debian and
+Ubuntu, with an "externally-managed-environment" error.)
+
+The rest of this section explains the choices. On Linux the web engine
+isn't reachable from a fresh virtualenv, so there's one more step. Install
+either of the two below; the app finds whichever is there, and prefers
+WebKitGTK if you have both.
 
 **WebKitGTK** is the engine your desktop already uses, so the window fits
 in and nothing large is downloaded. Install the system packages:
@@ -311,8 +331,8 @@ They live outside any virtualenv, so create the environment with access to
 them (from your `ankipasuk` checkout):
 
 ```bash
-python3 -m venv --system-site-packages .venv    # venv
-pipx install --system-site-packages .           # pipx
+python3 -m venv --system-site-packages .venv    # venv, then activate it and pip install -e .
+pipx install --system-site-packages .           # or pipx, which does all of that itself
 ```
 
 An existing virtualenv can't be given access afterwards: recreate it, or
@@ -322,7 +342,7 @@ set `include-system-site-packages = true` in its `pyvenv.cfg`.
 about 100 MB:
 
 ```bash
-pip install -e ".[qt]"
+pip install -e ".[qt]"     # inside an activated virtualenv
 ```
 
 It does use the system's graphics libraries (EGL and OpenGL). Every normal
