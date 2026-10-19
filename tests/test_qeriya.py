@@ -232,6 +232,10 @@ def test_legacy_tag_renames_weekly_holiday_and_tiqqun_tags():
     assert renames["aliyah::bereshit::01-bereshit::1"] == "aliyya::bereshit::01-bereshit::1"
     assert renames["holiday::simchat_torah::1"] == "holiday::simhat_tora::1"
     assert "holiday::purim::1" not in renames  # unchanged slug
+    # Hand-applied holiday tags under the old 'aliyah' namespace, including
+    # ones whose slug didn't change.
+    assert renames["aliyah::holiday::chanukah_day_1::2"] == "holiday::hanukka_day_1::2"
+    assert renames["aliyah::holiday::purim::1"] == "holiday::purim::1"
     assert renames["ankipasuk-aliyah"] == "ankipasuk-aliyya"
     assert renames["amud::012"] == "ammud::012"
     assert renames["parasha::chayei-sara"] == "parasha::hayye_sara"

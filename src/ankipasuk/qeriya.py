@@ -128,13 +128,13 @@ def legacy_tag_renames(
                 renames[f"{old}::{suffix}"] = f"{new}::{suffix}"
 
     for entry in holiday_readings():
-        if entry["legacy_slug"] == entry["slug"]:
-            continue
         suffixes = [a["num"] for a in entry["aliyot"]] + (["maftir"] if entry.get("maftir") else [])
         for suffix in suffixes:
-            renames[f"{HOLIDAY_TAG_NAMESPACE}{entry['legacy_slug']}::{suffix}"] = (
-                f"{HOLIDAY_TAG_NAMESPACE}{entry['slug']}::{suffix}"
-            )
+            new = f"{HOLIDAY_TAG_NAMESPACE}{entry['slug']}::{suffix}"
+            renames[f"{HOLIDAY_TAG_NAMESPACE}{entry['legacy_slug']}::{suffix}"] = new
+            # Holiday tags applied by hand before the tagger existed sat
+            # under the 'aliyah' namespace, with the same old slugs.
+            renames[f"{LEGACY_ALIYAH_TAG_NAMESPACE}holiday::{entry['legacy_slug']}::{suffix}"] = new
 
     renames[LEGACY_TIQQUN_ALIYAH_TAG] = TIQQUN_ALIYYA_TAG
     for n in range(1, total_ammudim + 1):

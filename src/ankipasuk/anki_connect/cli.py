@@ -84,7 +84,7 @@ def initialize_stems_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pa
     if dry_run:
         print()
         print("DRY RUN -- no changes were made.")
-        print("If the list looks correct, change DRY_RUN to False.")
+        print("If the list looks correct, run it again without the dry run (DRY_RUN = False in a script, or without --dry-run).")
 
     if pause:
         _pause()
@@ -199,7 +199,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
     if dry_run:
         print()
         print("DRY RUN -- no changes were made.")
-        print("If the plan looks correct, change DRY_RUN to False.")
+        print("If the plan looks correct, run it again without the dry run (DRY_RUN = False in a script, or without --dry-run).")
 
     if pause:
         _pause()
@@ -244,7 +244,7 @@ def migrate_tags_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause:
     if dry_run:
         print()
         print("DRY RUN -- no changes were made.")
-        print("If the plan looks correct, change DRY_RUN to False.")
+        print("If the plan looks correct, run it again without the dry run (DRY_RUN = False in a script, or without --dry-run).")
 
     if pause:
         _pause()
