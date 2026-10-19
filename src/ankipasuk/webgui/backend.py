@@ -173,7 +173,7 @@ bundling a browser, and on Linux that means one of two backends:
      in has to be allowed to see them:
 
          python3 -m venv --system-site-packages .venv    # venv
-         pipx install --system-site-packages .           # pipx, from the checkout
+         pipx install --editable --system-site-packages .  # pipx, from the checkout
 
      (An existing venv can't be opened up after the fact -- recreate it,
      or set include-system-site-packages = true in its pyvenv.cfg.)
