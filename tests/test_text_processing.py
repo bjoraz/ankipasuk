@@ -26,7 +26,7 @@ def test_munach_legarmeh_upgrade(munach_legarmeh_verse):
     # word 1 (index 1) should be upgraded to level 4 and flagged
     assert tokens[1]["is_legarmeh"] is True
     assert tokens[1]["level"] == 4
-    assert tokens[1]["trope_name"] == "Munach legarmeh"
+    assert tokens[1]["trope_name"] == "Paseq"
 
 
 def test_group_into_units_covers_all_words(genesis_1_1):

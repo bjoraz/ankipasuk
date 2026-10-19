@@ -20,7 +20,7 @@ from ankipasuk.anki_connect.cli import sync_scheduling_cli
 # ============================================================
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 
-DECK = "Leyning::1-Bereshit"
+DECK = "Qeriya::1-Bereshit"
 
 # True  = show what would happen, make NO changes
 # False = actually modify Anki

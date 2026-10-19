@@ -53,7 +53,7 @@ def parasha_table(book: str) -> list[dict]:
 
 
 def holiday_readings() -> list[dict]:
-    """The bundled holiday/fast-day reading table (Torah portions only)."""
+    """The bundled holiday/fast-day reading table (Tora readings only)."""
     return _load_json("holiday_readings.json")
 
 

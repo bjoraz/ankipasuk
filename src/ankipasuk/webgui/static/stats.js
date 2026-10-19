@@ -145,7 +145,7 @@ async function loadChapterData() {
 async function loadTropeFrequency() {
     const tropes = await api().get_trope_frequency();
     const container = document.getElementById("trope-content");
-    let html = "<div>Click a trope to see which verses contain it.</div><br>";
+    let html = "<div>Click a ta'am to see which verses contain it.</div><br>";
     for (const t of tropes) {
         html += `<div class="trope-row" data-verses='${JSON.stringify(t.verses)}' data-name="${t.name}">
             ${t.name}: ${t.count}</div>`;

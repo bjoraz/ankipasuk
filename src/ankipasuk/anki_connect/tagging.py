@@ -2,7 +2,7 @@
 
 Reads each note's "Source" field (e.g. ``"Bereshit 1:1"``, as produced by
 the CSV export), computes the tags that verse should have (see
-:mod:`ankipasuk.leyning`), and adds any that are missing.
+:mod:`ankipasuk.qeriya`), and adds any that are missing.
 
 Existing tags are **never removed or overwritten**. If a note already has
 a tag that looks like one this tool would generate (``aliyah::...`` or
@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 
 from ..cache import SefariaCache
 from ..config import BOOK_HEBREW_NAMES
-from ..leyning import build_holiday_intervals, build_parasha_intervals, tags_for_verse
+from ..qeriya import build_holiday_intervals, build_parasha_intervals, tags_for_verse
 from ..sefaria import get_chapter_lengths, get_parasha_structure
 from .operations import add_tags, find_notes, notes_info
 

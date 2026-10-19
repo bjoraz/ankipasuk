@@ -95,7 +95,7 @@ def sync_scheduling_cli(
 ) -> None:
     print()
     print("=" * 70)
-    print("TORAH LEYNING ANKI AUTOMATION")
+    print("TORA READING (QERIYA) ANKI AUTOMATION")
     print("=" * 70)
     print()
     print(f"Deck: {deck}")
@@ -150,7 +150,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
 
     print()
     print("=" * 60)
-    print("PARASHA / ALIYAH / MAFTIR / HOLIDAY TAGGER")
+    print("PARASHA / 'ALIYA / MAFTIR / HOLIDAY TAGGER")
     print("=" * 60)
     print()
     print(f"Deck: {deck}")
@@ -185,7 +185,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
     print("=" * 60)
     print()
     print(f"Total notes:              {summary['total_notes']}")
-    print(f"Notes not a Torah ref:    {summary['unparsed_notes']}")
+    print(f"Notes not a Tora ref:     {summary['unparsed_notes']}")
     print(f"Notes tagged:             {summary['notes_needing_tags']}")
     print(f"Tags added:               {summary['total_tags_to_add']}")
     print(f"Conflicts (left as-is):   {summary['notes_with_conflicts']}")
@@ -222,7 +222,7 @@ def _console_init_stems() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Flag the stem of every note in a deck.")
-    parser.add_argument("deck", help='e.g. "Leyning::1-Bereshit"')
+    parser.add_argument("deck", help='e.g. "Qeriya::1-Bereshit"')
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
     args = parser.parse_args()
@@ -233,7 +233,7 @@ def _console_sync_scheduling() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Run one promotion + lapse-recovery cycle for a deck.")
-    parser.add_argument("deck", help='e.g. "Leyning::1-Bereshit"')
+    parser.add_argument("deck", help='e.g. "Qeriya::1-Bereshit"')
     parser.add_argument("--promotion-interval", type=int, default=21)
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
@@ -247,9 +247,9 @@ def _console_tag_deck() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Tag every note in a deck with its parasha/aliyah/Maftir/holiday tags."
+        description="Tag every note in a deck with its parasha/'aliya/maftir/holiday tags."
     )
-    parser.add_argument("deck", help='e.g. "Leyning"')
+    parser.add_argument("deck", help='e.g. "Qeriya"')
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
     args = parser.parse_args()

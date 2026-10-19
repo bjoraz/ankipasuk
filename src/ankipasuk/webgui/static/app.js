@@ -2,7 +2,7 @@
 
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
-let cachedBooks = null; // {"Torah": [...], "Nevi'im": [...], "Megillot": [...]}
+let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 
 function api() {
     return window.pywebview.api;
@@ -60,8 +60,8 @@ const RANGE_ROW_TEMPLATE = `
   <div class="row">
     <label>Mode:
       <select class="range-mode">
-        <option>Chapter / Verse</option>
-        <option>Parashah / Aliyah</option>
+        <option value="cv">Chapter / Verse</option>
+        <option value="pa">Parasha / 'Aliya</option>
       </select>
     </label>
     <label>Book:
@@ -76,8 +76,8 @@ const RANGE_ROW_TEMPLATE = `
     </span>
 
     <span class="range-pa-controls inline-group" hidden>
-      <label>Parashah: <select class="range-parasha"></select></label>
-      <label>Aliyah: <select class="range-aliyah"></select></label>
+      <label>Parasha: <select class="range-parasha"></select></label>
+      <label>'Aliya: <select class="range-aliyah"></select></label>
     </span>
 
     <button class="btn-remove-range" type="button" title="Remove this range">Remove</button>
@@ -85,21 +85,21 @@ const RANGE_ROW_TEMPLATE = `
 `;
 
 async function onRangeModeChange(row) {
-    const isCV = row.querySelector(".range-mode").value === "Chapter / Verse";
+    const isCV = row.querySelector(".range-mode").value === "cv";
     row.querySelector(".range-cv-controls").hidden = !isCV;
     row.querySelector(".range-pa-controls").hidden = isCV;
 
     // Parashah/Aliyah only exists for Torah -- restrict the book list to
     // Torah so an invalid (book, mode) combination can't be selected at
     // all, rather than only failing later when fetched.
-    const books = isCV ? cachedBooks : { Torah: cachedBooks.Torah };
+    const books = isCV ? cachedBooks : { Tora: cachedBooks.Tora };
     setBookOptions(row.querySelector(".range-book"), books, true);
 
     await onRangeBookChange(row);
 }
 
 async function onRangeBookChange(row) {
-    const isCV = row.querySelector(".range-mode").value === "Chapter / Verse";
+    const isCV = row.querySelector(".range-mode").value === "cv";
     if (isCV) {
         await refreshRangeChapterVerseDropdowns(row);
     } else {
@@ -153,7 +153,7 @@ async function refreshRangeAliyahDropdown(row) {
     if (!parasha) return;
     const result = await api().get_aliyah_count(book, parasha);
     if (!result.ok) {
-        showToast("Could not load aliyot: " + result.error, true);
+        showToast("Could not load 'aliyot: " + result.error, true);
         return;
     }
     const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
@@ -195,7 +195,7 @@ function renderVerseBoxes() {
     const useTikkun = document.getElementById("tikkun-view-toggle").checked;
 
     if (useTikkun) {
-        const placeholder = "<em>No Torah content in the current range(s).</em>";
+        const placeholder = "<em>No Tora content in the current range(s).</em>";
         pointedBox.innerHTML = currentTikkunHtml.pointed || placeholder;
         plainBox.innerHTML = currentTikkunHtml.plain || placeholder;
     } else {
@@ -234,7 +234,7 @@ async function doFetchAll() {
             const mode = row.querySelector(".range-mode").value;
             let result;
             let tikkunResult;
-            if (mode === "Chapter / Verse") {
+            if (mode === "cv") {
                 const startCh = parseInt(row.querySelector(".range-start-ch").value, 10);
                 const startVs = parseInt(row.querySelector(".range-start-vs").value, 10);
                 const endCh = parseInt(row.querySelector(".range-end-ch").value, 10);
@@ -331,7 +331,7 @@ async function refreshLpcgAliyahDropdown(which) {
     if (!parasha) return;
     const result = await api().get_aliyah_count(book, parasha);
     if (!result.ok) {
-        showToast("Could not load aliyot: " + result.error, true);
+        showToast("Could not load 'aliyot: " + result.error, true);
         return;
     }
     const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
@@ -370,11 +370,11 @@ async function doExportLpcg() {
             return;
         }
         status.textContent =
-            `${result.aliyot} aliyah/aliyot, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+            `${result.aliyot} ${result.aliyot === 1 ? "'aliya" : "'aliyot"}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
         showToast("Exported to Anki.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Export aliyah range to Anki";
+        btn.textContent = "Export 'aliyot to Anki";
     }
 }
 
@@ -389,7 +389,7 @@ async function doExportAmud() {
     const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
 
     if (!amud || amud < 1 || amud > 245) {
-        showToast("Enter an amud number from 1 to 245.", true);
+        showToast("Enter an 'amud number from 1 to 245.", true);
         return;
     }
     if (!deckName) {
@@ -408,11 +408,11 @@ async function doExportAmud() {
             showToast("Export failed: " + result.error, true);
             return;
         }
-        status.textContent = `${result.book} amud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+        status.textContent = `${result.book} 'amud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
         showToast("Exported to Anki.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Export amud to Anki";
+        btn.textContent = "Export 'amud to Anki";
     }
 }
 
@@ -548,7 +548,7 @@ window.addEventListener("pywebviewready", async () => {
     });
 
     document.getElementById("lpcg-deck").value = await api().get_lpcg_deck_name();
-    setBookOptions(document.getElementById("lpcg-book"), { Torah: cachedBooks.Torah }, false);
+    setBookOptions(document.getElementById("lpcg-book"), { Tora: cachedBooks.Tora }, false);
     await refreshLpcgParashaDropdowns();
     document.getElementById("lpcg-book").addEventListener("change", refreshLpcgParashaDropdowns);
     document.getElementById("lpcg-start-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("start"));

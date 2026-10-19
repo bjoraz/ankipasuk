@@ -5,7 +5,7 @@ from ankipasuk.anki_connect.scheduling import (
     process_promotions,
 )
 
-DECK = "Leyning::1-Bereshit"
+DECK = "Qeriya::1-Bereshit"
 
 
 def test_initialize_stems_flags_only_the_highest_ord_card(fake_anki):
@@ -135,7 +135,7 @@ def test_process_promotions_dry_run_makes_no_changes(fake_anki):
 
 
 def test_scheduling_only_touches_the_target_deck(fake_anki):
-    other_deck = "Leyning::2-Shemot"
+    other_deck = "Qeriya::2-Shemot"
     fake_anki.add_note(1, DECK, [(0, 30), (1, 30)])
     fake_anki.add_note(2, other_deck, [(0, 30), (1, 30)])
     for c in fake_anki.cards.values():

@@ -253,7 +253,7 @@ def test_pointed_mode_renders_full_nikud_but_char_count_stays_consonant_based(tm
 
 def test_unknown_book_raises(tmp_path):
     cache = _seed(tmp_path, {}, {})
-    with pytest.raises(ValueError, match="Torah only"):
+    with pytest.raises(ValueError, match="Tora only"):
         get_scroll_lines_for_range("Isaiah", 1, 1, 1, 1, cache)
 
 
@@ -494,7 +494,7 @@ def test_get_preceding_row_is_none_at_the_very_start_of_the_torah(tmp_path):
 
 def test_get_preceding_row_unknown_book_raises(tmp_path):
     cache = _seed(tmp_path, {}, {})
-    with pytest.raises(ValueError, match="Torah only"):
+    with pytest.raises(ValueError, match="Tora only"):
         get_preceding_row("Isaiah", 1, 1, cache)
 
 

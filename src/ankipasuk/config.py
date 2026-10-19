@@ -84,7 +84,7 @@ MEGILLOT_BOOKS = [
 # uses to build a grouped book picker (Torah / Nevi'im / Megillot
 # optgroups) and that ALL_BOOKS is derived from.
 BOOK_CATEGORIES = {
-    "Torah": list(TORAH_BOOKS.keys()),
+    "Tora": list(TORAH_BOOKS.keys()),
     "Nevi'im": NEVIIM_BOOKS,
     "Megillot": MEGILLOT_BOOKS,
 }
@@ -126,14 +126,14 @@ BOOK_HEBREW_NAMES = {
 }
 
 
-# Anki deck names for the "Leyning" scheduling automation (ankipasuk.anki_connect),
+# Example Anki deck names for the qeriya scheduling automation (ankipasuk.anki_connect),
 # one per Torah book, in reading order.
-LEYNING_DECK_NAMES = {
-    "Genesis": "Leyning::1-Bereshit",
-    "Exodus": "Leyning::2-Shemot",
-    "Leviticus": "Leyning::3-Vayikra",
-    "Numbers": "Leyning::4-Bamidbar",
-    "Deuteronomy": "Leyning::5-Devarim",
+QERIYA_DECK_NAMES = {
+    "Genesis": "Qeriya::1-Bereshit",
+    "Exodus": "Qeriya::2-Shemot",
+    "Leviticus": "Qeriya::3-Vayikra",
+    "Numbers": "Qeriya::4-Bamidbar",
+    "Deuteronomy": "Qeriya::5-Devarim",
 }
 
 # =============================================================
@@ -142,34 +142,64 @@ LEYNING_DECK_NAMES = {
 CSV_FLAGS = "1,0,false,true,false,true"
 
 # =============================================================
-#  TROPE UNICODE HIERARCHY
+#  TE'AMIM: UNICODE -> NAME AND RANK
 # =============================================================
-# name, disjunctive rank (1 = strongest / verse-final, 4 = weakest; 0 = conjunctive)
+# name, disjunctive rank (1 = strongest / verse-final, 4 = weakest; 0 = meshares)
+#
+# The names shown to the user are the Sephardi names, following the table
+# in Wikipedia's "Hebrew cantillation" article. Unicode's own character
+# names (and the identifiers in this package that follow them, such as
+# MUNACH below or text_processing.adjust_for_munach_legarmeh) use the
+# other naming, which has a few false friends -- go by the codepoint, not
+# the name:
+#
+#   U+0599  Unicode "PASHTA"  -> Qadma
+#   U+05A8  Unicode "QADMA"   -> Azla
+#   U+0591  Unicode "ETNAHTA" -> Atnaḥ
+#   U+0596  Unicode "TIPEHA"  -> Tarḥa
+#   U+05A3  Unicode "MUNAH"   -> Shofar holekh
+#   U+05A5  Unicode "MERKHA"  -> Ma'arikh
+#   U+05A4  Unicode "MAHAPAKH" -> Shofar mehuppakh
+#   shofar holekh + paseq (Unicode "MUNAH" + "PASEQ", a.k.a. munach
+#   legarmeh) -> Paseq, a rank-4 mafsik -- see
+#   text_processing.adjust_for_munach_legarmeh
+#
+# Zarqa and tsinnorit: Unicode's names for these two codepoints are
+# swapped (Unicode Technical Note #27). Zarqa is encoded as U+05AE, whose
+# Unicode name is "ZINOR", and tsinnorit as U+0598, whose Unicode name is
+# "ZARQA". Sefaria's text follows that encoding, so U+05AE is listed here
+# as Zarqa and U+0598 is deliberately not listed at all: tsinnorit only
+# decorates a meshares and doesn't change the word's rank. Don't "fix"
+# this by swapping the two.
 TROPE_UNICODE = {
     "\u05C3": ("Sof pasuq", 1),
-    "\u0591": ("Etnachta", 1),
-    "\u0592": ("Segol", 2),
+    "\u0591": ("Atnaḥ", 1),
+    "\u0592": ("Segolta", 2),
     "\u0593": ("Shalshelet", 2),
-    "\u0594": ("Zakef katan", 2),
-    "\u0595": ("Zakef gadol", 2),
-    "\u0596": ("Tifcha", 2),
-    "\u0597": ("Revia", 3),
-    "\u05AE": ("Zarka", 3),
-    "\u0599": ("Pashta", 3),
+    "\u0594": ("Zaqef qaton", 2),
+    "\u0595": ("Zaqef gadol", 2),
+    "\u0596": ("Tarḥa", 2),
+    "\u0597": ("Ravia'", 3),
+    "\u05AE": ("Zarqa", 3),
+    "\u0599": ("Qadma", 3),
     "\u059A": ("Yetiv", 3),
     "\u059B": ("Tevir", 3),
-    "\u05A0": ("Telisha gedola", 4),
-    "\u059C": ("Geresh", 4),
-    "\u059E": ("Gershayim", 4),
-    "\u05A1": ("Pazer", 4),
-    "\u05C0": ("Paseq", 0),
-    "\u05A5": ("Mercha", 0),
-    "\u05A3": ("Munach", 0),
-    "\u05A4": ("Mahpach", 0),
+    "\u05A0": ("Talsha", 4),
+    "\u059C": ("Gerish", 4),
+    "\u059E": ("Shene gerishin", 4),
+    "\u05A1": ("Pazer gadol", 4),
+    "\u05C0": ("Pesiq", 0),
+    "\u05A5": ("Ma'arikh", 0),
+    "\u05A3": ("Shofar holekh", 0),
+    "\u05A4": ("Shofar mehuppakh", 0),
     "\u05A7": ("Darga", 0),
-    "\u05A8": ("Kadma", 0),
-    "\u05A9": ("Telisha ketana", 0),
+    "\u05A8": ("Azla", 0),
+    "\u05A9": ("Tarsa", 0),
 }
+
+# The name a shofar holekh + paseq pair takes once it's read as a mafsik
+# (see text_processing.adjust_for_munach_legarmeh).
+LEGARMEH_NAME = "Paseq"
 
 MAKEF = "\u05BE"
 MUNACH = "\u05A3"

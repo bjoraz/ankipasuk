@@ -167,7 +167,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
         "cards to track. Notes that already have any flag are left "
         "untouched -- safe to re-run.",
     )
-    stems_deck_entry = _labeled_entry(stems_tab.fields_frame, 0, "Deck:", "Leyning")
+    stems_deck_entry = _labeled_entry(stems_tab.fields_frame, 0, "Deck:", "Qeriya")
     stems_dry_run_var = tk.BooleanVar(value=True)
     ttk.Checkbutton(stems_tab.fields_frame, text="Dry run (preview only)", variable=stems_dry_run_var).grid(
         row=1, column=0, columnspan=2, sticky="w", pady=(4, 0)
@@ -209,7 +209,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
         "threshold, and recovers (flag 2 -> 1, un-suspends + re-queues "
         "leaves) any stem that has since lapsed.",
     )
-    sched_deck_entry = _labeled_entry(sched_tab.fields_frame, 0, "Deck:", "Leyning")
+    sched_deck_entry = _labeled_entry(sched_tab.fields_frame, 0, "Deck:", "Qeriya")
     sched_interval_entry = _labeled_entry(
         sched_tab.fields_frame, 1, "Promotion interval (days):", "21", width=8
     )
@@ -256,7 +256,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
         "conflicts are reported in the log instead. See "
         "docs/anki-tagging.md for details.",
     )
-    tag_deck_entry = _labeled_entry(tag_tab.fields_frame, 0, "Deck:", "Leyning")
+    tag_deck_entry = _labeled_entry(tag_tab.fields_frame, 0, "Deck:", "Qeriya")
     tag_dry_run_var = tk.BooleanVar(value=True)
     ttk.Checkbutton(tag_tab.fields_frame, text="Dry run (preview only)", variable=tag_dry_run_var).grid(
         row=1, column=0, columnspan=2, sticky="w", pady=(4, 0)

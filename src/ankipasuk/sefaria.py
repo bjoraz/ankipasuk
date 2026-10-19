@@ -105,7 +105,7 @@ def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
 def fetch_torah_range(book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int,
                        cache: SefariaCache, version_param: str):
     if book not in TORAH_VERSE_COUNTS:
-        raise ValueError("Invalid Torah book.")
+        raise ValueError("Invalid Tora book.")
 
     book_chapter_count = len(TORAH_VERSE_COUNTS[book])
     if start_ch < 1 or end_ch < 1 or start_ch > book_chapter_count or end_ch > book_chapter_count:
@@ -261,9 +261,9 @@ def get_parasha_structure(book: str, cache: SefariaCache):
         resp.raise_for_status()
         data = resp.json()
     except requests.RequestException as e:
-        raise RuntimeError(f"Could not load parashah structure for {book}: {e}") from e
+        raise RuntimeError(f"Could not load parasha structure for {book}: {e}") from e
     except ValueError as e:
-        raise RuntimeError(f"Invalid JSON in parashah structure for {book}.") from e
+        raise RuntimeError(f"Invalid JSON in parasha structure for {book}.") from e
 
     alt_structs = data.get("alt_structs", {})
     parasha_struct = alt_structs.get("Parasha")
@@ -286,7 +286,7 @@ def get_parasha_structure(book: str, cache: SefariaCache):
             })
 
     if not out:
-        raise RuntimeError(f"No parashah nodes found for {book}.")
+        raise RuntimeError(f"No parasha nodes found for {book}.")
 
     cache.set_parasha_structure(book, out)
     return out
@@ -300,8 +300,8 @@ def get_aliyah_ref(book: str, parasha_name: str, aliyah_num: int, cache: Sefaria
             refs = p["refs"]
             if 1 <= aliyah_num <= len(refs):
                 return refs[aliyah_num - 1]
-            raise ValueError(f"{parasha_name} does not have aliyah {aliyah_num}.")
-    raise ValueError(f"Parashah {parasha_name} not found in {book}.")
+            raise ValueError(f"{parasha_name} does not have 'aliya {aliyah_num}.")
+    raise ValueError(f"Parasha {parasha_name} not found in {book}.")
 
 
 def fetch_aliyot_in_range(
@@ -337,14 +337,14 @@ def fetch_aliyot_in_range(
     names = [p["name"] for p in parashot]
 
     if start_parasha not in names:
-        raise ValueError(f"Parashah {start_parasha!r} not found in {book}.")
+        raise ValueError(f"Parasha {start_parasha!r} not found in {book}.")
     if end_parasha not in names:
-        raise ValueError(f"Parashah {end_parasha!r} not found in {book}.")
+        raise ValueError(f"Parasha {end_parasha!r} not found in {book}.")
 
     start_idx = names.index(start_parasha)
     end_idx = names.index(end_parasha)
     if end_idx < start_idx:
-        raise ValueError("End parashah must not come before start parashah.")
+        raise ValueError("End parasha must not come before start parasha.")
 
     chapter_lengths = get_book_structure(book, cache, version_param)
     aliyot: list[dict] = []
@@ -358,7 +358,7 @@ def fetch_aliyot_in_range(
 
             if first_num < 1 or last_num > len(refs) or first_num > last_num:
                 raise ValueError(
-                    f"{parasha['name']} does not have aliyot {first_num}-{last_num} "
+                    f"{parasha['name']} does not have 'aliyot {first_num}-{last_num} "
                     f"(it has {len(refs)})."
                 )
 
@@ -399,7 +399,7 @@ def get_chapter_lengths(book: str, cache: SefariaCache, version_param: str = POI
     out of sync with what Sefaria's API actually returns -- this has
     happened in practice at contested chapter boundaries (e.g. Genesis
     31/32, where different textual traditions place the boundary a verse
-    apart). Since :mod:`ankipasuk.leyning`'s Maftir computation walks
+    apart). Since :mod:`ankipasuk.qeriya`'s maftir computation walks
     backward from a live-fetched aliyah-7 endpoint using per-chapter verse
     counts, a stale count anywhere silently shifts every subsequent
     chapter's indexing. Deriving the counts live -- cached afterward, same

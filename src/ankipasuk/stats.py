@@ -220,7 +220,7 @@ def format_stats_summary(stats, max_leaf_disj: int) -> str:
         f"Average disjunctive groups / verse: {stats['avg_disj']:.2f}",
         f"Average words / disjunctive group: {stats['avg_words_per_disj']:.2f}",
         f"Total conjunctive (non-disjunctive) words: {stats['total_conj']}",
-        f"Total Munach Legarmeh occurrences: {stats['total_legarmeh']}",
+        f"Total Paseq (legarmeh) occurrences: {stats['total_legarmeh']}",
         "",
         f"With max {max_leaf_disj} disjunctive group(s) per cloze leaf:",
         f"  Average clauses / verse after splitting: "
@@ -228,7 +228,7 @@ def format_stats_summary(stats, max_leaf_disj: int) -> str:
         f"  Average split-tree depth: "
         f"{_weighted_avg(stats['depth_dist'], stats['n_verses']):.2f}",
         "",
-        "Disjunctive trope frequency (across all verses):",
+        "Mafsiqim by frequency (across all verses):",
     ]
     for name, cnt in stats["trope_freq"].most_common():
         lines.append(f"  {name}: {cnt}")
@@ -242,7 +242,7 @@ def write_stats_csv(path, stats, max_leaf_disj: int) -> None:
         writer = csv.writer(f)
         writer.writerow([
             "Verse", "Words", "Disjunctive groups", "Conjunctive words",
-            "Munach legarmeh", f"Clauses (max {max_leaf_disj}/leaf)", "Split-tree depth",
+            "Paseq (legarmeh)", f"Clauses (max {max_leaf_disj}/leaf)", "Split-tree depth",
         ])
         for label, s in stats["per_verse"]:
             writer.writerow([

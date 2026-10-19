@@ -1,87 +1,80 @@
-# Anki scheduling automation
+# Retiring clause cards once you know the pasuq
 
-The cloze generator produces one note per verse, with the verse's full text
-as the last (highest-`ord`) cloze -- the **stem** -- and each nested clause
-as an earlier, easier cloze -- a **leaf**. Once a stem is well-memorized,
-drilling its leaves separately stops being useful, so this module manages a
-promotion cycle that suspends leaves once their stem matures, and brings
-them back if the stem later lapses.
+Every note from the cloze export has one card for the whole pasuq (the
+last, highest-numbered cloze, called the **stem** here) and one card for
+each clause in it (the **leaves**). The leaves are how you learn the pasuq,
+but once you can read the whole thing reliably they're just extra reviews.
+This tool suspends a note's leaves when its stem matures, and brings them
+back if the stem lapses.
 
-Flags track a stem's phase:
+It keeps track with Anki's flags:
 
 | Flag | Meaning |
 |---|---|
-| 1 | Active stem -- leaves are live and studied normally. |
-| 2 | Mature stem -- leaves are suspended. |
+| 1 (red) | Active: the leaves are reviewed as usual. |
+| 2 (orange) | Mature: the leaves are suspended. |
 
-```text
-Flag 1 + stem interval >= PROMOTION_INTERVAL
-        |
-        v
-    Flag stem 1 -> 2
-    Suspend leaves
+Each sync does two things:
 
-Flag 2 + stem interval < PROMOTION_INTERVAL   (i.e. the stem lapsed)
-        |
-        v
-    Unsuspend leaves
-    Answer leaves "Again"
-    Flag stem 2 -> 1
-```
+- **Promotion.** A stem with flag 1 whose interval has reached the
+  promotion interval (21 days unless you change it) gets flag 2, and its
+  leaves are suspended.
+- **Lapse recovery.** A stem with flag 2 whose interval has dropped back
+  below that (because you forgot it) gets flag 1 again. Its leaves are
+  unsuspended and answered Again, so you drill them alongside the stem
+  until it's solid.
 
-## Requirements
+## What you need
 
-- [Anki](https://apps.ankiweb.net/) running locally.
-- The [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on
-  installed (default: listens on `http://127.0.0.1:8765`).
-- Decks named `Leyning::1-Bereshit` through `Leyning::5-Devarim`, matching
-  `ankipasuk.config.LEYNING_DECK_NAMES` -- one per Torah book, populated
-  from the CSVs the main app exports.
+- Anki running on the same machine, with the
+  [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on
+  (it listens on `http://127.0.0.1:8765` by default).
+- A deck of notes imported from the cloze CSV export. Any deck name works;
+  you pass it to each tool. The scripts in `scripts/` come preset with
+  names like `Qeriya::1-Bereshit`, so change the `DECK` line at the top of
+  the file to match yours.
 
 ## Running it
 
-Three equivalent ways to run each step:
+Each step can be run three ways:
 
-- **From the GUI** -- launch `ankipasuk` (or `python -m ankipasuk`), then
-  **AnkiConnect Tools**. Each operation has its own tab with a
-  deck field, a dry-run checkbox, and a live log pane.
-- **Double-click the script** (Windows-friendly, config at the top of the
-  file).
-- **The installed console command** (any OS, flags on the command line).
+- **From the app.** Launch `ankipasuk`, click **AnkiConnect Tools**, and
+  use the tab for that step. Each tab has a deck field, a dry-run checkbox
+  and a log.
+- **As a script.** Double-click the file in `scripts/` (handy on Windows).
+  Its settings are at the top of the file.
+- **As a command**, with the settings as arguments.
 
-### 1. One-time setup: flag every note's stem
+### 1. Once per deck: flag the stems
 
 ```powershell
 python .\scripts\flag_stem_cards.py
 ```
 or
 ```bash
-ankipasuk-init-stems "Leyning::1-Bereshit" --dry-run   # preview
-ankipasuk-init-stems "Leyning::1-Bereshit"             # apply
+ankipasuk-init-stems "Qeriya::1-Bereshit" --dry-run   # preview
+ankipasuk-init-stems "Qeriya::1-Bereshit"             # apply
 ```
 
-Run this once per deck, right after importing its CSV. It finds the
-highest-`ord` card on every note and flags it `1`; notes that already have
-a flag are left untouched.
+Do this right after importing a deck. It finds the highest-numbered card
+on every note and gives it flag 1. Notes that already have a flag are left
+alone, so it's safe to run again after importing more pesuqim.
 
-### 2. Recurring: run the scheduling cycle
+### 2. Regularly: sync
 
 ```powershell
 python .\scripts\update_mature_cards.py
 ```
 or
 ```bash
-ankipasuk-sync-scheduling "Leyning::1-Bereshit" --promotion-interval 21 --dry-run
-ankipasuk-sync-scheduling "Leyning::1-Bereshit" --promotion-interval 21
+ankipasuk-sync-scheduling "Qeriya::1-Bereshit" --promotion-interval 21 --dry-run
+ankipasuk-sync-scheduling "Qeriya::1-Bereshit" --promotion-interval 21
 ```
 
-Run this regularly (e.g. as a scheduled task -- the GUI or console command
-are better fits for that than opening the app, see note below). It
-promotes any flag-1 stem whose interval has reached `PROMOTION_INTERVAL`
-days, and recovers any flag-2 stem whose interval has since dropped back
-below it.
+Run it as often as you like. Once a day, or after each study session, is
+plenty. The command is the easiest to put in a scheduled task.
 
-### 3. Just checking AnkiConnect is reachable
+### Checking that Anki is reachable
 
 ```powershell
 python .\scripts\test_anki_connect.py
@@ -91,38 +84,35 @@ or
 ankipasuk-check-connection
 ```
 
-## Always dry-run first
+## Dry-run first
 
-Every script/command/GUI tab supports a dry run (`DRY_RUN = True` at the
-top of the `.py` file, the "Dry run" checkbox in the GUI, or `--dry-run` on
-the command line) that shows exactly what it would change without
-touching Anki. Use a test deck and a low `PROMOTION_INTERVAL` (e.g. 10) to
-sanity-check behavior before pointing at a real deck.
+Every way of running these has a dry run: `DRY_RUN = True` at the top of
+the script, the **Dry run** checkbox in the app, or `--dry-run` on the
+command line. It prints exactly what would change and changes nothing. To
+try the whole cycle out, use a test deck and a short promotion interval
+(say 10 days).
 
-## Library structure
+## Safety
+
+- On every sync, each note's stem and leaves are worked out again, and the
+  tool checks that the card it found really is that note's stem before
+  touching anything. If a note's cards were edited by hand and no longer
+  fit, that note is skipped with a warning.
+- Flags 1 and 2 are reserved for this. Flagging stems never touches a
+  stem card that already has a flag of any color.
+
+## How it's put together
 
 ```
 src/ankipasuk/anki_connect/
-├── client.py       # raw AnkiConnect JSON-RPC client (invoke())
-├── notes.py        # pure stem/leaf identification, no network
-├── operations.py   # AnkiConnect-backed card ops (search/flag/suspend/answer)
-├── scheduling.py   # the promotion / lapse-recovery policy
-└── cli.py          # console-friendly wrappers used by scripts/ and by
-                     # the `ankipasuk-*` console_scripts entry points
+├── client.py       AnkiConnect requests (standard library only)
+├── notes.py        which card is the stem, which are leaves (no network)
+├── operations.py   search, flag, suspend, answer
+├── scheduling.py   promotion and lapse recovery
+└── cli.py          the commands and the scripts' entry points
 ```
 
-`notes.py` has no network dependency and is unit tested directly.
-`scheduling.py` is tested end-to-end against an in-memory fake AnkiConnect
-backend (`tests/test_anki_connect/conftest.py`), so the promotion/recovery
-logic itself is verified without needing Anki running.
-
-## Safety notes
-
-- Each scheduling pass re-derives the stem/leaves for every matched note
-  and double-checks that the card the search matched actually is that
-  note's stem before touching anything -- if the deck's card structure was
-  ever edited by hand, the mismatched note is skipped with a warning rather
-  than silently mishandled.
-- Flags 1 and 2 are reserved for this workflow; `initialize_stems` never
-  overwrites a note that already has *any* non-zero flag, so it's safe to
-  re-run.
+The only thing this relies on from the cloze export is that the whole
+pasuq is always the highest-numbered cloze on its note. `notes.py` is
+tested on its own, and `scheduling.py` is tested end to end against an
+in-memory stand-in for AnkiConnect, so none of it needs Anki to test.

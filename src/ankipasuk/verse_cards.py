@@ -79,7 +79,7 @@ Row = tuple[list[list[str]], bool, int]
 # build_verse_cards_from_words's own rendering of it. Bracketed like
 # BEGINNING_MARKER, for the same reason: it's a structural note about the
 # scroll, not text anyone recites.
-AMUD_BREAK_MARKER = "[Amud {page_num}]"
+AMUD_BREAK_MARKER = "['Amud {page_num}]"
 
 
 def _verse_word_count(book: str, ch: int, vs: int, cache: SefariaCache) -> int:
@@ -434,7 +434,7 @@ def build_amud_verse_cards(
     own last row too, when that verse's own tail crosses onto the NEXT
     amud (:func:`ankipasuk.tikkun.get_row_fragments_for_range`'s
     ``generous_tail`` already fetches it) -- rendered with a visible
-    "[Amud N]" break (see :func:`_render_amud_break`) rather than
+    "['Amud N]" break (see :func:`_render_amud_break`) rather than
     silently splicing the new column's lines onto this one, since a real
     reciter following along on an actual scroll needs to know they've
     turned to a new column mid-verse.

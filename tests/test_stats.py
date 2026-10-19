@@ -62,7 +62,7 @@ def test_format_stats_summary_is_non_empty(genesis_1_1, genesis_1_2):
     stats = compute_corpus_stats(verse_data, max_leaf_disj=2)
     summary = format_stats_summary(stats, max_leaf_disj=2)
     assert "Verses analyzed: 3" in summary
-    assert "Disjunctive trope frequency" in summary
+    assert "Mafsiqim by frequency" in summary
 
 
 def test_write_stats_csv_has_one_row_per_verse(tmp_path, genesis_1_1, genesis_1_2):
