@@ -237,7 +237,8 @@ These need Anki open with the
 [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on. Open them
 from **AnkiConnect Tools** in the app, run them as commands
 (`ankipasuk-check-connection`, `ankipasuk-init-stems`,
-`ankipasuk-sync-scheduling`, `ankipasuk-tag-deck`), or double-click the
+`ankipasuk-sync-scheduling`, `ankipasuk-tag-deck`,
+`ankipasuk-migrate-tags`), or double-click the
 scripts in `scripts/`.
 
 - **Retire clause cards once you know the pasuq.** After a one-time step
@@ -248,12 +249,22 @@ scripts in `scripts/`.
   [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
 - **Tag notes by where they're read.** Each note is tagged with its parasha
   and 'aliyya, whether it's in the maftir, and any holiday or fast-day
-  reading it belongs to, for example `aliyah::bereshit::04-vayera::7` and
+  reading it belongs to, for example `aliyya::bereshit::04-vayyera::7` and
   `holiday::rosh_hashana_ii::1`. It only ever adds tags. If an existing tag
   disagrees with what it worked out, that's reported and left alone.
   Details in [`docs/anki-tagging.md`](docs/anki-tagging.md).
+- **Move old tags to the new spelling.** Decks tagged by earlier versions
+  use the old spelling (`aliyah::...`, `holiday::simchat_torah::1`,
+  `amud::012`). Migrate Tags renames those, and only those.
 
 Every tool has a dry-run mode. Use it first.
+
+## Spelling
+
+Every Hebrew word AnkiPasuk shows or writes follows one set of rules: in
+the app, on cards, in the book name it puts in a note's `Source` field, and
+in tags. The rules, and the full list of book, parasha and holiday names
+they produce, are in [`docs/transliteration.md`](docs/transliteration.md).
 
 ## Installing
 
@@ -327,7 +338,7 @@ src/ankipasuk/
 ├── webgui/              the app (pywebview + HTML/JS)
 └── gui/                 the old tkinter app, no longer maintained
 scripts/                 double-clickable wrappers for the Anki tools
-docs/                    scheduling and tagging in detail
+docs/                    scheduling, tagging, and the transliteration rules
 ```
 
 Only `webgui/` and `gui/` touch anything graphical. The AnkiConnect client
