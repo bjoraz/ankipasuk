@@ -1,15 +1,21 @@
 # AnkiPasuk
 
 AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for learning to read
-from the Sefer Tora. It takes the text and te'amim from
-[Sefaria](https://www.sefaria.org/) and gives you two kinds of cards:
+from the sefer. It takes the text and te'amim from
+[Sefaria](https://www.sefaria.org/) and gives you two kinds of cards, each
+with its own job:
 
-- **Nested cloze cards** that take each pasuq apart along its own te'amim:
-  first into its two halves, then each half into its clauses, down to the
-  smallest phrases the mafsiqim allow. The hidden part shows only its bare
-  letters, the way it's written in the scroll, and you supply the reading.
-- **Recitation cards** laid out line for line as in a kasher Sefer Tora,
-  so what you memorize has the same shape as the scroll you'll read from.
+- **Cloze cards** are for learning the pesuqim and their structure. Each
+  pasuq is taken apart along its own te'amim: first into its two halves,
+  then each half into its clauses, down to the smallest phrases the
+  mafsiqim allow. You learn the reading a piece at a time and see how the
+  te'amim divide the pasuq as you go. The hidden part shows only its bare
+  letters, the way it's written in the sefer, and you supply the reading.
+- **Tiqqun cards** are for memorizing what you'll actually read: a whole
+  'aliya or 'amud, line by line, laid out as in the sefer (the standard
+  layout of 245 'amudim with 42 lines each). The cloze cards teach you the
+  pesuqim; these make sure you can read them off the column in front of
+  you.
 
 There's also a statistics window for whatever range you've loaded
 (including a way to find pesuqim that share the same te'amim structure),
@@ -113,7 +119,7 @@ c7     └─ מרחפת על פני המים
 
 Each cloze is written as `{{cN::pointed text::unpointed text}}`, so the
 hint Anki shows in the gap is the same words without niqqud or te'amim,
-just as they look in the scroll. On card c1 you see the rest of the pasuq
+just as they look in the sefer. On card c1 you see the rest of the pasuq
 fully pointed and have to read וְהָאָ֗רֶץ from its letters. On c9 you get
 the letters of the whole pasuq and nothing else. Nested clozes need Anki
 2.1.56 or newer.
@@ -164,15 +170,18 @@ format_structure(verse_structure_signature(pasuq))  # '(((L3 (L3 L2)) (L2 L1)) (
 Tehillim, Mishle and Iyov aren't supported, because the Sifre Emet use a
 different system of te'amim.
 
-## Recitation cards
+## Tiqqun cards
 
-The second kind of card is for the qeriya itself. Choose a range of
-'aliyot (or a single 'amud, 1 to 245) and AnkiPasuk sends the cards
-straight to Anki through the AnkiConnect add-on.
+Tiqqun cards are for memorizing the qeriya itself, a whole 'aliya or 'amud
+at a time. Choose a range of 'aliyot (or a single 'amud, 1 to 245) and
+AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on.
+In the app they're in the **Export 'aliyot to Anki (recitation cards)**
+panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
-layout data. Lines break where they do in the standard 245-'amud layout
-and are justified edge to edge, petuḥot and setumot appear as real gaps
+layout data, which follows the standard layout of the sefer: 245 'amudim
+of 42 lines each. Lines break where they do in that layout and are
+justified edge to edge, petuḥot and setumot appear as real gaps
 (Az Yashir and the 'Aseret haDibberot included), and the font is the same
 Shlomo semiStam that tikkun.io uses. The font is copied into Anki's media
 folder, so the cards work offline.
@@ -183,7 +192,7 @@ You can divide the cards two ways:
 for context and asking for the pasuq's own lines. Pesuqim rarely start and
 end on a line break, and tikkun.io's data doesn't say where in a line one
 pasuq stops and the next starts. AnkiPasuk works it out by lining up the
-words on the scroll against Sefaria's word count for each pasuq, so every
+words on each line against Sefaria's word count for each pasuq, so every
 card tests that pasuq's words and nothing more:
 
 - On a line shared with the previous pasuq, its end is shown as ordinary
@@ -211,7 +220,7 @@ size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you s
 applies to every card.
 
 The same layout is in the main window too: tick **Tikkun.io scroll layout**
-to see the range you fetched as it appears in the scroll, with or without
+to see the range you fetched as it appears in the sefer, with or without
 niqqud.
 
 ## Statistics
@@ -277,7 +286,7 @@ notes.
    unpointed pesuqim before and after it, then an empty column and a fixed
    settings string. The tagging tool looks for the reference in a field
    called `Source`.
-4. For recitation cards, use the panel at the bottom: book, first and last
+4. For tiqqun cards, use the panel at the bottom: book, first and last
    parasha and 'aliya (or an 'amud number), deck name, and how to divide
    the cards.
 
@@ -311,7 +320,7 @@ src/ankipasuk/
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both
-├── lpcg.py              recitation note type, card templates, line-mode cards
+├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
 ├── data/                bundled maftir lengths and holiday readings
@@ -346,7 +355,7 @@ pesuqim and across 'amudim), and an in-memory stand-in for AnkiConnect.
 ## Credits
 
 - Text and te'amim from the [Sefaria API](https://www.sefaria.org/).
-- Scroll layout and the Shlomo semiStam font from
+- The 'amud layout and the Shlomo semiStam font from
   [tikkun.io](https://github.com/akivajgordon/tikkun.io) (MIT; the font is
   by Shlomo Orbach under the SIL Open Font License).
 - Maftir lengths and the holiday reading table come from
