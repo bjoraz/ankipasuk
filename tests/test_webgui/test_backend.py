@@ -294,3 +294,18 @@ class _FakeThread:
 
     def is_alive(self) -> bool:
         return True
+
+
+def test_http_cache_is_cleared_but_saved_settings_are_kept(tmp_path):
+    from ankipasuk import webgui
+
+    (tmp_path / "cache" / "WebKitCache").mkdir(parents=True)
+    (tmp_path / "cache" / "WebKitCache" / "stale-index.html").write_text("old")
+    (tmp_path / "localstorage").mkdir()
+    (tmp_path / "localstorage" / "settings").write_text("kept")
+
+    webgui._clear_http_cache(tmp_path)
+    webgui._clear_http_cache(tmp_path)  # nothing left to clear: no error
+
+    assert not (tmp_path / "cache").exists()
+    assert (tmp_path / "localstorage" / "settings").read_text() == "kept"

@@ -11,6 +11,7 @@ using a web view for the UI itself requires or uses the internet.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -22,6 +23,21 @@ from .api import Api
 from .backend import NoWebViewBackendError, choose_backend
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+
+def _clear_http_cache(storage_path: Path) -> None:
+    """Drop WebKitGTK's HTTP cache (``<storage_path>/cache``) before the
+    window opens.
+
+    With private_mode off, pywebview serves the frontend from a fixed port,
+    so every launch loads the same URL. Older pywebview versions sent no
+    cache headers, and WebKit kept serving the HTML/JS it had cached from
+    them even after an update -- the window showed an old version of the
+    app. The cache only ever holds copies of the files in ``static/``, so
+    clearing it costs nothing; saved settings (localStorage) live in a
+    separate directory and are kept.
+    """
+    shutil.rmtree(storage_path / "cache", ignore_errors=True)
 
 
 def _exit_even_if_threads_linger(status: int) -> int:
@@ -100,6 +116,7 @@ def main() -> int:
     # project already stores and is easy to find/clear together.
     storage_path = default_cache_dir() / "webview_storage"
     storage_path.mkdir(parents=True, exist_ok=True)
+    _clear_http_cache(storage_path)
     webview.start(gui=gui, private_mode=False, storage_path=str(storage_path))
     return _exit_even_if_threads_linger(0)
 
