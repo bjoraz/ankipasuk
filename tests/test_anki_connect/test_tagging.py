@@ -2,6 +2,7 @@ from ankipasuk.anki_connect.operations import _BATCH_SIZE
 from ankipasuk.anki_connect.tagging import (
     apply_tagging_plan,
     compute_tagging_plan,
+    migrate_legacy_tags,
     parse_source_field,
 )
 from ankipasuk.cache import SefariaCache
@@ -12,7 +13,7 @@ DECK = "Qeriya"
 
 
 def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
-    """Sefaria-shaped parasha list for Genesis: real refs for parshiot named
+    """Sefaria-shaped parasha list for Genesis: real refs for parashiyyot named
     in ``overrides`` (by slug), harmless placeholders elsewhere -- same
     approach as tests/test_qeriya.py."""
     overrides = overrides or {}
@@ -27,7 +28,7 @@ def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
 def _cache_with_genesis(tmp_path, overrides=None, chapter_length_overrides=None) -> SefariaCache:
     """A SefariaCache pre-seeded with everything compute_tagging_plan needs
     for Genesis without touching the network: a parasha structure (real
-    refs for the parshiot named in ``overrides``, placeholders elsewhere --
+    refs for the parashiyyot named in ``overrides``, placeholders elsewhere --
     see ``_placeholder_genesis_parashot``) and per-chapter text long enough
     to derive verse counts matching the static table, unless overridden
     per chapter via ``chapter_length_overrides`` (e.g. to simulate live
@@ -47,6 +48,13 @@ def _cache_with_genesis(tmp_path, overrides=None, chapter_length_overrides=None)
 def test_parse_source_field_valid():
     assert parse_source_field("Bereshit 1:1") == ("Genesis", 1, 1)
     assert parse_source_field("Devarim 34:12") == ("Deuteronomy", 34, 12)
+
+
+def test_parse_source_field_accepts_old_spellings():
+    # Notes made before docs/transliteration.md keep the old book name.
+    assert parse_source_field("Bamidbar 3:5") == ("Numbers", 3, 5)
+    assert parse_source_field("Bemidbar 3:5") == ("Numbers", 3, 5)
+    assert parse_source_field("Vayikra 1:1") == ("Leviticus", 1, 1)
 
 
 def test_parse_source_field_invalid():
@@ -72,9 +80,9 @@ def test_compute_tagging_plan_computes_missing_tags(tmp_path, fake_anki):
     note1 = next(n for n in plan.notes if n.note_id == 1)
     note2 = next(n for n in plan.notes if n.note_id == 2)
 
-    assert "aliyah::bereshit::01-bereshit::1" in note1.missing_tags
-    assert "aliyah::bereshit::01-bereshit::7" in note2.missing_tags
-    assert "aliyah::bereshit::01-bereshit::maftir" in note2.missing_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note1.missing_tags
+    assert "aliyya::bereshit::01-bereshit::7" in note2.missing_tags
+    assert "aliyya::bereshit::01-bereshit::maftir" in note2.missing_tags
     assert not note1.conflicting_tags
     assert not note2.conflicting_tags
 
@@ -86,14 +94,14 @@ def test_compute_tagging_plan_flags_conflicting_tags(tmp_path, fake_anki):
     # This note already has an "aliyah::..." tag, but the WRONG one.
     fake_anki.add_note_with_fields(
         1, DECK, {"Source": "Bereshit 1:1"},
-        tags=["aliyah::bereshit::01-bereshit::99"],
+        tags=["aliyya::bereshit::01-bereshit::99"],
     )
 
     plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
     note = plan.notes[0]
 
-    assert "aliyah::bereshit::01-bereshit::99" in note.conflicting_tags
-    assert "aliyah::bereshit::01-bereshit::1" in note.missing_tags
+    assert "aliyya::bereshit::01-bereshit::99" in note.conflicting_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note.missing_tags
 
 
 def test_compute_tagging_plan_ignores_unrelated_existing_tags(tmp_path, fake_anki):
@@ -108,7 +116,7 @@ def test_compute_tagging_plan_ignores_unrelated_existing_tags(tmp_path, fake_ank
     note = plan.notes[0]
 
     assert not note.conflicting_tags  # unrelated tags aren't flagged
-    assert "aliyah::bereshit::01-bereshit::1" in note.missing_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note.missing_tags
 
 
 def test_compute_tagging_plan_collects_unparsed_notes(tmp_path, fake_anki):
@@ -122,9 +130,9 @@ def test_compute_tagging_plan_collects_unparsed_notes(tmp_path, fake_anki):
 
 
 def test_apply_tagging_plan_dry_run_makes_no_changes(tmp_path, fake_anki):
-    # Genesis 2:4-2:19 (aliyah 2), verified to have zero overlap with any
-    # curated holiday reading -- unlike aliyah 1 (Genesis 1:1-2:3), which
-    # entirely coincides with Simchat Torah's reading (see
+    # Genesis 2:4-2:19 ('aliyya 2), verified to have zero overlap with any
+    # curated holiday reading -- unlike 'aliyya 1 (Genesis 1:1-2:3), which
+    # entirely coincides with Simḥat Tora's reading (see
     # test_holiday_tag_applied_independent_of_parasha_data). This test is
     # only about dry-run behavior, so we want an unambiguous single tag.
     bereshit_refs = ["Genesis 1:1", "Genesis 2:4-2:19"] + ["Genesis 1:31"] * 5
@@ -151,8 +159,8 @@ def test_apply_tagging_plan_is_idempotent(tmp_path, fake_anki):
     apply_tagging_plan(plan1, url="http://fake", dry_run=False)
 
     tags_after_first_run = set(fake_anki.notes[1]["tags"])
-    assert "aliyah::bereshit::01-bereshit::7" in tags_after_first_run
-    assert "aliyah::bereshit::01-bereshit::maftir" in tags_after_first_run
+    assert "aliyya::bereshit::01-bereshit::7" in tags_after_first_run
+    assert "aliyya::bereshit::01-bereshit::maftir" in tags_after_first_run
 
     # Running it again should add nothing new and flag no conflicts.
     plan2 = compute_tagging_plan(DECK, url="http://fake", cache=cache)
@@ -174,7 +182,7 @@ def test_apply_tagging_plan_never_removes_existing_tags(tmp_path, fake_anki):
     apply_tagging_plan(plan, url="http://fake", dry_run=False)
 
     assert "my_custom_tag" in fake_anki.notes[1]["tags"]
-    assert "aliyah::bereshit::01-bereshit::1" in fake_anki.notes[1]["tags"]
+    assert "aliyya::bereshit::01-bereshit::1" in fake_anki.notes[1]["tags"]
 
 
 def test_holiday_tag_applied_independent_of_parasha_data(tmp_path, fake_anki):
@@ -216,24 +224,24 @@ def test_tagging_batches_requests_on_a_large_deck(tmp_path, fake_anki):
     assert all(len(call["notes"]) <= _BATCH_SIZE for call in add_tags_calls)
 
     for note_id in (1, n_notes // 2, n_notes):
-        assert "aliyah::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
+        assert "aliyya::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
 
 
 def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_path, fake_anki):
-    """Regression test for a real reported bug: Maftir computation used to
+    """Regression test for a real reported bug: the maftir computation used to
     trust a static, hardcoded per-chapter verse-count table that can drift
     out of sync with what Sefaria's live text actually has -- exactly what
-    happened in practice at the Genesis 31/32 boundary, corrupting Maftir
-    (and everything downstream in the book, e.g. Vayishlach) tagging.
+    happened in practice at the Genesis 31/32 boundary, corrupting the maftir
+    (and everything downstream in the book, e.g. Vayyishlaḥ) tagging.
 
     Seeds the cache with live chapter lengths that deliberately differ
     from the static table (chapter 31 has 54 verses here, not the static
-    table's 55) and confirms the computed Maftir tag reflects the live
+    table's 55) and confirms the computed maftir tag reflects the live
     count, not the stale static one.
     """
     vayetzei_refs = ["Genesis 1:31"] * 6 + ["Genesis 31:43-32:2"]
     cache = _cache_with_genesis(
-        tmp_path, {"vayetze": vayetzei_refs}, chapter_length_overrides={31: 54}
+        tmp_path, {"vayyetse": vayetzei_refs}, chapter_length_overrides={31: 54}
     )
 
     fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 31:53"}, tags=[])  # just before maftir
@@ -243,8 +251,68 @@ def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_pat
     plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
     notes = {n.note_id: n for n in plan.notes}
 
-    # With the live count (54 verses in chapter 31), Maftir is 31:54-32:2 --
+    # With the live count (54 verses in chapter 31), the maftir is 31:54-32:2 --
     # NOT 31:55-32:2, which is what the stale static table would produce.
-    assert "aliyah::bereshit::07-vayetze::maftir" not in notes[1].missing_tags
-    assert "aliyah::bereshit::07-vayetze::maftir" in notes[2].missing_tags
-    assert "aliyah::bereshit::07-vayetze::maftir" in notes[3].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" not in notes[1].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" in notes[2].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" in notes[3].missing_tags
+
+
+# =============================================================
+#  migrate_legacy_tags
+# =============================================================
+def _cache_with_sefaria_parasha_names(tmp_path) -> SefariaCache:
+    """Parasha structures for all five books, so migrating old parasha::
+    tiqqun-card tags needs no network. Genesis gets Sefaria's real names
+    (what the old tags were built from); the other books placeholders of
+    the right length."""
+    cache = SefariaCache(cache_dir=tmp_path)
+    genesis = ["Bereshit", "Noach", "Lech Lecha", "Vayera", "Chayei Sara", "Toldot",
+               "Vayetzei", "Vayishlach", "Vayeshev", "Miketz", "Vayigash", "Vayechi"]
+    for book in TORAH_VERSE_COUNTS:
+        names = genesis if book == "Genesis" else [f"{book} {i}" for i in range(len(parasha_table(book)))]
+        cache.set_parasha_structure(book, [{"name": n, "refs": []} for n in names])
+    return cache
+
+
+def test_migrate_legacy_tags_renames_only_our_old_tags(tmp_path, fake_anki):
+    old_tags = [
+        "aliyah::bereshit::05-haye_sara::3", "holiday::simchat_torah::1", "amud::012",
+        "ankipasuk-aliyah", "parasha::Chayei-Sara", "my-own-tag", "holiday::purim::1",
+    ]
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 23:1"}, tags=list(old_tags))
+    cache = _cache_with_sefaria_parasha_names(tmp_path)
+
+    preview = migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=True)
+    assert preview == {"total_notes": 1, "notes_changed": 1, "tags_renamed": 5}
+    assert sorted(fake_anki.notes[1]["tags"]) == sorted(old_tags)
+
+    migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=False)
+    assert sorted(fake_anki.notes[1]["tags"]) == sorted([
+        "aliyya::bereshit::05-hayye_sara::3", "holiday::simhat_tora::1", "ammud::012",
+        "ankipasuk-aliyya", "parasha::hayye_sara", "my-own-tag", "holiday::purim::1",
+    ])
+
+    again = migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=False)
+    assert again["tags_renamed"] == 0
+
+
+def test_migrate_legacy_tags_skips_sefaria_when_no_parasha_tags(tmp_path, fake_anki):
+    # No parasha:: tags, so Sefaria's names are never needed -- an empty
+    # cache would otherwise force a network fetch.
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bamidbar 13:1"},
+                                   tags=["aliyah::bamidbar::04-shlach::1"])
+    migrate_legacy_tags(DECK, url="http://fake", cache=SefariaCache(cache_dir=tmp_path), dry_run=False)
+    assert fake_anki.notes[1]["tags"] == ["aliyya::bemidbar::04-shelah_lekha::1"]
+
+
+def test_tagging_flags_old_tags_and_points_to_migration(tmp_path, fake_anki):
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 1:1"},
+                                   tags=["aliyah::bereshit::01-bereshit::1"])
+    cache = _cache_with_genesis(tmp_path, {"bereshit": ["Genesis 1:1-2:3"] + ["Genesis 1:31"] * 6})
+    plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
+    assert plan.notes[0].conflicting_tags == ["aliyah::bereshit::01-bereshit::1"]
+
+    logs = []
+    apply_tagging_plan(plan, url="http://fake", dry_run=True, log=logs.append)
+    assert any("ankipasuk-migrate-tags" in line for line in logs)

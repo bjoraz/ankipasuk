@@ -2,7 +2,7 @@
 
 All network calls go through a :class:`~ankipasuk.cache.SefariaCache`
 instance passed in by the caller, so a given (ref, version) pair or book's
-parashah structure is only ever fetched from the network once, ever.
+parasha structure is only ever fetched from the network once, ever.
 """
 
 from __future__ import annotations
@@ -149,7 +149,7 @@ def discover_book_structure(
     """The number of verses in each chapter of ``book``, discovered live by
     probing Sefaria chapter by chapter until a fetch fails (no such
     chapter) -- for books without a hardcoded per-chapter table (all of
-    Nevi'im and the Megillot; Torah uses config.TORAH_VERSE_COUNTS
+    Nevi'im and the Megillot; Tora uses config.TORAH_VERSE_COUNTS
     instead, no network needed). Cached via
     :meth:`SefariaCache.set_book_structure`, so this probing cost is paid
     at most once per book ever, even across app restarts.
@@ -180,7 +180,7 @@ def discover_book_structure(
 
 def get_book_structure(book: str, cache: SefariaCache, version_param: str = POINTED_VERSION) -> list[int]:
     """The number of verses in each chapter of ``book`` -- the static,
-    zero-network TORAH_VERSE_COUNTS table for Torah books, or live
+    zero-network TORAH_VERSE_COUNTS table for Tora books, or live
     discovery (see discover_book_structure) for anything else."""
     if book in TORAH_VERSE_COUNTS:
         return TORAH_VERSE_COUNTS[book]
@@ -192,7 +192,7 @@ def get_book_structure(book: str, cache: SefariaCache, version_param: str = POIN
 def fetch_verse_range(book: str, start_ch: int, start_vs: int, end_ch: int, end_vs: int,
                        cache: SefariaCache, version_param: str):
     """Like fetch_torah_range, but works for any book in config.ALL_BOOKS
-    (Torah, Nevi'im, or the Megillot) rather than Torah alone, and stamps
+    (Tora, Nevi'im, or the Megillot) rather than Tora alone, and stamps
     each returned verse with its own "book" field -- needed once ranges
     from different books can be fetched independently and concatenated
     together (see webgui.api.Api.fetch_chapter_verse), since "ch:vs"
@@ -313,7 +313,7 @@ def fetch_aliyot_in_range(
     cache: SefariaCache,
     version_param: str = POINTED_VERSION,
 ) -> list[dict]:
-    """Return an ordered list of aliyot from (start_parasha, start_aliyah)
+    """Return an ordered list of 'aliyyot from (start_parasha, start_aliyah)
     through (end_parasha, end_aliyah) inclusive, each as::
 
         {"parasha": name, "aliyah_num": n, "ref": ref_str, "verses": [...]}
@@ -321,16 +321,16 @@ def fetch_aliyot_in_range(
     where ``verses`` is a list of per-verse dicts shaped exactly like
     :func:`fetch_verse_range`'s (``book``/``ch``/``vs``/``pointed``/``plain``).
 
-    Aliyah boundaries come from the live Sefaria parasha structure (see
+    'Aliyya boundaries come from the live Sefaria parasha structure (see
     :func:`get_parasha_structure`), so this always agrees with what
-    fetching a single aliyah (e.g. ``webgui.api.Api.fetch_parashah_aliyah``)
-    would return for any one aliyah inside the range -- there's no separate
-    aliyah-boundary data source to drift out of sync with. Maftir is not
-    included (Sefaria's Parasha alt_struct only carries aliyot 1-7); pass
+    fetching a single 'aliyya (e.g. ``webgui.api.Api.fetch_parashah_aliyah``)
+    would return for any one 'aliyya inside the range -- there's no separate
+    'aliyya-boundary data source to drift out of sync with. The maftir is not
+    included (Sefaria's Parasha alt_struct only carries 'aliyyot 1-7); pass
     it as its own single-aliyah range if wanted.
 
-    ``start_parasha`` and ``end_parasha`` may be the same parashah (a
-    range entirely within one parashah); ``end_parasha`` must not come
+    ``start_parasha`` and ``end_parasha`` may be the same parasha (a
+    range entirely within one parasha); ``end_parasha`` must not come
     before ``start_parasha`` in the book's reading order.
     """
     parashot = get_parasha_structure(book, cache)

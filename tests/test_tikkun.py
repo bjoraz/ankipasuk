@@ -32,7 +32,7 @@ BOOK = "Genesis"
 def _h(text: str, is_petucha: bool = False) -> dict:
     """Shorthand for the {"html": ..., "is_petucha": ..., "char_count":
     ...} shape get_scroll_lines_for_range returns for an ordinary
-    (non-setumah) single-fragment line -- the column/fragment markup
+    (non-setuma) single-fragment line -- the column/fragment markup
     tikkun.io's own Line.ts renders, ported in
     ankipasuk.tikkun._render_line."""
     html = f'<div class="column"><span class="fragment">{text}</span></div>'
@@ -169,7 +169,7 @@ def test_range_ending_mid_line_still_includes_the_whole_line(tmp_path):
     cache = _seed(tmp_path, _two_chapter_toc(), {1: _page_one(), 2: _page_two()})
     # Verse 2 alone: verse 3 starts on the SAME line (line 2), so that
     # whole line is included even though part of it is verse 3's text --
-    # a real Torah scroll doesn't split a line at a verse boundary.
+    # a real sefer doesn't split a line at a verse boundary.
     assert get_scroll_lines_for_range(BOOK, 1, 2, 1, 2, cache) == [_h("בבב")]
 
 
@@ -235,7 +235,7 @@ def test_setumah_fragments_get_the_setuma_class_for_a_real_flex_gap(tmp_path):
 
 def test_pointed_mode_renders_full_nikud_but_char_count_stays_consonant_based(tmp_path):
     """char_count must still reflect visible CONSONANT width even in
-    pointed mode -- nikud/trope add no horizontal advance in a proper
+    pointed mode -- niqqud/trope add no horizontal advance in a proper
     Hebrew rendering, so counting their own codepoints would grossly
     overestimate box width (see _render_line's own docstring)."""
     toc = {"1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 2, "l": 1}}}}
@@ -309,7 +309,7 @@ def test_get_row_fragments_for_range_preserves_petucha_flag(tmp_path):
 
 
 def test_get_row_fragments_for_range_keeps_a_rows_setuma_fragments_separate(tmp_path):
-    """A row's own multi-fragment structure (a setumah gap, or a poetic
+    """A row's own multi-fragment structure (a setuma gap, or a poetic
     "brick" gap -- e.g. Az Yashir/Shirat HaYam -- entirely within one
     verse) must survive as separate fragments, not collapse into one
     flat word list -- see the module docstring on why this matters for
@@ -357,8 +357,8 @@ def test_get_row_fragments_for_range_generous_tail_includes_a_shared_final_row(t
 
 
 def test_get_row_fragments_for_range_generous_tail_crosses_an_amud_boundary(tmp_path, monkeypatch):
-    """A verse's own tail isn't bounded by where its OWN starting amud
-    ends -- e.g. Exodus 20:whatever straddling amud 83/84 -- so the
+    """A verse's own tail isn't bounded by where its OWN starting 'ammud
+    ends -- e.g. Exodus 20:whatever straddling 'ammud 83/84 -- so the
     generous fetch must follow it onto a later page entirely, not just
     to the end of the end verse's own starting page."""
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [3]})
@@ -369,7 +369,7 @@ def test_get_row_fragments_for_range_generous_tail_crosses_an_amud_boundary(tmp_
             _line("בבב", verses=[{"chapter": 1, "verse": 2}]),
         ],
         2: [
-            _line("גגג"),  # continues verse 2's own tail onto amud 2
+            _line("גגג"),  # continues verse 2's own tail onto 'ammud 2
             _line("דדד", verses=[{"chapter": 1, "verse": 3}]),
         ],
     }
@@ -398,13 +398,13 @@ def test_get_amud_row_fragments_rejects_out_of_range_amud(tmp_path):
 
 
 # =============================================================
-#  get_book_for_page / get_amud_lines -- amud (column) export
+#  get_book_for_page / get_amud_lines -- 'ammud (column) export
 # =============================================================
 def _five_book_toc_and_pages(tmp_path, monkeypatch):
-    """A tiny 5-book fake Torah: Genesis (amud 1, 2 verses), Exodus (amud
-    2, 2 verses), Leviticus (amud 3, 1 verse), Numbers (amud 4, 1 verse),
-    Deuteronomy (amud 5, 1 verse) -- every book starting a fresh amud,
-    same as a real kosher Sefer Torah always does."""
+    """A tiny 5-book fake Tora: Genesis ('ammud 1, 2 verses), Exodus ('ammud
+    2, 2 verses), Leviticus ('ammud 3, 1 verse), Numbers ('ammud 4, 1 verse),
+    Deuteronomy ('ammud 5, 1 verse) -- every book starting a fresh 'ammud,
+    same as a real sefer always does."""
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {
         "Genesis": [2], "Exodus": [2], "Leviticus": [1], "Numbers": [1], "Deuteronomy": [1],
     })
@@ -439,7 +439,7 @@ def test_get_book_for_page_first_amud_of_a_book(tmp_path, monkeypatch):
 
 def test_get_book_for_page_at_a_book_boundary(tmp_path, monkeypatch):
     cache = _five_book_toc_and_pages(tmp_path, monkeypatch)
-    # Genesis's only amud is 1 -- amud 2 must belong to Exodus, not Genesis.
+    # Genesis's only 'ammud is 1 -- 'ammud 2 must belong to Exodus, not Genesis.
     assert get_book_for_page(2, cache) == "Exodus"
     assert get_book_for_page(5, cache) == "Deuteronomy"
 
@@ -517,7 +517,7 @@ def test_leading_verses_needing_alignment_empty_at_the_very_start_of_the_torah(t
 
 
 def test_leading_verses_needing_alignment_stops_at_a_petucha(tmp_path):
-    """The row right before this verse's own row is a petucha -- a
+    """The row right before this verse's own row is a petuḥa -- a
     paragraph genuinely ending there, so nothing can bleed forward onto
     this verse's row. No walk-back needed."""
     toc = {"1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 2}}}}
@@ -530,7 +530,7 @@ def test_leading_verses_needing_alignment_stops_at_a_petucha(tmp_path):
 
 
 def test_leading_verses_needing_alignment_walks_back_through_a_non_petucha_gap(tmp_path):
-    """No petucha between verse 1 and verse 2's own rows -- verse 1 must
+    """No petuḥa between verse 1 and verse 2's own rows -- verse 1 must
     be prepended (its own tail could bleed onto verse 2's row)."""
     cache = _seed(tmp_path, _two_chapter_toc(), {1: _page_one(), 2: _page_two()})
     assert leading_verses_needing_alignment(BOOK, 1, 2, cache) == [(1, 1)]
@@ -541,7 +541,7 @@ def test_leading_verses_needing_alignment_a_shared_row_always_needs_the_verse_be
     verse sharing its start line with the verse right after it) --
     that's NEVER a safe stopping point on its own, regardless of page
     position, so verse 2 is always included; the walk continues from
-    there since there's still no petucha between verse 1 and verse 2."""
+    there since there's still no petuḥa between verse 1 and verse 2."""
     cache = _seed(tmp_path, _two_chapter_toc(), {1: _page_one(), 2: _page_two()})
     assert leading_verses_needing_alignment(BOOK, 1, 3, cache) == [(1, 1), (1, 2)]
 

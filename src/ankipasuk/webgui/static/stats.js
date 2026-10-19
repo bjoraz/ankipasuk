@@ -140,7 +140,7 @@ async function loadChapterData() {
 }
 
 // =============================================================
-//  Trope frequency
+//  Mafsiqim (how often each ta'am occurs)
 // =============================================================
 async function loadTropeFrequency() {
     const tropes = await api().get_trope_frequency();

@@ -6,7 +6,7 @@ at ``max_leaf_disj=1`` (see :func:`ankipasuk.text_processing.split_segment`)
 approximation of it: the strongest disjunctive mark divides the verse
 first, then the next-strongest *present* mark divides each resulting half,
 and so on down to individual minimum-disjunctive units. Two verses have
-"the same structure" iff their split trees, reduced to just the trope
+"the same structure" iff their split trees, reduced to just the ta'am
 levels that drove each split (see
 :func:`ankipasuk.cloze.structure_signature`), are identical -- regardless
 of whatever ``max_leaf_disj`` setting is actually used to generate cloze

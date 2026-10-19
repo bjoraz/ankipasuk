@@ -7,23 +7,45 @@ that week's maftir, and any holiday or fast-day reading it belongs to.
 ## The tags
 
 ```
-aliyah::<book>::<NN-parasha>::<1-7|maftir>
+aliyya::<book>::<NN-parasha>::<1-7|maftir>
 holiday::<occasion>::<1-N|maftir>
 ```
 
-For example `aliyah::bereshit::01-bereshit::1`,
-`aliyah::shemot::01-shemot::maftir` or `holiday::rosh_hashana_i::1`. The
+For example `aliyya::bereshit::01-bereshit::1`,
+`aliyya::shemot::01-shemot::maftir` or `holiday::rosh_hashana_i::1`. The
 number before the parasha is its position within its book. A pasuq can
-have more than one tag: Bereshit 22:1 gets `aliyah::bereshit::04-vayera::7`
+have more than one tag: Bereshit 22:1 gets `aliyya::bereshit::04-vayyera::7`
 from the weekly reading and `holiday::rosh_hashana_ii::1` because it's
 also read on the second day of Rosh haShana.
 
-The `aliyah::` tags follow the scheme already used by hand in the deck this
-was built for, and their spelling is kept exactly as it is so existing tags
-still match. The `holiday::` tags are new. If you'd rather name the
-occasions differently, edit the `slug` fields in
-`src/ankipasuk/data/holiday_readings.json` before your first run; it's much
-easier than renaming tags afterwards.
+Book, parasha and occasion names are written the ASCII way described in
+[`transliteration.md`](transliteration.md), which also lists every one of
+them. If you'd rather name the occasions differently, edit the `slug`
+fields in `src/ankipasuk/data/holiday_readings.json` before your first
+run; it's much easier than renaming tags afterwards.
+
+## Tags in the old spelling
+
+Earlier versions wrote these tags differently (`aliyah::bereshit::05-haye_sara::3`,
+`holiday::simchat_torah::1`, and so on). If your deck has them, rename them
+before tagging:
+
+- **From the app:** **AnkiConnect Tools → Migrate Tags**.
+- **As a script:** `python .\scripts\migrate_tags.py`
+- **As a command:**
+  ```bash
+  ankipasuk-migrate-tags "Qeriya" --dry-run   # preview
+  ankipasuk-migrate-tags "Qeriya"             # apply
+  ```
+
+It only renames tags AnkiPasuk itself made, adds each new tag before
+removing the old one, and changes nothing else. It also renames the tags
+on tiqqun cards (`ankipasuk-aliyah`, `amud::012`, `parasha::...`). If you
+tag before migrating, nothing breaks: the old tags show up as conflicts,
+with a reminder to migrate, and the new ones are added next to them.
+
+Notes keep working either way: the tagger reads the book name in a note's
+**Source** field in either spelling (`Bamidbar 3:5` or `Bemidbar 3:5`).
 
 ## What you need
 

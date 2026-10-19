@@ -36,6 +36,7 @@ ankipasuk-check-connection = "ankipasuk.anki_connect.cli:_console_check_connecti
 ankipasuk-init-stems = "ankipasuk.anki_connect.cli:_console_init_stems"
 ankipasuk-sync-scheduling = "ankipasuk.anki_connect.cli:_console_sync_scheduling"
 ankipasuk-tag-deck = "ankipasuk.anki_connect.cli:_console_tag_deck"
+ankipasuk-migrate-tags = "ankipasuk.anki_connect.cli:_console_migrate_tags"
 
 [project.urls]
 Homepage = "https://github.com/bjoraz/ankipasuk"

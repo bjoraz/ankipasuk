@@ -18,7 +18,7 @@ def _seed(tmp_path, parashot, ref_texts):
     """``parashot``: list of {"name": ..., "refs": [...]}.
     ``ref_texts``: {ref_str: [pointed_verse, ...]} -- fetch_aliyot_in_range
     (like webgui.api.Api.fetch_parashah_aliyah) fetches text keyed by the
-    *aliyah's own ref string* (e.g. "Genesis 1:1-1:2"), not per chapter,
+    *'aliyya's own ref string* (e.g. "Genesis 1:1-1:2"), not per chapter,
     so that's what needs to be pre-seeded here."""
     cache = SefariaCache(cache_dir=tmp_path)
     cache.set_parasha_structure(BOOK, parashot)
@@ -28,7 +28,7 @@ def _seed(tmp_path, parashot, ref_texts):
 
 
 def _three_parashot():
-    """Bereshit (2 aliyot), Noach (2 aliyot), Lech Lecha (2 aliyot), all
+    """Bereshit (2 'aliyyot), Noach (2 'aliyyot), Lech Lecha (2 'aliyyot), all
     within chapters 1-3 (3 verses each) for simplicity."""
     return [
         {"name": "Bereshit", "refs": ["Genesis 1:1-1:2", "Genesis 1:3-1:3"]},

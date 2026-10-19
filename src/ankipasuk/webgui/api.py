@@ -35,6 +35,7 @@ from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
+from ..qeriya import TIQQUN_ALIYYA_TAG, parasha_names, tiqqun_ammud_tag, tiqqun_parasha_tag, to_slug
 from ..sefaria import (
     fetch_aliyot_in_range,
     fetch_verse_range,
@@ -115,10 +116,18 @@ class Api:
     #  Live Sefaria data (network on first call per book, cached after)
     # =============================================================
     def get_parashot(self, book: str) -> dict:
-        """{"ok": True, "names": [...]} or {"ok": False, "error": "..."}."""
+        """{"ok": True, "names": [...], "labels": [...]} or {"ok": False,
+        "error": "..."}. ``names`` are Sefaria's, and are what the frontend
+        sends back (they're the keys every other call looks parashiyyot up
+        by); ``labels`` are the same parashiyyot as AnkiPasuk writes them
+        (see docs/transliteration.md and :func:`ankipasuk.qeriya.parasha_names`),
+        for display only."""
         try:
             parashot = get_parasha_structure(book, self._cache)
-            return {"ok": True, "names": [p["name"] for p in parashot]}
+            names = [p["name"] for p in parashot]
+            ours = parasha_names(book, parashot)
+            labels = [ours[n]["name"] if n in ours else n for n in names]
+            return {"ok": True, "names": names, "labels": labels}
         except Exception as e:  # noqa: BLE001 - reported to the JS side
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
@@ -155,8 +164,8 @@ class Api:
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     def fetch_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
-        """Like fetch_chapter_verse, but for a named parashah/aliyah
-        (Torah only -- parashot don't exist for Nevi'im or the
+        """Like fetch_chapter_verse, but for a named parasha/'aliyya
+        (Tora only -- parashiyyot don't exist for Nevi'im or the
         Megillot). Also appends to the accumulated verse data."""
         try:
             ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self._cache)
@@ -180,7 +189,7 @@ class Api:
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     # =============================================================
-    #  Tikkun-style scroll display for the source section (Torah only --
+    #  Tikkun-style scroll display for the source section (Tora only --
     #  a deliberately SEPARATE call from fetch_chapter_verse /
     #  fetch_parashah_aliyah above, not folded into them: those two are
     #  the core verse-fetch path everything else (cloze generation, CSV
@@ -193,7 +202,7 @@ class Api:
         """Like fetch_chapter_verse, but fetches and APPENDS this range's
         tikkun.io scroll-style HTML instead (see _tikkun_html_for_range)
         -- call alongside fetch_chapter_verse for the same range, not
-        instead of it. A range outside the Torah is a harmless no-op
+        instead of it. A range outside the Tora is a harmless no-op
         (nothing appended, still "ok") -- tikkun.io simply has nothing to
         show there."""
         try:
@@ -208,8 +217,8 @@ class Api:
         return self._tikkun_fetch_result()
 
     def fetch_tikkun_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
-        """Like fetch_tikkun_chapter_verse, but for a named parashah/
-        aliyah -- call alongside fetch_parashah_aliyah for the same
+        """Like fetch_tikkun_chapter_verse, but for a named parasha/
+        'aliyya -- call alongside fetch_parashah_aliyah for the same
         range."""
         try:
             ref_str = get_aliyah_ref(book, parasha_name, aliyah_num, self._cache)
@@ -239,7 +248,7 @@ class Api:
     ) -> tuple[str, str] | None:
         """The tikkun.io scroll-style (plain, pointed) HTML for this
         range, or None if tikkun.io has no layout data for ``book``
-        (Nevi'im and the Megillot aren't the Torah) -- the source
+        (Nevi'im and the Megillot aren't the Tora) -- the source
         section's own tikkun display simply has nothing to add for such
         a range, rather than erroring the whole fetch."""
         try:
@@ -259,7 +268,7 @@ class Api:
         }
 
     def get_tikkun_scroll_css(self) -> str:
-        """The tikkun-style scroll layout's own CSS (box/line/setumah
+        """The tikkun-style scroll layout's own CSS (box/line/setuma
         structure -- see :data:`ankipasuk.lpcg.SCROLL_CSS`), for the
         frontend to inject once alongside the STAM font (see
         get_tikkun_font_css) so the HTML from fetch_chapter_verse /
@@ -399,10 +408,10 @@ class Api:
         return {"ok": True, "count": len(rows), "path": target}
 
     # =============================================================
-    #  Aliyah recitation export (overlapping-context notes, pushed
+    #  'Aliyya recitation export (overlapping-context notes, pushed
     #  directly to Anki via AnkiConnect)
     # =============================================================
-    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyot"
+    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyyot"
 
     def get_lpcg_deck_name(self) -> str:
         """The deck name to prefill the export form with: whatever was
@@ -474,13 +483,13 @@ class Api:
         recite_lines: int = 1,
         group_size: int = 1,
     ) -> dict:
-        """Fetch every aliyah from (start_parasha, start_aliyah) through
+        """Fetch every 'aliyya from (start_parasha, start_aliyah) through
         (end_parasha, end_aliyah) and push one Anki note per recitation
-        card to ``deck_name`` via AnkiConnect -- one aliyah = one LPCG
-        "poem", so cards from different aliyot never overlap each other's
+        card to ``deck_name`` via AnkiConnect -- one 'aliyya = one LPCG
+        "poem", so cards from different 'aliyyot never overlap each other's
         context window.
 
-        ``card_division`` picks how each aliyah's rows are grouped into
+        ``card_division`` picks how each 'aliyya's rows are grouped into
         cards:
 
         - "verse" (default, recommended): one card per verse, word-precise
@@ -496,10 +505,10 @@ class Api:
           row's full text (both verses' words) is tested on whichever
           side's card includes it.
 
-        Either way, each card's text is a real Torah scroll line (see
+        Either way, each card's text is a real sefer line (see
         :mod:`ankipasuk.tikkun`): unvoweled block letters, justified and
-        broken exactly where a kosher Sefer Torah's column would break
-        (petuchot/setumot rendered too) -- not a per-verse paragraph -- so
+        broken exactly where a sefer's column would break
+        (petuḥot/setumot rendered too) -- not a per-verse paragraph -- so
         reciting through the deck trains the same line-by-line memory a
         reader uses from the actual scroll. Rendered in the same STAM-style
         font tikkun.io itself uses, pushed into Anki as a media file on
@@ -516,6 +525,7 @@ class Api:
                 book, start_parasha, start_aliyah, end_parasha, end_aliyah,
                 self._cache, POINTED_VERSION,
             )
+            ours = parasha_names(book, get_parasha_structure(book, self._cache))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
@@ -526,11 +536,16 @@ class Api:
             verses = aliyah["verses"]
             if not verses:
                 continue
-            title = f"{hebrew_book} {aliyah['parasha']} {aliyah['aliyah_num']} ({aliyah['ref']})"
-            tags = [
-                "ankipasuk-aliyah",
-                f"parasha::{aliyah['parasha'].replace(' ', '-')}",
-            ]
+            # Our name and slug for the parasha (falling back to Sefaria's
+            # if the pairing doesn't hold), and the ref with our book name.
+            entry = ours.get(aliyah["parasha"])
+            parasha_name = entry["name"] if entry else aliyah["parasha"]
+            parasha_slug = entry["slug"] if entry else to_slug(aliyah["parasha"])
+            ref = aliyah["ref"]
+            if ref.startswith(book + " "):
+                ref = hebrew_book + ref[len(book):]
+            title = f"{hebrew_book} {parasha_name} {aliyah['aliyah_num']} ({ref})"
+            tags = [TIQQUN_ALIYYA_TAG, tiqqun_parasha_tag(parasha_slug)]
             try:
                 if card_division == "verse":
                     verse_refs = [(v["ch"], v["vs"]) for v in verses]
@@ -565,27 +580,27 @@ class Api:
         recite_lines: int = 1,
         group_size: int = 1,
     ) -> dict:
-        """Push one Anki note per recitation card for the single amud
-        (Torah scroll column) ``amud_num`` (1-245, see
+        """Push one Anki note per recitation card for the single 'ammud
+        (sefer column) ``amud_num`` (1-245, see
         :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name`` via
         AnkiConnect.
 
         ``card_division`` (see export_aliyot_to_anki for the full
         explanation) picks "verse" (default -- one card per verse that
-        starts on this amud, via
+        starts on this 'ammud, via
         :func:`ankipasuk.verse_cards.build_amud_verse_cards`) or "row"
-        (the whole amud as one continuous AnkiLPCG-style sliding-context
+        (the whole 'ammud as one continuous AnkiLPCG-style sliding-context
         window, tuned by ``context_lines``/``recite_lines``/``group_size``).
 
-        A kosher Sefer Torah always starts each of its 5 books at the top
-        of a fresh column, so an amud is always entirely within one book
+        A sefer always starts each of its 5 books at the top
+        of a fresh column, so an 'ammud is always entirely within one book
         (see :func:`ankipasuk.tikkun.get_book_for_page`) -- no book-
         boundary handling is needed beyond looking up which book this
-        amud belongs to, for the card title.
+        'ammud belongs to, for the card title.
 
         See export_aliyot_to_anki for what the card content/styling looks
         like and what must be running (Anki + AnkiConnect) -- identical
-        here, just for a single amud instead of an aliyah range.
+        here, just for a single 'ammud instead of an 'aliyya range.
         """
         try:
             book = get_book_for_page(amud_num, self._cache)
@@ -603,7 +618,7 @@ class Api:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-        tags = [f"amud::{amud_num:03d}"]
+        tags = [tiqqun_ammud_tag(amud_num)]
         result = self._push_lpcg_notes([(fields_list, tags)], deck_name)
         if result["ok"]:
             result["amud"] = amud_num

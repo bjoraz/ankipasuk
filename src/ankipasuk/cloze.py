@@ -28,13 +28,13 @@ def tree_leaf_count(node) -> int:
 
 def structure_signature(node):
     """Canonical, hashable signature of a split tree's shape, reduced to
-    just the trope *levels* that drove each split.
+    just the ta'am *levels* that drove each split.
 
     A leaf (a list of disjunctive units, as produced by
     :func:`ankipasuk.text_processing.group_into_units`) is represented as
     its terminal disjunctive level -- an int 1-4, or 0 only in the
     degenerate case of a fragment with no disjunctive at all (never
-    happens for a real, complete verse, which always ends in Sof Pasuq).
+    happens for a real, complete verse, which always ends in Sof pasuq).
     An internal node is a 2-tuple ``(left_signature, right_signature)``.
 
     Two verses have "the same structure" iff their signatures compare

@@ -42,7 +42,7 @@ def test_tree_depth_zero_when_no_split_needed(genesis_1_1):
 def test_structure_signature_leaf_is_terminal_disjunctive_level(genesis_1_1):
     _markup, _last, _tree, tokens, units = verse_to_nested_cloze(genesis_1_1, max_leaf_disj=100)
     # No split at all -> the whole verse is one leaf; its signature is the
-    # level of its last (verse-final, Sof Pasuq) disjunctive unit.
+    # level of its last (verse-final, Sof pasuq) disjunctive unit.
     assert structure_signature(units) == units[-1]["level"] == 1
 
 

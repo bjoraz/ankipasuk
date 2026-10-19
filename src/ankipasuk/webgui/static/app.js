@@ -17,13 +17,15 @@ function showToast(message, isError) {
     showToast._t = setTimeout(() => { el.hidden = true; }, 4000);
 }
 
-function setOptions(select, values, keepSelection) {
+// labels, if given, is shown instead of values (same order) -- e.g. a
+// parasha's name as AnkiPasuk writes it, while its value stays Sefaria's.
+function setOptions(select, values, keepSelection, labels) {
     const prev = select.value;
     select.innerHTML = "";
-    for (const v of values) {
+    for (const [i, v] of values.entries()) {
         const opt = document.createElement("option");
         opt.value = String(v);
-        opt.textContent = String(v);
+        opt.textContent = String(labels ? labels[i] : v);
         select.appendChild(opt);
     }
     if (keepSelection && values.map(String).includes(prev)) {
@@ -52,7 +54,7 @@ function setBookOptions(select, booksByCategory, keepSelection) {
 
 // =============================================================
 //  Range rows -- each is an independently configurable
-//  book/mode/chapter-verse-or-parashah-aliyah picker. Multiple rows can
+//  picker for book, mode, and chapter/verse or parasha/'aliyya. Multiple rows can
 //  be fetched together and their verses concatenate in the order
 //  they're listed (see doFetchAll).
 // =============================================================
@@ -89,8 +91,8 @@ async function onRangeModeChange(row) {
     row.querySelector(".range-cv-controls").hidden = !isCV;
     row.querySelector(".range-pa-controls").hidden = isCV;
 
-    // Parashah/Aliyah only exists for Torah -- restrict the book list to
-    // Torah so an invalid (book, mode) combination can't be selected at
+    // Parasha/'aliyya mode only exists for the Tora -- restrict the book list
+    // to the Tora so an invalid (book, mode) combination can't be selected at
     // all, rather than only failing later when fetched.
     const books = isCV ? cachedBooks : { Tora: cachedBooks.Tora };
     setBookOptions(row.querySelector(".range-book"), books, true);
@@ -139,11 +141,11 @@ async function refreshRangeParashaDropdown(row) {
     parashaSelect.innerHTML = "<option>Loading...</option>";
     const result = await api().get_parashot(book);
     if (!result.ok) {
-        showToast("Could not load parashot: " + result.error, true);
+        showToast("Could not load parashiyyot: " + result.error, true);
         parashaSelect.innerHTML = "";
         return;
     }
-    setOptions(parashaSelect, result.names, false);
+    setOptions(parashaSelect, result.names, false, result.labels);
     await refreshRangeAliyahDropdown(row);
 }
 
@@ -257,7 +259,7 @@ async function doFetchAll() {
                 return; // whatever ranges succeeded before this one stay visible
             }
             currentVerseData = result.verses;
-            // A non-Torah range leaves tikkunResult.ok true with nothing
+            // A range outside the Tora leaves tikkunResult.ok true with nothing
             // new added -- only a genuine failure here is worth losing
             // the tikkun display over, and even then the flat text above
             // already fetched fine, so just drop the tikkun HTML rather
@@ -310,17 +312,17 @@ async function doExportCsv() {
 }
 
 // =============================================================
-//  Aliyah range export to Anki (LPCG-style recitation cards)
+//  'Aliyya range export to Anki (tiqqun cards)
 // =============================================================
 async function refreshLpcgParashaDropdowns() {
     const book = document.getElementById("lpcg-book").value;
     const result = await api().get_parashot(book);
     if (!result.ok) {
-        showToast("Could not load parashot: " + result.error, true);
+        showToast("Could not load parashiyyot: " + result.error, true);
         return;
     }
-    setOptions(document.getElementById("lpcg-start-parasha"), result.names, true);
-    setOptions(document.getElementById("lpcg-end-parasha"), result.names, true);
+    setOptions(document.getElementById("lpcg-start-parasha"), result.names, true, result.labels);
+    setOptions(document.getElementById("lpcg-end-parasha"), result.names, true, result.labels);
     await refreshLpcgAliyahDropdown("start");
     await refreshLpcgAliyahDropdown("end");
 }
@@ -417,7 +419,7 @@ async function doExportAmud() {
 }
 
 // =============================================================
-//  Tikkun.io scroll layout (source section) -- box/line/setumah CSS and
+//  Tikkun.io scroll layout (source section) -- box/line/setuma CSS and
 //  the STAM font itself, injected once from the same source lpcg.py's
 //  own Anki-card CSS uses, so the two never drift apart.
 // =============================================================

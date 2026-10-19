@@ -1,4 +1,4 @@
-"""Hebrew text and trope-mark processing.
+"""Hebrew text and ta'am processing.
 
 Everything here is pure logic: no network calls, no GUI. That makes it the
 most important part of the codebase to unit test, since it's where the
@@ -16,7 +16,7 @@ from .config import LEGARMEH_NAME, MAKEF, MUNACH, PASEQ, TROPE_UNICODE
 #  VOWEL / TROPE STRIPPING
 # =============================================================
 def strip_vowels_and_trope(text: str) -> str:
-    """Strip Nikud and Trope from pointed Hebrew text to guarantee matching
+    """Strip niqqud and ta'amim from pointed Hebrew text to guarantee matching
     plain text."""
     normalized = unicodedata.normalize("NFD", text)
     stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
@@ -33,7 +33,7 @@ def contains_char(token: str, ch: str) -> bool:
 
 
 def extract_trope_char(token: str):
-    """Return the single trope character that determines this token's
+    """Return the single ta'am character that determines this token's
     disjunctive level, preferring a disjunctive mark over any conjunctive
     ones present on the same word."""
     norm = unicodedata.normalize("NFD", token)

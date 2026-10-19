@@ -17,7 +17,7 @@ def _label_sort_key(label: str):
     """Sort verse labels like 'Genesis 3:16' by book (as it appears in
     the label, alphabetically) then numerically by chapter then verse --
     good enough to keep each book's own verses in chapter:verse order
-    within a mixed-book session, even though it isn't canonical Torah/
+    within a mixed-book session, even though it isn't canonical Tora/
     Nevi'im/Megillot book order."""
     try:
         book, chvs = label.rsplit(" ", 1)
@@ -87,7 +87,7 @@ def compute_corpus_stats(verse_data, max_leaf_disj: int):
     ratio_bins = defaultdict(list)
 
     trope_freq = Counter()          # total occurrences across all verses
-    trope_bins = defaultdict(list)  # trope name -> verses containing it (deduped per verse)
+    trope_bins = defaultdict(list)  # ta'am name -> verses containing it (deduped per verse)
 
     chapter_word_totals = defaultdict(int)
     chapter_disj_totals = defaultdict(int)

@@ -206,6 +206,11 @@ class FakeAnki:
             self.notes[nid]["tags"] = sorted(existing)
         return None
 
+    def _do_removeTags(self, notes: list[int], tags: str):
+        for nid in notes:
+            self.notes[nid]["tags"] = [t for t in self.notes[nid]["tags"] if t not in tags.split()]
+        return None
+
 
 @pytest.fixture
 def fake_anki(monkeypatch):

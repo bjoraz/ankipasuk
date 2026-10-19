@@ -78,4 +78,12 @@ window.addEventListener("pywebviewready", async () => {
         startRun("tag");
         api().tag_deck(getUrl(), deck, dryRun);
     });
+
+    document.getElementById("run-migrate").addEventListener("click", () => {
+        const deck = document.getElementById("migrate-deck").value.trim();
+        if (!deck) { alert("Enter a deck name."); return; }
+        const dryRun = document.getElementById("migrate-dry-run").checked;
+        startRun("migrate");
+        api().migrate_tags(getUrl(), deck, dryRun);
+    });
 });

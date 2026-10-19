@@ -5,7 +5,7 @@ segment_rows_by_verse and build_verse_cards_from_words are pure (no cache
 access), so exercised directly here with hand-built row/word-count data.
 A row is ``(fragments, is_petucha, page_num)``, where ``fragments`` is a
 list of word lists -- one per tikkun.io fragment (see
-:func:`ankipasuk.tikkun._row_fragments`); a single-fragment row on amud 1
+:func:`ankipasuk.tikkun._row_fragments`); a single-fragment row on 'ammud 1
 is written here as e.g. ``[["a", "b", "c"]], False, 1``. Most fixtures
 below keep every row on the same page (1) since :func:`segment_rows_by_verse`
 itself doesn't care about page boundaries -- see the dedicated amud-break
@@ -339,10 +339,10 @@ def test_field_dict_has_no_row_mode_fields():
 
 
 # =============================================================
-#  amud breaks -- a verse's own tail crossing a physical column boundary
+#  'ammud breaks -- a verse's own tail crossing a physical column boundary
 # =============================================================
 def test_amud_break_inserted_between_own_rows_on_different_pages():
-    """A verse whose own content spans two amudim (its tail crosses onto
+    """A verse whose own content spans two 'ammudim (its tail crosses onto
     the next physical scroll column) must show a visible break between
     the two rows, not silently splice them together as if they were
     still the same column."""
@@ -365,9 +365,9 @@ def test_no_amud_break_when_own_rows_share_a_page():
 
 def test_amud_break_between_context_row_and_own_rows():
     """The context ("one row before") row can itself be on a different
-    amud than the verse's own first row -- e.g. this verse is the very
-    first verse tagged on its own amud, so its lookback context is the
-    previous amud's own last row."""
+    'ammud than the verse's own first row -- e.g. this verse is the very
+    first verse tagged on its own 'ammud, so its lookback context is the
+    previous 'ammud's own last row."""
     rows = [([["b"]], False, 2)]
     preceding = ([["a"]], False, 1)
     fields = build_verse_cards_from_words(rows, [(1, 1)], [1], preceding, title="T", box_width="5ch")

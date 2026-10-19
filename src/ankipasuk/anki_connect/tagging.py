@@ -1,12 +1,13 @@
-"""Automatic parasha/aliyah/Maftir/holiday tagging.
+"""Automatic parasha/'aliyya/maftir/holiday tagging.
 
 Reads each note's "Source" field (e.g. ``"Bereshit 1:1"``, as produced by
 the CSV export), computes the tags that verse should have (see
 :mod:`ankipasuk.qeriya`), and adds any that are missing.
 
 Existing tags are **never removed or overwritten**. If a note already has
-a tag that looks like one this tool would generate (``aliyah::...`` or
-``holiday::...``) but it doesn't match what was just computed, that's
+a tag that looks like one this tool would generate (``aliyya::...``,
+``holiday::...``, or the old ``aliyah::...``) but it doesn't match what
+was just computed, that's
 reported as a conflict for you to review by hand -- it is not silently
 changed. This makes the tool safe to run repeatedly and safe to run on a
 deck (like this one) that already has some tags applied by hand.
@@ -19,25 +20,40 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ..cache import SefariaCache
-from ..config import BOOK_HEBREW_NAMES
-from ..qeriya import build_holiday_intervals, build_parasha_intervals, tags_for_verse
+from ..config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
+from ..qeriya import (
+    ALIYYA_TAG_NAMESPACE,
+    HOLIDAY_TAG_NAMESPACE,
+    LEGACY_ALIYAH_TAG_NAMESPACE,
+    build_holiday_intervals,
+    build_parasha_intervals,
+    legacy_tag_renames,
+    tags_for_verse,
+)
 from ..sefaria import get_chapter_lengths, get_parasha_structure
-from .operations import add_tags, find_notes, notes_info
+from .operations import add_tags, find_notes, notes_info, remove_tags
 
-HEBREW_TO_BOOK = {v: k for k, v in BOOK_HEBREW_NAMES.items()}
+# Both spellings: notes made before docs/transliteration.md keep the old
+# book name in their Source field.
+HEBREW_TO_BOOK = {
+    **{v: k for k, v in LEGACY_BOOK_HEBREW_NAMES.items()},
+    **{v: k for k, v in BOOK_HEBREW_NAMES.items()},
+}
 
 _SOURCE_RE = re.compile(r"^(?P<book>.+?)\s+(?P<ch>\d+):(?P<vs>\d+)$")
 
 # Any existing tag starting with one of these prefixes is treated as "ours"
 # for conflict detection -- i.e. it's meaningful to compare it against what
 # we'd compute, rather than just leaving it alone as an unrelated tag.
-_OWNED_PREFIXES = ("aliyah::", "holiday::")
+# The old "aliyah::" namespace counts too, so a note still carrying old tags
+# shows up as a conflict instead of silently getting a second set.
+_OWNED_PREFIXES = (ALIYYA_TAG_NAMESPACE, HOLIDAY_TAG_NAMESPACE, LEGACY_ALIYAH_TAG_NAMESPACE)
 
 
 def parse_source_field(source: str):
     """Parse a "Source" field like "Bereshit 1:1" into (book, ch, vs), using
-    English book names. Returns None if it doesn't look like a Torah verse
-    reference (e.g. blank, or a non-Torah book)."""
+    English book names. Returns None if it doesn't look like a Tora verse
+    reference (e.g. blank, or a book outside the Tora)."""
     m = _SOURCE_RE.match(source.strip())
     if not m:
         return None
@@ -157,5 +173,51 @@ def apply_tagging_plan(plan: TaggingPlan, *, url: str, dry_run: bool, log=lambda
             f"CONFLICT  note {note.note_id} ({note.source}): existing "
             f"{note.conflicting_tags} not in computed {note.computed_tags} -- left untouched"
         )
+    conflicting = (t for n in plan.notes_with_conflicts for t in n.conflicting_tags)
+    if any(t.startswith(LEGACY_ALIYAH_TAG_NAMESPACE) for t in conflicting):
+        log("Some conflicts are tags in the old spelling: run Migrate Tags "
+            "(ankipasuk-migrate-tags) to rename them.")
 
     return plan.summary()
+
+
+def migrate_legacy_tags(
+    deck: str, *, url: str, cache: SefariaCache, dry_run: bool, log=lambda _msg: None,
+) -> dict:
+    """Rename every tag in ``deck`` that AnkiPasuk made under the old
+    spelling (see docs/transliteration.md) to the new one. Only tags in
+    :func:`ankipasuk.qeriya.legacy_tag_renames` are touched; for each one
+    the new tag is added before the old one is removed, so a note is never
+    left without it. Safe to run again: a second run finds nothing to do.
+
+    The old tiqqun-card ``parasha::`` tags were made from Sefaria's parasha
+    names, so if any are present, those names are fetched (cached after the
+    first time) to map them."""
+    note_ids = find_notes(f"deck:{deck}", url=url)
+    log(f"Found {len(note_ids)} note(s) in {deck}.")
+    infos = notes_info(note_ids, url=url, log=log)
+
+    sefaria_names: dict[str, list[str]] = {}
+    if any(t.lower().startswith("parasha::") for info in infos for t in info.get("tags", [])):
+        for book in TORAH_VERSE_COUNTS:
+            log(f"Fetching Sefaria's parasha names for {book} (cached after first run)...")
+            sefaria_names[book] = [p["name"] for p in get_parasha_structure(book, cache)]
+    renames = legacy_tag_renames(sefaria_names)
+
+    by_pair: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for info in infos:
+        for tag in info.get("tags", []):
+            new = renames.get(tag.lower())
+            if new:
+                by_pair[(tag, new)].append(info["noteId"])
+
+    for (old, new), ids in sorted(by_pair.items()):
+        log(f"RENAME  {old} -> {new}  ({len(ids)} note(s))")
+        add_tags(ids, new, url=url, dry_run=dry_run, log=log)
+        remove_tags(ids, old, url=url, dry_run=dry_run, log=log)
+
+    return {
+        "total_notes": len(infos),
+        "notes_changed": len({nid for ids in by_pair.values() for nid in ids}),
+        "tags_renamed": len(by_pair),
+    }

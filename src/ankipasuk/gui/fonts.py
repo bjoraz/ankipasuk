@@ -1,7 +1,7 @@
 """Hebrew font detection for Tk widgets.
 
 Tk silently substitutes an unrelated font whenever a named font isn't
-installed, with no warning and often much worse trope/niqud-mark
+installed, with no warning and often much worse ta'am/niqqud
 rendering than a font actually built for it -- so rather than hardcoding
 one font name and hoping it's present, this picks the best available one
 from :data:`ankipasuk.config.HEBREW_FONT_CANDIDATES` at runtime.

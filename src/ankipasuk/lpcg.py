@@ -1,8 +1,8 @@
 """Builds Anki notes for overlapping-context recitation practice (the
 technique the ``AnkiLPCG`` add-on -- https://github.com/sobjornstad/AnkiLPCG
 -- uses for memorizing poetry/song lyrics verbatim, in order), so a whole
-range of aliyot can be pushed to Anki programmatically in one call instead
-of pasting one aliyah at a time into that add-on's import dialog.
+range of 'aliyyot can be pushed to Anki programmatically in one call instead
+of pasting one 'aliyya at a time into that add-on's import dialog.
 
 This is an independent reimplementation of the overlapping-context
 windowing technique, written from scratch against AnkiLPCG's documented
@@ -15,14 +15,14 @@ The note type built here (:data:`MODEL_NAME`) is a distinct, ankipasuk-owned
 note type, not the "LPCG 1.0" note type the real add-on creates -- keeping
 them separate avoids any assumption of field-for-field compatibility if
 that add-on's own schema changes in a later version, and gives ankipasuk
-room to add tikkun-specific styling (RTL layout, trope/nikud toggling)
+room to add tikkun-specific styling (RTL layout, ta'amim/niqqud toggling)
 later without touching a third-party add-on's note type.
 
 Pipeline: a list of already-fully-rendered lines goes in, a list of
 Anki-note field dicts comes out. A line may be a plain string, or (as
 :func:`ankipasuk.tikkun.get_scroll_lines_for_range` produces)
 ``{"html": ..., "is_petucha": ..., "char_count": ...}`` -- rendered
-unjustified when it's a petucha, since a petucha's whole point is that it
+unjustified when it's a petuḥa, since a petuḥa's whole point is that it
 stops short of the line's end. Callers are responsible for grouping the
 returned field dicts under "deckName"/"modelName"/"tags" and pushing them
 via :func:`ankipasuk.anki_connect.operations.add_notes`.
@@ -189,7 +189,7 @@ _BACK_TEMPLATE = f"""\
 CARD_TEMPLATES = [{"Name": "Recite", "Front": _FRONT_TEMPLATE, "Back": _BACK_TEMPLATE}]
 
 # Adapted from tikkun.io's own page.css (github.com/akivajgordon/
-# tikkun.io) -- same class names, same fragment/column/setumah mechanism,
+# tikkun.io) -- same class names, same fragment/column/setuma mechanism,
 # since that's the visual technique a scroll-accurate recitation card
 # should reproduce -- but NOT its HTML structure:
 #
@@ -206,17 +206,17 @@ CARD_TEMPLATES = [{"Name": "Recite", "Front": _FRONT_TEMPLATE, "Back": _BACK_TEM
 #    across engines. So each line here is instead a plain block-level
 #    <div>, which fills its parent's width exactly like any other block
 #    box in any engine: no table, no ambiguous column-width algorithm.
-#    The box width itself is computed once in Python from the aliyah's
+#    The box width itself is computed once in Python from the 'aliyya's
 #    actual longest line (see build_lpcg_fields's BoxWidth field) and set
 #    as an explicit inline style on that parent -- a predetermined box,
 #    not a discovered one.
 #  - "text-align: justify" + "text-align-last: justify" stretches a
 #    single (non-wrapping) line to fill that fixed width edge-to-edge.
-#  - A setumah (more than one ".fragment" in a ".column") gets
+#  - A setuma (more than one ".fragment" in a ".column") gets
 #    "justify-content: space-between" real gap between the two fragments,
 #    each sized to its own content -- a visibly distinct gap, not just
 #    another wide word-spacing stretch.
-# The core scroll-layout rules -- box/line/setumah structure only, no
+# The core scroll-layout rules -- box/line/setuma structure only, no
 # Anki-specific bits (night mode, card-only font-size/line-height
 # controls, cloze styling) -- factored out so
 # :mod:`ankipasuk.webgui.api` can reuse the exact same rendering outside
@@ -244,7 +244,7 @@ SCROLL_CSS = """\
     line-height: calc(130% * var(--ankipasuk-line-height-scale, 1));
 }
 
-/* A petucha ends its paragraph partway through the line on purpose -- the
+/* A petuḥa ends its paragraph partway through the line on purpose -- the
    rest of the line is blank on the actual scroll, so unlike an ordinary
    line it must NOT be stretched to fill the box's width. */
 .lines .line.petucha {
@@ -261,7 +261,7 @@ SCROLL_CSS = """\
     width: 100%;
 }
 
-/* A setumah -- more than one fragment in a column -- gets real space
+/* A setuma -- more than one fragment in a column -- gets real space
    between its two halves, each sized to its own content. */
 .fragment.setuma {
     width: auto;
@@ -314,7 +314,7 @@ CSS = f"""\
 {SCROLL_CSS}
 /* Anki-only addition on top of SCROLL_CSS above: the synthetic
    "[Beginning]" marker (not real scroll text, so also unjustified like a
-   petucha) only exists on a card, never in the plain webgui display
+   petuḥa) only exists on a card, never in the plain webgui display
    SCROLL_CSS is shared with. */
 .lines .line.petucha,
 .lines .line.beginning-marker {{
@@ -323,7 +323,7 @@ CSS = f"""\
 }}
 
 /* ankipasuk.verse_cards's own marker for a real transition to a new
-   physical scroll column, e.g. when a verse's own tail crosses an amud
+   physical scroll column, e.g. when a verse's own tail crosses an 'ammud
    boundary -- a clear divider, not just another line of scroll text, so
    it's set off with its own rule on either side rather than folded into
    the justified/unjustified text flow above. */
@@ -464,7 +464,7 @@ def _prompt_for(n_lines: int) -> str:
 # for the exact same reason on the exact same font.
 BOX_WIDTH_FACTOR = 0.9
 
-# A short aliyah's longest line can compute to a noticeably narrower box
+# A short 'aliyya's longest line can compute to a noticeably narrower box
 # than a typical one -- narrow enough to feel cramped rather than
 # scroll-accurate. 40ch is comfortable even for a short one; anything
 # whose own content genuinely needs more still gets it, since this is
@@ -543,7 +543,7 @@ def build_lpcg_fields(
     Every card gets the same "BoxWidth" field -- computed once from
     ``lines`` as a whole (see :func:`_box_width`), not per card -- so the
     text box doesn't visibly resize from one card to the next while
-    reciting through the same aliyah. Font size and line spacing are
+    reciting through the same 'aliyya. Font size and line spacing are
     adjustable on the card itself instead (see ``_SIZE_CONTROLS_HTML``);
     BoxWidth being in "ch" units means it scales automatically with
     whatever font size the reader has picked, no recomputation needed.

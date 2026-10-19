@@ -18,7 +18,7 @@ import webview
 from ..anki_connect.client import DEFAULT_URL, invoke
 from ..anki_connect.scheduling import initialize_stems as scheduling_initialize_stems
 from ..anki_connect.scheduling import run_scheduling_cycle
-from ..anki_connect.tagging import apply_tagging_plan, compute_tagging_plan
+from ..anki_connect.tagging import apply_tagging_plan, compute_tagging_plan, migrate_legacy_tags
 from ..cache import SefariaCache
 
 
@@ -122,3 +122,27 @@ class AnkiConnectApi:
         except Exception as e:  # noqa: BLE001
             self._log("tag", f"ERROR: {e}")
         self._done("tag")
+
+    # =============================================================
+    #  Migrate Tags
+    # =============================================================
+    def migrate_tags(self, url: str, deck: str, dry_run: bool) -> None:
+        threading.Thread(target=self._migrate_tags_worker, args=(url, deck, dry_run), daemon=True).start()
+
+    def _migrate_tags_worker(self, url: str, deck: str, dry_run: bool) -> None:
+        try:
+            summary = migrate_legacy_tags(
+                deck, url=url, cache=SefariaCache(), dry_run=dry_run, log=lambda m: self._log("migrate", m)
+            )
+            self._log("migrate", "")
+            self._log(
+                "migrate",
+                f"Total notes: {summary['total_notes']}  "
+                f"Notes changed: {summary['notes_changed']}  "
+                f"Tags renamed: {summary['tags_renamed']}",
+            )
+            if dry_run:
+                self._log("migrate", "DRY RUN -- no changes were made.")
+        except Exception as e:  # noqa: BLE001
+            self._log("migrate", f"ERROR: {e}")
+        self._done("migrate")

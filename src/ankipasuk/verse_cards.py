@@ -13,7 +13,7 @@ recited).
 Since tikkun.io's row text carries no sub-row word offsets, this module
 finds them by aligning tikkun.io's own row-flattened word stream against
 Sefaria's per-verse word count for every verse in the range being
-exported. Both sides are normalized the same way (nikud/trope stripped,
+exported. Both sides are normalized the same way (niqqud/ta'amim stripped,
 maqaf split into a separate word -- see
 :func:`ankipasuk.tikkun.scroll_plain_text` and
 :func:`ankipasuk.text_processing.strip_vowels_and_trope`), so their word
@@ -23,10 +23,10 @@ ultimately the same underlying Masoretic text.
 
 A row is never just a flat word list here -- it's a list of tikkun.io's
 own *fragments* (see :func:`ankipasuk.tikkun._row_fragments`), since a
-setumah/poetic ("brick") gap between two fragments is a real feature of
+setuma/poetic ("brick") gap between two fragments is a real feature of
 the row's own layout, independent of where any verse boundary happens to
 fall. A gap can sit between two fragments that belong to different
-verses (an ordinary setumah between them), or entirely *within* one
+verses (an ordinary setuma between them), or entirely *within* one
 verse's own text (Az Yashir/Shirat HaYam's poetic layout, or the 'Aseret
 haDibberot's), so word-level verse splitting and fragment-level gap
 rendering are two independent things this module has to get right at
@@ -45,7 +45,7 @@ budget, shifting *every* verse after it by however many words the bleed
 is. Unlike the tail side, this can chain arbitrarily deep -- the verse
 just before the range can ITSELF share leading words with the verse
 before IT, and so on, for as long as consecutive rows keep landing verse
-boundaries mid-fragment (which ordinary Torah text does constantly; the
+boundaries mid-fragment (which ordinary Tora text does constantly; the
 'Aseret haDibberot's run of one-per-line "commandments" needs many verses'
 worth of this before reaching a safe starting point) -- see
 :func:`ankipasuk.tikkun.leading_verses_needing_alignment` for how far
@@ -70,7 +70,7 @@ from .tikkun import (
 
 # A row, as this module consumes it: tikkun.io's own fragments (each a
 # word list; more than one fragment means a real gap belongs between them
-# -- see the module docstring), the row's petucha flag, and its own amud
+# -- see the module docstring), the row's petuḥa flag, and its own 'ammud
 # (page) number -- used to notice when consecutive rendered rows belong
 # to different physical scroll columns (see AMUD_BREAK_MARKER).
 Row = tuple[list[list[str]], bool, int]
@@ -98,7 +98,7 @@ def _box_width(rows: list[Row]) -> str:
     row-mode: each row's char count is the sum of its own fragments' word-
     joined lengths (no separator added *between* fragments, matching how
     :func:`ankipasuk.tikkun._render_line` counts a row's characters --
-    the space a setumah/brick gap occupies is free layout space, not
+    the space a setuma/brick gap occupies is free layout space, not
     counted text width)."""
     return box_width_from_char_counts(
         sum(len(" ".join(frag)) for frag in fragments) for fragments, _is_petucha, _page_num in rows
@@ -239,8 +239,8 @@ def _render_split_row(seg: dict, *, revealed: bool) -> str:
 def _render_amud_break(page_num: int) -> str:
     """A visible divider marking a transition to a new physical scroll
     column -- inserted whenever two consecutively-rendered rows on one
-    card come from different amudim (see :func:`_render_own_rows`), most
-    often a verse whose own tail crosses onto the next amud (see
+    card come from different 'ammudim (see :func:`_render_own_rows`), most
+    often a verse whose own tail crosses onto the next 'ammud (see
     :func:`ankipasuk.tikkun.get_row_fragments_for_range`'s own
     ``generous_tail``, which is what makes that content available to
     render here in the first place)."""
@@ -249,7 +249,7 @@ def _render_amud_break(page_num: int) -> str:
 
 def _render_own_rows(own_rows: list[dict], *, revealed: bool, starting_page_num: int | None) -> str:
     """Render every row of ``own_rows`` in order, inserting
-    :func:`_render_amud_break` wherever the amud (page) number changes
+    :func:`_render_amud_break` wherever the 'ammud (page) number changes
     from the previously rendered row -- including the transition INTO
     ``own_rows`` itself, if ``starting_page_num`` (the context row's own
     page, or None if there's no real context row -- see
@@ -315,7 +315,7 @@ def build_verse_cards_from_words(
     entirely, so ``preceding_row`` (from
     :func:`ankipasuk.tikkun.get_preceding_row_fragments`, fetched
     separately) is used instead, or the "[Beginning]" marker if there's
-    no such row (rows[0] is the very first row of the Torah).
+    no such row (rows[0] is the very first row of the Tora).
     """
     per_verse = segment_rows_by_verse(rows, verse_word_counts)[leading_extra_verses:]
 
@@ -333,7 +333,7 @@ def build_verse_cards_from_words(
             context_page_num = preceding_row[2]
         else:
             context_html = f'<div class="line beginning-marker">{BEGINNING_MARKER}</div>'
-            context_page_num = None  # no real row to compare an amud break against
+            context_page_num = None  # no real row to compare an 'ammud break against
 
         fields.append({
             "FrontRows": context_html + _render_own_rows(
@@ -368,7 +368,7 @@ def _build_from_verse_refs(
     ``verse_refs[0]``'s own content actually starts.
 
     This works regardless of how far back those extra verses' own
-    content reaches (even onto an earlier amud) --
+    content reaches (even onto an earlier 'ammud) --
     :func:`ankipasuk.tikkun.get_row_fragments_for_range` already walks
     page boundaries freely, the same as it does at the end of a range
     (see that function's own docstring on ``generous_tail``).
@@ -376,11 +376,11 @@ def _build_from_verse_refs(
     ``box_width_rows``, if given, is included ALONGSIDE the fetched
     ``rows`` for the "BoxWidth" field's own char-count basis (a plain max,
     so no harm in overlap) -- :func:`build_amud_verse_cards` passes the
-    whole amud's own fixed page, so the box stays at least as wide as the
+    whole 'ammud's own fixed page, so the box stays at least as wide as the
     physical column even when word-alignment itself ends up fetching a
     narrower slice of it (e.g. starting mid-page because of an earlier
     verse's own bleed) -- and at least as wide as whatever a verse's own
-    tail crossing onto the NEXT amud adds to ``rows``, which isn't part
+    tail crossing onto the NEXT 'ammud adds to ``rows``, which isn't part
     of ``box_width_rows`` at all.
     """
     first_ch, first_vs = verse_refs[0]
@@ -407,13 +407,13 @@ def _build_from_verse_refs(
 def build_verse_cards(
     book: str, verse_refs: list[tuple[int, int]], cache: SefariaCache, *, title: str, author: str = "",
 ) -> list[dict[str, str]]:
-    """The cache-driven entry point for a verse range (e.g. an aliyah):
+    """The cache-driven entry point for a verse range (e.g. an 'aliyya):
     fetches tikkun.io's row-fragment data spanning ``verse_refs`` (its
     first verse through its last, plus whatever the verse just before it
     needs -- see :func:`_build_from_verse_refs`), each verse's own
     Sefaria word count, and the one row before the range -- then hands
     everything to :func:`build_verse_cards_from_words`. ``verse_refs``
-    must be consecutive verses, in order (e.g. one aliyah's own
+    must be consecutive verses, in order (e.g. one 'aliyya's own
     ``verses`` list).
     """
     return _build_from_verse_refs(book, verse_refs, cache, title=title, author=author)
@@ -422,24 +422,24 @@ def build_verse_cards(
 def build_amud_verse_cards(
     book: str, amud_num: int, cache: SefariaCache, *, title: str, author: str = "",
 ) -> list[dict[str, str]]:
-    """The cache-driven entry point for a single amud: one card per verse
+    """The cache-driven entry point for a single 'ammud: one card per verse
     that starts on it (see :func:`ankipasuk.tikkun.get_verses_starting_on_amud`),
-    via :func:`_build_from_verse_refs` -- so the amud's own first card is
+    via :func:`_build_from_verse_refs` -- so the 'ammud's own first card is
     just as word-precise as any other, even when its own first tagged row
     also carries a bleed word or two from whatever verse came right
-    before it (which, since this is the amud's OWN first tagged verse,
-    always started on an earlier amud when it exists at all).
+    before it (which, since this is the 'ammud's OWN first tagged verse,
+    always started on an earlier 'ammud when it exists at all).
 
-    Symmetrically, this amud's own LAST card can reach past this amud's
+    Symmetrically, this 'ammud's own LAST card can reach past this 'ammud's
     own last row too, when that verse's own tail crosses onto the NEXT
-    amud (:func:`ankipasuk.tikkun.get_row_fragments_for_range`'s
+    'ammud (:func:`ankipasuk.tikkun.get_row_fragments_for_range`'s
     ``generous_tail`` already fetches it) -- rendered with a visible
     "['Ammud N]" break (see :func:`_render_amud_break`) rather than
     silently splicing the new column's lines onto this one, since a real
     reciter following along on an actual scroll needs to know they've
     turned to a new column mid-verse.
 
-    The "BoxWidth" field is still sized from the amud's own whole,
+    The "BoxWidth" field is still sized from the 'ammud's own whole,
     physical page (see :func:`ankipasuk.tikkun.get_amud_row_fragments`)
     at minimum, so the box stays at least as wide as the actual column
     -- see :func:`_build_from_verse_refs` for how it also widens further
