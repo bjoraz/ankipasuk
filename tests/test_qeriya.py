@@ -242,3 +242,16 @@ def test_legacy_tag_renames_weekly_holiday_and_tiqqun_tags():
 def test_legacy_tag_renames_without_sefaria_names_skips_parasha_tags():
     renames = qr.legacy_tag_renames()
     assert not any(k.startswith("parasha::") for k in renames)
+
+
+def test_every_weekly_and_holiday_rename_targets_a_tag_the_tagger_generates():
+    generated = set()
+    for book in ("Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"):
+        fake = [{"name": e["slug"], "refs": [f"{book} 5:5"] * e["n_aliyot"]} for e in qr.parasha_table(book)]
+        generated |= {tag for _s, _e, tag in qr.build_parasha_intervals(book, fake)}
+    generated |= {tag for _b, _s, _e, tag in qr.build_holiday_intervals()}
+
+    renames = qr.legacy_tag_renames()
+    targets = {v for k, v in renames.items() if k.startswith(("aliyah::", "holiday::"))}
+    assert targets <= generated
+    assert "aliyah::devarim::11-vezot_haberakhah::maftir" not in renames  # no maftir in the table

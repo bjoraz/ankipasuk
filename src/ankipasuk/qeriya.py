@@ -119,7 +119,12 @@ def legacy_tag_renames(
         for entry in parasha_table(book):
             old = f"{LEGACY_ALIYAH_TAG_NAMESPACE}{old_book}::{entry['rel']:02d}-{entry['legacy_slug']}"
             new = f"{ALIYYA_TAG_NAMESPACE}{new_book}::{entry['rel']:02d}-{entry['slug']}"
-            for suffix in [*map(str, range(1, entry["n_aliyot"] + 1)), "maftir"]:
+            # Mirrors build_parasha_intervals: a maftir tag only where the
+            # table has a maftir (Vezot haBerakha has none).
+            suffixes = [str(n) for n in range(1, entry["n_aliyot"] + 1)]
+            if entry.get("maftir_verses"):
+                suffixes.append("maftir")
+            for suffix in suffixes:
                 renames[f"{old}::{suffix}"] = f"{new}::{suffix}"
 
     for entry in holiday_readings():
