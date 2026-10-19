@@ -71,13 +71,22 @@ def tokenize_pasuk(pasuk: str):
 
 
 def adjust_for_munach_legarmeh(tokens) -> None:
-    """A shofar holekh (Unicode MUNAH) immediately followed by a pesiq
-    stroke is read as Paseq (also known as munach legarmeh) -- upgraded to
-    a mafsik at the same rank as Gerish (level 4) -- if and only if the
-    next mafsik, skipping over any number of meshartim in between, is
-    level 3 (normally a ravia'). The pesiq token carries the new rank and
-    the name :data:`ankipasuk.config.LEGARMEH_NAME`. Mutates ``tokens`` in
-    place."""
+    """A shofar holekh (Unicode MUNAH) immediately followed by the vertical
+    stroke (Unicode PASEQ) is read as Paseq -- Ashkenazi munach legarmeh --
+    a mafsiq at the same rank as Gerish (level 4), if and only if the next
+    mafsiq, skipping over any number of meshartim in between, is level 3.
+    Otherwise the stroke is only a pause (Ashkenazi pasek) and the word
+    stays a meshares at level 0. See the note above
+    :data:`ankipasuk.config.TROPE_UNICODE` for the names, including why the
+    plain stroke is labeled "Pesiq".
+
+    The condition deliberately accepts any level-3 mafsiq, not only a
+    ravia' (the usual case). This follows Joshua Jacobson's *Chanting the
+    Hebrew Bible*: there are rare cases of it before the other level-3
+    te'amim. Don't narrow it to ravia' alone.
+
+    The stroke's own token gets the new level and the name
+    :data:`ankipasuk.config.LEGARMEH_NAME`. Mutates ``tokens`` in place."""
     n = len(tokens)
     for i in range(n - 1):
         if tokens[i]["has_munach"] and tokens[i + 1]["has_paseq"]:

@@ -160,9 +160,20 @@ CSV_FLAGS = "1,0,false,true,false,true"
 #   U+05A3  Unicode "MUNAH"   -> Shofar holekh
 #   U+05A5  Unicode "MERKHA"  -> Ma'arikh
 #   U+05A4  Unicode "MAHAPAKH" -> Shofar mehuppakh
-#   shofar holekh + paseq (Unicode "MUNAH" + "PASEQ", a.k.a. munach
-#   legarmeh) -> Paseq, a rank-4 mafsik -- see
-#   text_processing.adjust_for_munach_legarmeh
+#   U+05C0  Unicode "PASEQ"   -> the vertical stroke, see below
+#
+# The vertical stroke after a shofar holekh is either part of a mafsiq or
+# only a pause, and only its position tells which (the rule is in
+# text_processing.adjust_for_munach_legarmeh):
+#
+#   - Part of a mafsiq: named Paseq here (LEGARMEH_NAME), rank 4. That's
+#     the Sephardi name in the Wikipedia table; the Ashkenazi name is
+#     munach legarmeh.
+#   - Only a pause after a meshares: the word stays rank 0. The Ashkenazi
+#     name is pasek (munach pasek). No separate established Sephardi name
+#     for this was found. "Pesiq" in the table below is AnkiPasuk's own
+#     label, used only to keep the two apart in code; rank-0 names are
+#     never shown in the app.
 #
 # Zarqa and tsinnorit: Unicode's names for these two codepoints are
 # swapped (Unicode Technical Note #27). Zarqa is encoded as U+05AE, whose
@@ -197,8 +208,9 @@ TROPE_UNICODE = {
     "\u05A9": ("Tarsa", 0),
 }
 
-# The name a shofar holekh + paseq pair takes once it's read as a mafsik
-# (see text_processing.adjust_for_munach_legarmeh).
+# The name a shofar holekh + stroke pair takes once it's read as a mafsiq
+# (Ashkenazi: munach legarmeh) -- see the stroke note above and
+# text_processing.adjust_for_munach_legarmeh.
 LEGARMEH_NAME = "Paseq"
 
 MAKEF = "\u05BE"

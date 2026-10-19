@@ -33,9 +33,20 @@ melakhim, mishnim, shalishim):
 | 4 | Gerish, Shene gerishin, Pazer gadol, Talsha, Paseq |
 | 0 | the meshartim: Shofar holekh, Ma'arikh, Shofar mehuppakh, Azla, Darga, Tarsa |
 
-A word takes the rank of the strongest ta'am on it. A shofar holekh
-followed by a pesiq is read as paseq only when the next mafsiq after it is
-rank 3 (normally a ravia'); anywhere else it stays a plain shofar holekh.
+A word takes the rank of the strongest ta'am on it. The vertical stroke
+after a shofar holekh needs one extra rule, since the same sign can be
+part of a mafsiq or just a pause:
+
+| Shofar holekh + stroke | Read as | Rank | Ashkenazi name |
+|---|---|---|---|
+| next mafsiq is rank 3 | paseq, a mafsiq | 4 | munach legarmeh |
+| anywhere else | a meshares with a pause | 0 | munach pasek |
+
+The next mafsiq is usually a ravia', but any rank-3 mafsiq counts. That
+follows Joshua Jacobson's *Chanting the Hebrew Bible*, which has rare cases
+before the other rank-3 te'amim. In the code the plain stroke is labeled
+"Pesiq" to keep it apart from paseq. That label is AnkiPasuk's own, not an
+established Sephardi term, and it's never shown in the app.
 
 The names follow the table in Wikipedia's
 [Hebrew cantillation](https://en.wikipedia.org/wiki/Hebrew_cantillation)
