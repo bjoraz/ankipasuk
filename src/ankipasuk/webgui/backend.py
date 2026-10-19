@@ -11,13 +11,14 @@ Linux is the one platform where neither is true. There the engine is
 either WebKitGTK -- reached through PyGObject (``gi``), which is a
 *system* package on every distro rather than something pip puts in a
 virtualenv -- or Qt WebEngine, which is pip-installable but a ~100 MB
-download. ``pip install ankipasuk`` therefore succeeds on Linux and then
-fails at launch, and pywebview's own diagnostic for that ("You must have
-either QT or GTK with Python extensions installed") arrives after two
-stderr tracebacks and doesn't say what to install. This module probes for
-both backends up front so :func:`ankipasuk.webgui.main` can name the one
-it found -- avoiding pywebview's noisy try-GTK-then-fall-back-to-Qt
-sequence -- or, when it finds neither, fail with instructions.
+download. Installing AnkiPasuk into a virtualenv therefore succeeds on
+Linux and then fails at launch, and pywebview's own diagnostic for that
+("You must have either QT or GTK with Python extensions installed")
+arrives after two stderr tracebacks and doesn't say what to install. This
+module probes for the backends up front so :func:`ankipasuk.webgui.main`
+can name the one it found -- avoiding pywebview's noisy
+try-GTK-then-fall-back-to-Qt sequence -- or, when neither works, fail
+with instructions.
 """
 
 from __future__ import annotations
@@ -62,15 +63,14 @@ def _gtk_available() -> bool:
     return True
 
 
-def _qt_available() -> bool:
-    """Whether ``webview.platforms.qt`` would import.
+def _qt_installed() -> bool:
+    """Whether a Qt binding with its WebEngine module is installed at all.
 
-    That module goes through ``qtpy``, which abstracts over the four
-    bindings below; any one of them with its WebEngine companion module
-    present is enough. Checked with ``find_spec`` rather than a real
-    import because importing a Qt WebEngine module is expensive and, on
-    some setups, initializes graphics state we don't want touched unless
-    we actually end up using it.
+    ``webview.platforms.qt`` goes through ``qtpy``, which abstracts over
+    the four bindings below; any one of them with its WebEngine companion
+    module present is enough. A cheap ``find_spec`` check, which says
+    nothing about whether the binding's native libraries will load -- see
+    :func:`_qt_load_error` for that.
     """
     if find_spec("qtpy") is None:
         return False
@@ -88,16 +88,39 @@ def _qt_available() -> bool:
     return False
 
 
-def available_backends() -> list[str]:
-    """Every pywebview backend usable here, best first.
+def _qt_load_error() -> str | None:
+    """``None`` if the Qt modules ``webview.platforms.qt`` needs import,
+    otherwise the error they fail with.
 
-    GTK leads on Linux because it renders through the WebKitGTK the
-    desktop already has -- native window decorations, the system's own
-    fonts and scaling -- where Qt WebEngine ships a second, separate
-    Chromium. Empty on Linux with neither installed; on Windows and macOS
-    the backend comes with pywebview, so this is never consulted.
+    Having the Python packages isn't enough: PyQt6 and PySide6 wheels link
+    against the system's EGL and OpenGL libraries (and WebEngine against a
+    few more), which a minimal install or container may not have. Then
+    the import fails with e.g. ``libEGL.so.1: cannot open shared object
+    file``, and a ``find_spec`` check alone would have picked Qt anyway --
+    leaving pywebview to fail with its own tracebacks. So this really
+    imports the same modules pywebview does. Importing doesn't create a
+    ``QApplication`` or touch the display, and pywebview would import them
+    next anyway, so the cost is only paid once.
     """
-    return [name for name, probe in ((GTK, _gtk_available), (QT, _qt_available)) if probe()]
+    try:
+        from qtpy import (  # noqa: F401
+            QtCore,
+            QtGui,
+            QtNetwork,
+            QtWebChannel,
+            QtWebEngineCore,
+            QtWebEngineWidgets,
+            QtWidgets,
+        )
+    except (ImportError, RuntimeError, OSError) as exc:  # qtpy's own errors are RuntimeErrors
+        return f"{type(exc).__name__}: {exc}"
+    return None
+
+
+def _qt_available() -> bool:
+    """Whether ``webview.platforms.qt`` would import: Qt is installed and
+    its modules (with their native libraries) actually load."""
+    return _qt_installed() and _qt_load_error() is None
 
 
 #  Per-distro install lines for the WebKitGTK route. Kept as data so the
@@ -110,14 +133,32 @@ _GTK_SYSTEM_PACKAGES = (
 )
 
 
-def missing_backend_message() -> str:
-    """What to print when :func:`available_backends` comes back empty.
+def missing_backend_message(qt_error: str | None = None) -> str:
+    """What to print when no backend is usable.
 
     Both routes are offered rather than just the recommended one: the
     WebKitGTK packages need root, which someone installing into their own
     virtualenv may not have, and the pip-only Qt route is the answer in
     that case.
+
+    ``qt_error`` is the error Qt fails to load with when it *is*
+    installed (see :func:`_qt_load_error`); it's shown, since in that case
+    the fix is a missing system library, not another install.
     """
+    qt_note = "" if qt_error is None else f"""
+     Qt is installed in this environment, but it can't load:
+
+         {qt_error}
+
+     That usually means the system's graphics libraries (EGL, OpenGL)
+     are missing, which is common on minimal installs and in containers.
+     On Debian/Ubuntu:
+
+         sudo apt install libegl1 libgl1
+
+     If the error names another library, install the package that
+     provides it.
+"""
     distro_lines = "\n".join(f"         # {name}\n         {cmd}" for name, cmd in _GTK_SYSTEM_PACKAGES)
     return f"""AnkiPasuk's window needs a web engine, and this Python environment can't
 reach one. pywebview renders through the system's own engine rather than
@@ -141,7 +182,7 @@ bundling a browser, and on Linux that means one of two backends:
      download:
 
          pip install "pywebview[qt]"
-
+{qt_note}
 Already installed one of these? Then it isn't visible from this
 interpreter ({platform.python_version()} at {sys.executable}) -- check you're
 installing into the same environment you're launching from."""
@@ -156,7 +197,7 @@ def choose_backend() -> str | None:
     ``PYWEBVIEW_GUI`` is set, so that pywebview's documented override
     keeps working and stays the way to escape a bad guess here.
 
-    :raises NoWebViewBackendError: on Linux with no backend installed --
+    :raises NoWebViewBackendError: on Linux with no usable backend --
         raised here, before any window is created, so the user gets
         :func:`missing_backend_message` instead of pywebview's two
         tracebacks and a one-line exception.
@@ -166,13 +207,18 @@ def choose_backend() -> str | None:
     if os.environ.get("PYWEBVIEW_GUI"):
         return None
 
-    backends = available_backends()
-    if not backends:
-        raise NoWebViewBackendError(missing_backend_message())
+    #  GTK first: it renders through the WebKitGTK the desktop already has
+    #  -- native window decorations, the system's own fonts and scaling --
+    #  where Qt WebEngine ships a second, separate Chromium. Except under
+    #  KDE, which pywebview itself keys off KDE_FULL_SESSION: there a Qt
+    #  window matches the rest of the desktop. Probed in that order and
+    #  stopped at the first that works, so a machine that gets GTK never
+    #  pays for importing Qt (see _qt_load_error).
+    probes = {GTK: _gtk_available, QT: _qt_available}
+    order = (QT, GTK) if os.environ.get("KDE_FULL_SESSION") else (GTK, QT)
+    for name in order:
+        if probes[name]():
+            return name
 
-    #  pywebview itself prefers Qt under KDE (it keys off KDE_FULL_SESSION),
-    #  where a Qt window matches the rest of the desktop; honor that when Qt
-    #  is actually there, and otherwise fall through to the normal order.
-    if os.environ.get("KDE_FULL_SESSION") and QT in backends:
-        return QT
-    return backends[0]
+    qt_error = _qt_load_error() if _qt_installed() else None
+    raise NoWebViewBackendError(missing_backend_message(qt_error))

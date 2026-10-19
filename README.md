@@ -325,8 +325,10 @@ desktop has them, but a minimal install or a container may not, and then Qt
 fails to load with an error like `libEGL.so.1: cannot open shared object
 file`. On Debian/Ubuntu, `sudo apt install libegl1 libgl1` provides them.
 
-With neither installed, `ankipasuk` prints these instructions and exits
-instead of failing with a traceback. To force one backend, set
+If neither works, `ankipasuk` prints these instructions and exits instead
+of failing with a traceback. That includes Qt being installed but missing
+those libraries: the launcher tries loading it first, and shows the error
+it got. To force one backend, set
 `PYWEBVIEW_GUI=gtk` or `PYWEBVIEW_GUI=qt`.
 
 The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter, which
