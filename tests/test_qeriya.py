@@ -96,7 +96,7 @@ def test_parasha_table_genesis_matches_known_slugs():
     table = qr.parasha_table("Genesis")
     assert len(table) == 12
     slugs = [e["slug"] for e in table]
-    assert slugs[:4] == ["bereshit", "noah", "lekh_lekha", "vayera"]
+    assert slugs[:4] == ["bereshit", "noah", "lekh_lekha", "vayyera"]
     assert all(e["rel"] == i + 1 for i, e in enumerate(table))
 
 
@@ -142,18 +142,18 @@ def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
     sefaria_parashot = _fake_sefaria_parashot({"bereshit": refs})
     intervals = qr.build_parasha_intervals("Genesis", sefaria_parashot)
 
-    assert "aliyah::bereshit::01-bereshit::1" in qr.tags_for_verse(
+    assert "aliyya::bereshit::01-bereshit::1" in qr.tags_for_verse(
         "Genesis", 1, 1, intervals, []
     )
-    assert "aliyah::bereshit::01-bereshit::7" in qr.tags_for_verse(
+    assert "aliyya::bereshit::01-bereshit::7" in qr.tags_for_verse(
         "Genesis", 6, 8, intervals, []
     )
     # Maftir: last 4 verses of the parasha (validated against the real deck).
     for ch, vs in [(6, 5), (6, 6), (6, 7), (6, 8)]:
-        assert "aliyah::bereshit::01-bereshit::maftir" in qr.tags_for_verse(
+        assert "aliyya::bereshit::01-bereshit::maftir" in qr.tags_for_verse(
             "Genesis", ch, vs, intervals, []
         )
-    assert "aliyah::bereshit::01-bereshit::maftir" not in qr.tags_for_verse(
+    assert "aliyya::bereshit::01-bereshit::maftir" not in qr.tags_for_verse(
         "Genesis", 6, 4, intervals, []
     )
 
@@ -162,14 +162,14 @@ def test_tags_for_verse_vayetzei_maftir_crosses_chapter_boundary():
     # Vayetzei is the 7th parasha of Genesis (rel=7). Aliyah 7 real end is
     # 32:2 in Jewish/Sefaria numbering; maftir is 3 verses -> 31:55-32:2.
     refs = ["Genesis 1:1"] * 6 + ["Genesis 31:43-32:2"]
-    sefaria_parashot = _fake_sefaria_parashot({"vayetze": refs})
+    sefaria_parashot = _fake_sefaria_parashot({"vayyetse": refs})
     intervals = qr.build_parasha_intervals("Genesis", sefaria_parashot)
 
     for ch, vs in [(31, 55), (32, 1), (32, 2)]:
-        assert "aliyah::bereshit::07-vayetze::maftir" in qr.tags_for_verse(
+        assert "aliyya::bereshit::07-vayyetse::maftir" in qr.tags_for_verse(
             "Genesis", ch, vs, intervals, []
         )
-    assert "aliyah::bereshit::07-vayetze::maftir" not in qr.tags_for_verse(
+    assert "aliyya::bereshit::07-vayyetse::maftir" not in qr.tags_for_verse(
         "Genesis", 31, 54, intervals, []
     )
 
@@ -188,10 +188,57 @@ def test_tags_for_verse_returns_multiple_tags_when_applicable():
     # the Rosh Hashana II holiday reading's aliyah 1 -- both should be
     # returned together.
     refs = ["Genesis 1:1"] * 6 + ["Genesis 22:1-22:24"]
-    sefaria_parashot = _fake_sefaria_parashot({"vayera": refs})
+    sefaria_parashot = _fake_sefaria_parashot({"vayyera": refs})
     intervals = qr.build_parasha_intervals("Genesis", sefaria_parashot)
     holiday_intervals = qr.build_holiday_intervals()
 
     tags = qr.tags_for_verse("Genesis", 22, 1, intervals, holiday_intervals)
-    assert "aliyah::bereshit::04-vayera::7" in tags
+    assert "aliyya::bereshit::04-vayyera::7" in tags
     assert "holiday::rosh_hashana_ii::1" in tags
+
+
+# =============================================================
+#  NAMES AND TAGS (docs/transliteration.md)
+# =============================================================
+def test_to_slug():
+    assert qr.to_slug("Ḥayye Sara") == "hayye_sara"
+    assert qr.to_slug("Shemini 'Atseret") == "shemini_atseret"
+    assert qr.to_slug("Vezot haBerakha") == "vezot_haberakha"
+
+
+def test_every_slug_is_the_ascii_form_of_its_name():
+    for book in ("Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"):
+        for entry in qr.parasha_table(book):
+            assert entry["slug"] == qr.to_slug(entry["name"])
+    for entry in qr.holiday_readings():
+        assert entry["slug"] == qr.to_slug(entry["display_name"])
+
+
+def test_parasha_names_pairs_by_position_and_refuses_a_length_mismatch():
+    sefaria = [{"name": f"Sefaria {i}"} for i in range(12)]
+    mapping = qr.parasha_names("Genesis", sefaria)
+    assert mapping["Sefaria 4"]["name"] == "Ḥayye Sara"
+    assert mapping["Sefaria 4"]["slug"] == "hayye_sara"
+    assert qr.parasha_names("Genesis", sefaria[:11]) == {}
+
+
+def test_legacy_tag_renames_weekly_holiday_and_tiqqun_tags():
+    renames = qr.legacy_tag_renames(
+        {"Genesis": ["Bereshit", "Noach", "Lech Lecha", "Vayera", "Chayei Sara", "Toldot",
+                     "Vayetzei", "Vayishlach", "Vayeshev", "Miketz", "Vayigash", "Vayechi"]}
+    )
+    assert renames["aliyah::bereshit::05-haye_sara::3"] == "aliyya::bereshit::05-hayye_sara::3"
+    assert renames["aliyah::bamidbar::04-shlach::maftir"] == "aliyya::bemidbar::04-shelah_lekha::maftir"
+    assert renames["aliyah::bereshit::01-bereshit::1"] == "aliyya::bereshit::01-bereshit::1"
+    assert renames["holiday::simchat_torah::1"] == "holiday::simhat_tora::1"
+    assert "holiday::purim::1" not in renames  # unchanged slug
+    assert renames["ankipasuk-aliyah"] == "ankipasuk-aliyya"
+    assert renames["amud::012"] == "ammud::012"
+    assert renames["parasha::chayei-sara"] == "parasha::hayye_sara"
+    # Keys are lowercase, so lookups must lowercase the tag first.
+    assert all(k == k.lower() for k in renames)
+
+
+def test_legacy_tag_renames_without_sefaria_names_skips_parasha_tags():
+    renames = qr.legacy_tag_renames()
+    assert not any(k.startswith("parasha::") for k in renames)

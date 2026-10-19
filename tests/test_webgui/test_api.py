@@ -267,7 +267,7 @@ def test_export_csv_uses_each_verses_own_book_for_the_label(genesis_1_1, tmp_pat
 
     content = out_path.read_text(encoding="utf-8-sig")
     assert "Bereshit 1:1" in content
-    assert "Yeshayahu 6:1" in content
+    assert "Yesha'yahu 6:1" in content
 
 
 

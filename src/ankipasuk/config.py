@@ -91,12 +91,48 @@ BOOK_CATEGORIES = {
 
 ALL_BOOKS = [book for books in BOOK_CATEGORIES.values() for book in books]
 
+# How each book is written in the app (see docs/transliteration.md): in a
+# note's Source field, on card titles, and (Tora only) in tags.
 BOOK_HEBREW_NAMES = {
     "Genesis": "Bereshit",
     "Exodus": "Shemot",
+    "Leviticus": "Vayyiqra",
+    "Numbers": "Bemidbar",
+    "Deuteronomy": "Devarim",
+    "Joshua": "Yehoshua'",
+    "Judges": "Shofetim",
+    "I Samuel": "Shemuel Alef",
+    "II Samuel": "Shemuel Bet",
+    "I Kings": "Melakhim Alef",
+    "II Kings": "Melakhim Bet",
+    "Isaiah": "Yesha'yahu",
+    "Jeremiah": "Yirmeyahu",
+    "Ezekiel": "Yeḥezqel",
+    "Hosea": "Hoshea'",
+    "Joel": "Yo'el",
+    "Amos": "'Amos",
+    "Obadiah": "'Ovadya",
+    "Jonah": "Yona",
+    "Micah": "Mikha",
+    "Nahum": "Naḥum",
+    "Habakkuk": "Ḥavaqquq",
+    "Zephaniah": "Tsefanya",
+    "Haggai": "Ḥaggai",
+    "Zechariah": "Zekharya",
+    "Malachi": "Mal'akhi",
+    "Song of Songs": "Shir haShirim",
+    "Ruth": "Rut",
+    "Lamentations": "Ekha",
+    "Ecclesiastes": "Qohelet",
+    "Esther": "Ester",
+}
+
+# Spellings used before docs/transliteration.md. Notes created with them
+# (their Source field is fixed text) must still be recognized, so the
+# tagger accepts these too -- see anki_connect.tagging.HEBREW_TO_BOOK.
+LEGACY_BOOK_HEBREW_NAMES = {
     "Leviticus": "Vayikra",
     "Numbers": "Bamidbar",
-    "Deuteronomy": "Devarim",
     "Joshua": "Yehoshua",
     "Judges": "Shoftim",
     "I Samuel": "Shmuel Alef",
@@ -119,7 +155,6 @@ BOOK_HEBREW_NAMES = {
     "Zechariah": "Zechariah",
     "Malachi": "Malachi",
     "Song of Songs": "Shir HaShirim",
-    "Ruth": "Rut",
     "Lamentations": "Eichah",
     "Ecclesiastes": "Kohelet",
     "Esther": "Esther",
@@ -127,12 +162,12 @@ BOOK_HEBREW_NAMES = {
 
 
 # Example Anki deck names for the qeriya scheduling automation (ankipasuk.anki_connect),
-# one per Torah book, in reading order.
+# one per book of the Tora, in reading order.
 QERIYA_DECK_NAMES = {
     "Genesis": "Qeriya::1-Bereshit",
     "Exodus": "Qeriya::2-Shemot",
-    "Leviticus": "Qeriya::3-Vayikra",
-    "Numbers": "Qeriya::4-Bamidbar",
+    "Leviticus": "Qeriya::3-Vayyiqra",
+    "Numbers": "Qeriya::4-Bemidbar",
     "Deuteronomy": "Qeriya::5-Devarim",
 }
 

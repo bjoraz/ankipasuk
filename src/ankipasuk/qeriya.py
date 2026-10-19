@@ -34,7 +34,7 @@ import re
 from functools import lru_cache
 from importlib import resources
 
-from .config import BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
+from .config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
 
 _DATA_PACKAGE = "ankipasuk.data"
 
@@ -55,6 +55,91 @@ def parasha_table(book: str) -> list[dict]:
 def holiday_readings() -> list[dict]:
     """The bundled holiday/fast-day reading table (Tora readings only)."""
     return _load_json("holiday_readings.json")
+
+
+# =============================================================
+#  NAMES AND TAGS (see docs/transliteration.md)
+# =============================================================
+ALIYYA_TAG_NAMESPACE = "aliyya::"
+HOLIDAY_TAG_NAMESPACE = "holiday::"
+# What the weekly-reading tags were called before docs/transliteration.md;
+# anki_connect.tagging.migrate_legacy_tags renames them.
+LEGACY_ALIYAH_TAG_NAMESPACE = "aliyah::"
+
+# Tags the tiqqun-card export puts on its notes (see webgui.api).
+TIQQUN_ALIYYA_TAG = "ankipasuk-aliyya"
+LEGACY_TIQQUN_ALIYAH_TAG = "ankipasuk-aliyah"
+
+
+def tiqqun_parasha_tag(slug: str) -> str:
+    return f"parasha::{slug}"
+
+
+def tiqqun_ammud_tag(ammud_num: int) -> str:
+    return f"ammud::{ammud_num:03d}"
+
+
+def to_slug(name: str) -> str:
+    """The ASCII form of a transliterated name, used in tags: lowercase, ḥ
+    as h, apostrophes dropped, spaces as ``_`` (``"Ḥayye Sara"`` ->
+    ``"hayye_sara"``)."""
+    return name.lower().replace("ḥ", "h").replace("'", "").replace(" ", "_")
+
+
+def parasha_names(book: str, sefaria_parashot: list[dict]) -> dict[str, dict]:
+    """Map each of Sefaria's parasha names for ``book`` to its entry in the
+    bundled table (with our ``name`` and ``slug``), pairing the two lists by
+    position -- the same pairing :func:`build_parasha_intervals` relies on.
+    Returns ``{}`` if the lists differ in length, so callers fall back to
+    Sefaria's own names rather than risk pairing the wrong parasha."""
+    table = parasha_table(book)
+    if len(table) != len(sefaria_parashot):
+        return {}
+    return {p["name"]: entry for p, entry in zip(sefaria_parashot, table)}
+
+
+def legacy_tag_renames(
+    sefaria_parasha_names: dict[str, list[str]] | None = None, *, total_ammudim: int = 245,
+) -> dict[str, str]:
+    """Every tag AnkiPasuk used to generate, mapped to what it generates
+    now, keyed by the old tag in lowercase (Anki compares tags without
+    regard to case). Covers the weekly-reading and holiday tags, and the
+    tiqqun-card tags.
+
+    The old tiqqun-card ``parasha::`` tags were made from Sefaria's
+    parasha names, so mapping them needs those names:
+    ``sefaria_parasha_names`` is ``{book: [name, ...]}`` in Sefaria's
+    order, e.g. from :func:`ankipasuk.sefaria.get_parasha_structure`.
+    Without it, those tags are left out of the map."""
+    renames: dict[str, str] = {}
+
+    for book in TORAH_VERSE_COUNTS:
+        old_book = to_slug(LEGACY_BOOK_HEBREW_NAMES.get(book, BOOK_HEBREW_NAMES[book]))
+        new_book = to_slug(BOOK_HEBREW_NAMES[book])
+        for entry in parasha_table(book):
+            old = f"{LEGACY_ALIYAH_TAG_NAMESPACE}{old_book}::{entry['rel']:02d}-{entry['legacy_slug']}"
+            new = f"{ALIYYA_TAG_NAMESPACE}{new_book}::{entry['rel']:02d}-{entry['slug']}"
+            for suffix in [*map(str, range(1, entry["n_aliyot"] + 1)), "maftir"]:
+                renames[f"{old}::{suffix}"] = f"{new}::{suffix}"
+
+    for entry in holiday_readings():
+        if entry["legacy_slug"] == entry["slug"]:
+            continue
+        suffixes = [a["num"] for a in entry["aliyot"]] + (["maftir"] if entry.get("maftir") else [])
+        for suffix in suffixes:
+            renames[f"{HOLIDAY_TAG_NAMESPACE}{entry['legacy_slug']}::{suffix}"] = (
+                f"{HOLIDAY_TAG_NAMESPACE}{entry['slug']}::{suffix}"
+            )
+
+    renames[LEGACY_TIQQUN_ALIYAH_TAG] = TIQQUN_ALIYYA_TAG
+    for n in range(1, total_ammudim + 1):
+        renames[f"amud::{n:03d}"] = tiqqun_ammud_tag(n)
+    for book, names in (sefaria_parasha_names or {}).items():
+        mapping = parasha_names(book, [{"name": name} for name in names])
+        for sefaria_name, entry in mapping.items():
+            renames[tiqqun_parasha_tag(sefaria_name.replace(" ", "-"))] = tiqqun_parasha_tag(entry["slug"])
+
+    return {old.lower(): new for old, new in renames.items() if old.lower() != new.lower()}
 
 
 # =============================================================
@@ -158,7 +243,7 @@ def build_parasha_intervals(
     live-fetched ``chapter_counts`` (see
     :func:`ankipasuk.sefaria.get_chapter_lengths`) to avoid relying on the
     static verse-count table for the Maftir backward-walk."""
-    hebrew_book = BOOK_HEBREW_NAMES.get(book, book).lower()
+    book_slug = to_slug(BOOK_HEBREW_NAMES.get(book, book))
     table = parasha_table(book)
     intervals = []
 
@@ -169,7 +254,7 @@ def build_parasha_intervals(
         refs = sefaria_parashot[i].get("refs", [])
         slug = entry["slug"]
         rel = entry["rel"]
-        prefix = f"aliyah::{hebrew_book}::{rel:02d}-{slug}"
+        prefix = f"{ALIYYA_TAG_NAMESPACE}{book_slug}::{rel:02d}-{slug}"
 
         aliyah7_end = None
         for aliyah_num, ref in enumerate(refs, start=1):
@@ -210,7 +295,7 @@ def build_holiday_intervals(
             _b, sch, svs, ech, evs = parse_ref_range(f"{book} {aliyah['start']}-{aliyah['end']}")
             intervals.append((
                 book, verse_index(book, sch, svs, counts), verse_index(book, ech, evs, counts),
-                f"holiday::{slug}::{aliyah['num']}",
+                f"{HOLIDAY_TAG_NAMESPACE}{slug}::{aliyah['num']}",
             ))
         maftir = entry.get("maftir")
         if maftir:
@@ -219,7 +304,7 @@ def build_holiday_intervals(
             _b, sch, svs, ech, evs = parse_ref_range(f"{book} {maftir['start']}-{maftir['end']}")
             intervals.append((
                 book, verse_index(book, sch, svs, counts), verse_index(book, ech, evs, counts),
-                f"holiday::{slug}::maftir",
+                f"{HOLIDAY_TAG_NAMESPACE}{slug}::maftir",
             ))
     return intervals
 

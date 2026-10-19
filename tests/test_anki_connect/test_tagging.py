@@ -49,6 +49,13 @@ def test_parse_source_field_valid():
     assert parse_source_field("Devarim 34:12") == ("Deuteronomy", 34, 12)
 
 
+def test_parse_source_field_accepts_old_spellings():
+    # Notes made before docs/transliteration.md keep the old book name.
+    assert parse_source_field("Bamidbar 3:5") == ("Numbers", 3, 5)
+    assert parse_source_field("Bemidbar 3:5") == ("Numbers", 3, 5)
+    assert parse_source_field("Vayikra 1:1") == ("Leviticus", 1, 1)
+
+
 def test_parse_source_field_invalid():
     assert parse_source_field("") is None
     assert parse_source_field("not a ref") is None
@@ -72,9 +79,9 @@ def test_compute_tagging_plan_computes_missing_tags(tmp_path, fake_anki):
     note1 = next(n for n in plan.notes if n.note_id == 1)
     note2 = next(n for n in plan.notes if n.note_id == 2)
 
-    assert "aliyah::bereshit::01-bereshit::1" in note1.missing_tags
-    assert "aliyah::bereshit::01-bereshit::7" in note2.missing_tags
-    assert "aliyah::bereshit::01-bereshit::maftir" in note2.missing_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note1.missing_tags
+    assert "aliyya::bereshit::01-bereshit::7" in note2.missing_tags
+    assert "aliyya::bereshit::01-bereshit::maftir" in note2.missing_tags
     assert not note1.conflicting_tags
     assert not note2.conflicting_tags
 
@@ -86,14 +93,14 @@ def test_compute_tagging_plan_flags_conflicting_tags(tmp_path, fake_anki):
     # This note already has an "aliyah::..." tag, but the WRONG one.
     fake_anki.add_note_with_fields(
         1, DECK, {"Source": "Bereshit 1:1"},
-        tags=["aliyah::bereshit::01-bereshit::99"],
+        tags=["aliyya::bereshit::01-bereshit::99"],
     )
 
     plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
     note = plan.notes[0]
 
-    assert "aliyah::bereshit::01-bereshit::99" in note.conflicting_tags
-    assert "aliyah::bereshit::01-bereshit::1" in note.missing_tags
+    assert "aliyya::bereshit::01-bereshit::99" in note.conflicting_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note.missing_tags
 
 
 def test_compute_tagging_plan_ignores_unrelated_existing_tags(tmp_path, fake_anki):
@@ -108,7 +115,7 @@ def test_compute_tagging_plan_ignores_unrelated_existing_tags(tmp_path, fake_ank
     note = plan.notes[0]
 
     assert not note.conflicting_tags  # unrelated tags aren't flagged
-    assert "aliyah::bereshit::01-bereshit::1" in note.missing_tags
+    assert "aliyya::bereshit::01-bereshit::1" in note.missing_tags
 
 
 def test_compute_tagging_plan_collects_unparsed_notes(tmp_path, fake_anki):
@@ -151,8 +158,8 @@ def test_apply_tagging_plan_is_idempotent(tmp_path, fake_anki):
     apply_tagging_plan(plan1, url="http://fake", dry_run=False)
 
     tags_after_first_run = set(fake_anki.notes[1]["tags"])
-    assert "aliyah::bereshit::01-bereshit::7" in tags_after_first_run
-    assert "aliyah::bereshit::01-bereshit::maftir" in tags_after_first_run
+    assert "aliyya::bereshit::01-bereshit::7" in tags_after_first_run
+    assert "aliyya::bereshit::01-bereshit::maftir" in tags_after_first_run
 
     # Running it again should add nothing new and flag no conflicts.
     plan2 = compute_tagging_plan(DECK, url="http://fake", cache=cache)
@@ -174,7 +181,7 @@ def test_apply_tagging_plan_never_removes_existing_tags(tmp_path, fake_anki):
     apply_tagging_plan(plan, url="http://fake", dry_run=False)
 
     assert "my_custom_tag" in fake_anki.notes[1]["tags"]
-    assert "aliyah::bereshit::01-bereshit::1" in fake_anki.notes[1]["tags"]
+    assert "aliyya::bereshit::01-bereshit::1" in fake_anki.notes[1]["tags"]
 
 
 def test_holiday_tag_applied_independent_of_parasha_data(tmp_path, fake_anki):
@@ -216,7 +223,7 @@ def test_tagging_batches_requests_on_a_large_deck(tmp_path, fake_anki):
     assert all(len(call["notes"]) <= _BATCH_SIZE for call in add_tags_calls)
 
     for note_id in (1, n_notes // 2, n_notes):
-        assert "aliyah::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
+        assert "aliyya::bereshit::01-bereshit::2" in fake_anki.notes[note_id]["tags"]
 
 
 def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_path, fake_anki):
@@ -233,7 +240,7 @@ def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_pat
     """
     vayetzei_refs = ["Genesis 1:31"] * 6 + ["Genesis 31:43-32:2"]
     cache = _cache_with_genesis(
-        tmp_path, {"vayetze": vayetzei_refs}, chapter_length_overrides={31: 54}
+        tmp_path, {"vayyetse": vayetzei_refs}, chapter_length_overrides={31: 54}
     )
 
     fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 31:53"}, tags=[])  # just before maftir
@@ -245,6 +252,6 @@ def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_pat
 
     # With the live count (54 verses in chapter 31), Maftir is 31:54-32:2 --
     # NOT 31:55-32:2, which is what the stale static table would produce.
-    assert "aliyah::bereshit::07-vayetze::maftir" not in notes[1].missing_tags
-    assert "aliyah::bereshit::07-vayetze::maftir" in notes[2].missing_tags
-    assert "aliyah::bereshit::07-vayetze::maftir" in notes[3].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" not in notes[1].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" in notes[2].missing_tags
+    assert "aliyya::bereshit::07-vayyetse::maftir" in notes[3].missing_tags

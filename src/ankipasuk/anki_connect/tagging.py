@@ -19,19 +19,33 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ..cache import SefariaCache
-from ..config import BOOK_HEBREW_NAMES
-from ..qeriya import build_holiday_intervals, build_parasha_intervals, tags_for_verse
+from ..config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES
+from ..qeriya import (
+    ALIYYA_TAG_NAMESPACE,
+    HOLIDAY_TAG_NAMESPACE,
+    LEGACY_ALIYAH_TAG_NAMESPACE,
+    build_holiday_intervals,
+    build_parasha_intervals,
+    tags_for_verse,
+)
 from ..sefaria import get_chapter_lengths, get_parasha_structure
 from .operations import add_tags, find_notes, notes_info
 
-HEBREW_TO_BOOK = {v: k for k, v in BOOK_HEBREW_NAMES.items()}
+# Both spellings: notes made before docs/transliteration.md keep the old
+# book name in their Source field.
+HEBREW_TO_BOOK = {
+    **{v: k for k, v in LEGACY_BOOK_HEBREW_NAMES.items()},
+    **{v: k for k, v in BOOK_HEBREW_NAMES.items()},
+}
 
 _SOURCE_RE = re.compile(r"^(?P<book>.+?)\s+(?P<ch>\d+):(?P<vs>\d+)$")
 
 # Any existing tag starting with one of these prefixes is treated as "ours"
 # for conflict detection -- i.e. it's meaningful to compare it against what
 # we'd compute, rather than just leaving it alone as an unrelated tag.
-_OWNED_PREFIXES = ("aliyah::", "holiday::")
+# The old "aliyah::" namespace counts too, so a note still carrying old tags
+# shows up as a conflict instead of silently getting a second set.
+_OWNED_PREFIXES = (ALIYYA_TAG_NAMESPACE, HOLIDAY_TAG_NAMESPACE, LEGACY_ALIYAH_TAG_NAMESPACE)
 
 
 def parse_source_field(source: str):
@@ -157,5 +171,9 @@ def apply_tagging_plan(plan: TaggingPlan, *, url: str, dry_run: bool, log=lambda
             f"CONFLICT  note {note.note_id} ({note.source}): existing "
             f"{note.conflicting_tags} not in computed {note.computed_tags} -- left untouched"
         )
+    conflicting = (t for n in plan.notes_with_conflicts for t in n.conflicting_tags)
+    if any(t.startswith(LEGACY_ALIYAH_TAG_NAMESPACE) for t in conflicting):
+        log("Some conflicts are tags in the old spelling: run Migrate Tags "
+            "(ankipasuk-migrate-tags) to rename them.")
 
     return plan.summary()
