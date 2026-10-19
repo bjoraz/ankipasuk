@@ -74,9 +74,9 @@ def adjust_for_munach_legarmeh(tokens) -> None:
     """A shofar holekh (Unicode MUNAH) immediately followed by the vertical
     stroke (Unicode PASEQ) is read as Paseq -- Ashkenazi munach legarmeh --
     a mafsiq at the same rank as Gerish (level 4), if and only if the next
-    mafsiq, skipping over any number of meshartim in between, is level 3.
+    mafsiq, skipping over any number of mesharetim in between, is level 3.
     Otherwise the stroke is only a pause (Ashkenazi pasek) and the word
-    stays a meshares at level 0. See the note above
+    stays a mesharet at level 0. See the note above
     :data:`ankipasuk.config.TROPE_UNICODE` for the names, including why the
     plain stroke is labeled "Pesiq".
 

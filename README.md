@@ -22,7 +22,7 @@ This is what drives the cloze cards. Here it is step by step, with Bereshit
 
 ### 1. Rank each word by its ta'am
 
-Every mafsiq has a rank, following the usual four classes (keisarim,
+Every mafsiq has a rank, following the usual four classes (qesarim,
 melakhim, mishnim, shalishim):
 
 | Rank | Te'amim |
@@ -31,7 +31,7 @@ melakhim, mishnim, shalishim):
 | 2 | Segolta, Shalshelet, Zaqef qaton, Zaqef gadol, Tarḥa |
 | 3 | Ravia', Qadma, Zarqa, Yetiv, Tevir |
 | 4 | Gerish, Shene gerishin, Pazer gadol, Talsha, Paseq |
-| 0 | the meshartim: Shofar holekh, Ma'arikh, Shofar mehuppakh, Azla, Darga, Tarsa |
+| 0 | the mesharetim: Shofar holekh, Ma'arikh, Shofar mehuppakh, Azla, Darga, Tarsa |
 
 A word takes the rank of the strongest ta'am on it. The vertical stroke
 after a shofar holekh needs one extra rule, since the same sign can be
@@ -40,7 +40,7 @@ part of a mafsiq or just a pause:
 | Shofar holekh + stroke | Read as | Rank | Ashkenazi name |
 |---|---|---|---|
 | next mafsiq is rank 3 | paseq, a mafsiq | 4 | munach legarmeh |
-| anywhere else | a meshares with a pause | 0 | munach pasek |
+| anywhere else | a mesharet with a pause | 0 | munach pasek |
 
 The next mafsiq is usually a ravia', but any rank-3 mafsiq counts. That
 follows Joshua Jacobson's *Chanting the Hebrew Bible*, which has rare cases
@@ -58,9 +58,9 @@ and tsinnorit the wrong way round: zarqa is U+05AE (named ZINOR) and
 tsinnorit is U+0598 (named ZARQA). Sefaria's text uses that encoding, and so
 does AnkiPasuk. `TROPE_UNICODE` in `config.py` has the full mapping.
 
-### 2. Group meshartim with the mafsiq they lead into
+### 2. Group mesharetim with the mafsiq they lead into
 
-Each run of meshartim joins the mafsiq that ends it. These groups are the
+Each run of mesharetim joins the mafsiq that ends it. These groups are the
 smallest units the te'amim let you cut the pasuq into. Bereshit 1:2 has
 eight:
 
@@ -161,7 +161,7 @@ format_structure(verse_structure_signature(pasuq))  # '(((L3 (L3 L2)) (L2 L1)) (
   output, that the whole pasuq is always the highest-numbered cloze, and on
   nothing else.
 
-Tehillim, Mishle and Iyov aren't supported, because the Sifrei Emet use a
+Tehillim, Mishle and Iyov aren't supported, because the Sifre Emet use a
 different system of te'amim.
 
 ## Recitation cards

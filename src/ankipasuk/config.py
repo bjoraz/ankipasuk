@@ -67,7 +67,7 @@ TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 # All of these use the standard 21-book cantillation system (the same
 # TROPE_UNICODE table below applies unchanged) -- this deliberately
 # excludes Psalms, Proverbs, and Job, which use the distinct "three
-# books" (Sifrei Emet) cantillation system with a different trope
+# books" (Sifre Emet) cantillation system with a different trope
 # hierarchy entirely, not supported here.
 NEVIIM_BOOKS = [
     "Joshua", "Judges", "I Samuel", "II Samuel", "I Kings", "II Kings",
@@ -144,7 +144,7 @@ CSV_FLAGS = "1,0,false,true,false,true"
 # =============================================================
 #  TE'AMIM: UNICODE -> NAME AND RANK
 # =============================================================
-# name, disjunctive rank (1 = strongest / verse-final, 4 = weakest; 0 = meshares)
+# name, disjunctive rank (1 = strongest / verse-final, 4 = weakest; 0 = mesharet)
 #
 # The names shown to the user are the Sephardi names, following the table
 # in Wikipedia's "Hebrew cantillation" article. Unicode's own character
@@ -169,7 +169,7 @@ CSV_FLAGS = "1,0,false,true,false,true"
 #   - Part of a mafsiq: named Paseq here (LEGARMEH_NAME), rank 4. That's
 #     the Sephardi name in the Wikipedia table; the Ashkenazi name is
 #     munach legarmeh.
-#   - Only a pause after a meshares: the word stays rank 0. The Ashkenazi
+#   - Only a pause after a mesharet: the word stays rank 0. The Ashkenazi
 #     name is pasek (munach pasek). No separate established Sephardi name
 #     for this was found. "Pesiq" in the table below is AnkiPasuk's own
 #     label, used only to keep the two apart in code; rank-0 names are
@@ -180,7 +180,7 @@ CSV_FLAGS = "1,0,false,true,false,true"
 # Unicode name is "ZINOR", and tsinnorit as U+0598, whose Unicode name is
 # "ZARQA". Sefaria's text follows that encoding, so U+05AE is listed here
 # as Zarqa and U+0598 is deliberately not listed at all: tsinnorit only
-# decorates a meshares and doesn't change the word's rank. Don't "fix"
+# decorates a mesharet and doesn't change the word's rank. Don't "fix"
 # this by swapping the two.
 TROPE_UNICODE = {
     "\u05C3": ("Sof pasuq", 1),
