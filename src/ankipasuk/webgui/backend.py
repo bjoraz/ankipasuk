@@ -132,7 +132,7 @@ bundling a browser, and on Linux that means one of two backends:
      in has to be allowed to see them:
 
          python3 -m venv --system-site-packages .venv    # venv
-         pipx install --system-site-packages ankipasuk   # pipx
+         pipx install --system-site-packages .           # pipx, from the checkout
 
      (An existing venv can't be opened up after the fact -- recreate it,
      or set include-system-site-packages = true in its pyvenv.cfg.)
@@ -140,7 +140,7 @@ bundling a browser, and on Linux that means one of two backends:
   2. Qt WebEngine -- no system packages and no root, but a ~100 MB
      download:
 
-         pip install 'ankipasuk[qt]'
+         pip install "pywebview[qt]"
 
 Already installed one of these? Then it isn't visible from this
 interpreter ({platform.python_version()} at {sys.executable}) -- check you're

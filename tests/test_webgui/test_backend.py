@@ -66,7 +66,7 @@ def test_choose_backend_raises_with_install_instructions_when_nothing_is_install
         backend.choose_backend()
     message = str(excinfo.value)
     assert "apt install" in message
-    assert "ankipasuk[qt]" in message
+    assert "pywebview[qt]" in message
 
 
 def test_choose_backend_defers_to_pywebview_on_windows_and_macos(probes):
@@ -115,9 +115,20 @@ def test_missing_backend_message_covers_both_install_routes():
         "sudo pacman -S",
         "sudo zypper install",
         "--system-site-packages",
-        "pip install 'ankipasuk[qt]'",
+        'pip install "pywebview[qt]"',
     ):
         assert expected in message, f"missing {expected!r}"
+
+
+def test_missing_backend_message_never_installs_ankipasuk_from_pypi():
+    # AnkiPasuk isn't on PyPI, so "pip install ankipasuk[...]" or "pipx
+    # install ankipasuk" would fail -- or, if someone ever took the name,
+    # install their package instead. Install the Qt backend itself, and
+    # point pipx at the checkout.
+    message = backend.missing_backend_message()
+    assert "install 'ankipasuk" not in message
+    assert 'install "ankipasuk' not in message
+    assert "install --system-site-packages ankipasuk" not in message
 
 
 def test_missing_backend_message_names_the_interpreter_in_use():
