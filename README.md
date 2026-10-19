@@ -313,12 +313,17 @@ pipx install --system-site-packages .           # pipx
 An existing virtualenv can't be given access afterwards: recreate it, or
 set `include-system-site-packages = true` in its `pyvenv.cfg`.
 
-**Qt WebEngine** needs no system packages and no root, but it's a download
-of about 100 MB:
+**Qt WebEngine** comes from pip and needs no root, but it's a download of
+about 100 MB:
 
 ```bash
 pip install -e ".[qt]"
 ```
+
+It does use the system's graphics libraries (EGL and OpenGL). Every normal
+desktop has them, but a minimal install or a container may not, and then Qt
+fails to load with an error like `libEGL.so.1: cannot open shared object
+file`. On Debian/Ubuntu, `sudo apt install libegl1 libgl1` provides them.
 
 With neither installed, `ankipasuk` prints these instructions and exits
 instead of failing with a traceback. To force one backend, set
