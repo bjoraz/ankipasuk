@@ -301,6 +301,24 @@ async function doGenerate() {
     document.getElementById("viz-box").innerHTML = result.viz_html;
 }
 
+// The analysis (cloze numbers, closing ta'amim, the per-pasuq table) is
+// always in the generated HTML; the checkbox only shows or hides it, so
+// toggling needs no round trip. The choice is remembered per browser.
+function wireAnalysisToggle() {
+    const box = document.getElementById("show-analysis");
+    try {
+        box.checked = localStorage.getItem("showAnalysis") === "1";
+    } catch (e) { /* storage unavailable: start unchecked */ }
+    const apply = () => {
+        document.getElementById("viz-box").classList.toggle("show-analysis", box.checked);
+        try {
+            localStorage.setItem("showAnalysis", box.checked ? "1" : "0");
+        } catch (e) { /* not remembered, still applied */ }
+    };
+    box.addEventListener("change", apply);
+    apply();
+}
+
 async function doExportCsv() {
     const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
     const resetPerLine = document.getElementById("reset-per-line").checked;
@@ -501,6 +519,7 @@ async function copyText(text) {
 window.addEventListener("pywebviewready", async () => {
     cachedBooks = await api().get_books();
     cachedBookLabels = await api().get_book_labels();
+    wireAnalysisToggle();
     addRangeRow(); // start with exactly one range row
     document.getElementById("cache-status").textContent = await api().get_cache_status();
     injectTikkunCss();

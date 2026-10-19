@@ -91,6 +91,19 @@ def test_generate_cloze_wraps_each_verse_for_spacing(genesis_1_1, genesis_1_2):
     assert result["viz_html"].count('class="viz-verse"') == 2
 
 
+def test_generate_cloze_includes_the_analysis(genesis_1_1):
+    # Always generated; the "Show analysis" checkbox only reveals it.
+    api = Api()
+    api._current_verse_data = [
+        {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1}
+    ]
+    html = api.generate_cloze(1, True)["viz_html"]
+    assert 'class="viz-chip"' in html
+    assert 'class="viz-analysis"' in html
+    assert "How Bereshit 1:1 splits" in html
+    assert "Structure: <code>(" in html
+
+
 def test_generate_cloze_skips_blank_lines(genesis_1_1):
     api = Api()
     api._current_verse_data = [

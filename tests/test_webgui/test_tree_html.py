@@ -196,3 +196,43 @@ def test_half_indent_does_not_apply_transitively():
     # D: paired with a dict (not C directly) at its own level -> not a
     # sibling leaf pair -> no bump, and critically not "transitively"
     # bumped just because ITS subtree happens to contain a bumped leaf.
+
+
+# =============================================================
+#  The analysis view
+# =============================================================
+def test_chips_label_every_leaf_with_its_cloze_number(genesis_1_2):
+    from ankipasuk.analysis import cloze_breakdown
+    from ankipasuk.webgui.tree_html import leaf_chips
+
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_2, max_leaf_disj=1)
+    breakdown = cloze_breakdown(tree)
+    html = tree_to_html(tree, chips=leaf_chips(breakdown))
+    leaves = [r for r in breakdown if r["kind"] == "clause"]
+    assert html.count('class="viz-chip"') == html.count('class="viz-line"') == len(leaves)
+    # In reading order: the first row's chip is the first leaf's.
+    assert html.index(f">c{leaves[0]['n']} ·") < html.index(f">c{leaves[1]['n']} ·")
+
+
+def test_no_chips_unless_asked(genesis_1_1):
+    _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_1, max_leaf_disj=1)
+    assert "viz-chip" not in tree_to_html(tree)
+
+
+def test_analysis_table_lists_every_cloze_and_escapes_text():
+    from ankipasuk.webgui.tree_html import analysis_to_html
+
+    breakdown = [
+        {"n": 1, "depth": 1, "kind": "clause", "text": "<a>",
+         "ends_on": {"word": "<a>", "name": "Tippeḥa", "rank": 2}},
+        {"n": 2, "depth": 1, "kind": "clause", "text": "b",
+         "ends_on": {"word": "b", "name": "Sof pasuq", "rank": 1}},
+        {"n": 3, "depth": 0, "kind": "split", "text": "<a> b",
+         "split_after": {"word": "<a>", "name": "Tippeḥa", "rank": 2}},
+    ]
+    html = analysis_to_html("Bereshit 1:1", "(L2 L1)", breakdown)
+    assert "<a>" not in html and "&lt;a&gt;" in html
+    assert html.count("<tr><td") == 3
+    assert "c3 (whole pasuq)" in html
+    assert "split after" in html and "Tippeḥa (rank 2)" in html
+    assert "(L2 L1)" in html and "Bereshit 1:1" in html

@@ -129,6 +129,11 @@ fully pointed and have to read וְהָאָ֗רֶץ from its letters. On c9 you 
 the letters of the whole pasuq and nothing else. Nested clozes need Anki
 2.1.56 or newer.
 
+To see all of this for any pasuq, tick **Show analysis** in the app. Each
+clause gets its cloze number and the ta'am it ends on, and under the
+pasuq a table lists every cloze in card order with the words it covers
+and, for the merged ones, the mafsiq it was split after.
+
 ### Pesuqim with the same shape
 
 Run the split with *N* = 1 and replace each leaf with the rank of the
@@ -343,7 +348,9 @@ most distributions package separately: `python3-tk` on Debian and Ubuntu,
    the end of one book into the start of the next.
 2. Set **Max disjunctive groups per leaf** and click **Generate cloze
    cards**. You'll see the cloze markup, the groups for each pasuq, and
-   each pasuq's tree drawn as indented, colored rows.
+   each pasuq's tree drawn as indented, colored rows. Tick **Show
+   analysis** to label each row with its cloze number and closing ta'am,
+   and to get a table of every cloze and the mafsiq behind it.
 3. Click **Export to CSV** and import the file into Anki. It's
    tab-separated with one row per pasuq: a running number, the reference
    (e.g. `Bereshit 1:1`), the cloze text, the unpointed pasuq, the
@@ -379,6 +386,7 @@ src/ankipasuk/
 ├── text_processing.py   ranking, paseq, grouping, splitting
 ├── cloze.py             tree → nested cloze markup, structure signature
 ├── structure.py         grouping pesuqim by structure
+├── analysis.py          each cloze's words and the mafsiq behind it
 ├── stats.py             statistics for a loaded range
 ├── qeriya.py            parasha / 'aliyya / maftir / holiday tag logic
 ├── sefaria.py           Sefaria API
@@ -396,7 +404,7 @@ docs/                    scheduling, tagging, and the transliteration rules
 
 Only `webgui/` and `gui/` touch anything graphical. The AnkiConnect client
 is plain standard library. Everything from `config.py` to `verse_cards.py`
-can be used from a script or a notebook.
+(`analysis.py` included) can be used from a script or a notebook.
 
 The first version of the app used tkinter, which doesn't handle
 right-to-left text properly; long pointed pesuqim came out with words

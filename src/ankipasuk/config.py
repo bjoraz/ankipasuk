@@ -284,6 +284,16 @@ TROPE_UNICODE = {
 # text_processing.adjust_for_munach_legarmeh.
 LEGARMEH_NAME = "Paseq"
 
+# Tere qadmin: qadma written twice on one word, the extra mark (U+05A8,
+# the codepoint that is otherwise azla) on the stressed syllable. For
+# every purpose it is qadma -- same rank, counted as Qadma in the
+# statistics -- but a word carrying it is labeled with this name where
+# the app shows a single word's ta'am (the analysis view), since that's
+# what it's called. See analysis._closing_taam.
+TERE_QADMIN_NAME = "Tere qadmin"
+QADMA = "\u0599"
+AZLA = "\u05A8"
+
 MAKEF = "\u05BE"
 MUNACH = "\u05A3"
 PASEQ = "\u05C0"
