@@ -28,6 +28,7 @@
   <button class="tab-btn" data-tab="stems">Initialize Stems</button>
   <button class="tab-btn" data-tab="sched">Sync Scheduling</button>
   <button class="tab-btn" data-tab="tag">Tag Deck</button>
+  <button class="tab-btn" data-tab="migrate">Migrate Tags</button>
 </div>
 
 <div class="tab-panel" data-panel="conn">
@@ -59,6 +60,13 @@
   <div class="field-row"><label><input type="checkbox" id="tag-dry-run" checked> Dry run (preview only)</label></div>
   <button id="run-tag">Run</button>
   <div class="log-pane" id="log-tag"></div>
+</div>
+<div class="tab-panel" data-panel="migrate">
+  <div class="blurb">Rename the tags AnkiPasuk made with the old spelling (aliyah::..., holiday::simchat_torah, amud::..., ...) to the new spelling. Only touches tags AnkiPasuk itself generates, and adds each new tag before removing the old one. See docs/transliteration.md for the full list.</div>
+  <div class="field-row"><label>Deck: <input type="text" id="migrate-deck" value="Qeriya"></label></div>
+  <div class="field-row"><label><input type="checkbox" id="migrate-dry-run" checked> Dry run (preview only)</label></div>
+  <button id="run-migrate">Run</button>
+  <div class="log-pane" id="log-migrate"></div>
 </div>
 
 <script src="anki_connect.js"></script>

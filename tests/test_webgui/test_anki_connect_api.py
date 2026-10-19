@@ -131,6 +131,29 @@ def test_tag_deck_reports_summary(fake_anki, tmp_path, monkeypatch):
     assert any("DRY RUN" in line for line in logs)
 
 
+def test_migrate_tags_reports_summary(fake_anki, tmp_path, monkeypatch):
+    from ankipasuk.cache import SefariaCache
+
+    monkeypatch.setattr(
+        "ankipasuk.webgui.anki_connect_api.SefariaCache",
+        lambda: SefariaCache(cache_dir=tmp_path),
+    )
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 1:1"}, tags=["amud::001"])
+
+    api = AnkiConnectApi()
+    window = _FakeWindow()
+    api._window = window
+
+    api.migrate_tags("http://fake", DECK, True)
+    _wait_for_done(window, "migrate")
+
+    logs = _log_lines(window, "migrate")
+    assert any("RENAME  amud::001 -> ammud::001" in line for line in logs)
+    assert any("Tags renamed: 1" in line for line in logs)
+    assert any("DRY RUN" in line for line in logs)
+    assert fake_anki.notes[1]["tags"] == ["amud::001"]
+
+
 def test_errors_are_logged_not_raised(fake_anki):
     """An operation on a nonexistent/misbehaving setup must report via
     appendLog + operationDone, never raise out of the background thread

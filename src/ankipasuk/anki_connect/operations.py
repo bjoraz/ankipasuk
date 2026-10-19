@@ -64,6 +64,17 @@ def add_tags(note_ids: list[int], tags: str, *, url: str, dry_run: bool, log: Lo
         _log_batch_progress(log, "Tagged", done, len(note_ids))
 
 
+def remove_tags(note_ids: list[int], tags: str, *, url: str, dry_run: bool, log: Logger = _noop) -> None:
+    """Remove one or more space-separated tags from every note in ``note_ids``."""
+    if not note_ids or dry_run:
+        return
+    done = 0
+    for batch in _batched(note_ids):
+        invoke("removeTags", url=url, notes=batch, tags=tags)
+        done += len(batch)
+        _log_batch_progress(log, "Untagged", done, len(note_ids))
+
+
 def cards_info(card_ids: list[int], *, url: str, log: Logger = _noop) -> list[dict]:
     if not card_ids:
         return []

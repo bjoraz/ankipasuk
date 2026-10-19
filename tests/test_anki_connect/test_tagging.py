@@ -2,6 +2,7 @@ from ankipasuk.anki_connect.operations import _BATCH_SIZE
 from ankipasuk.anki_connect.tagging import (
     apply_tagging_plan,
     compute_tagging_plan,
+    migrate_legacy_tags,
     parse_source_field,
 )
 from ankipasuk.cache import SefariaCache
@@ -255,3 +256,63 @@ def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_pat
     assert "aliyya::bereshit::07-vayyetse::maftir" not in notes[1].missing_tags
     assert "aliyya::bereshit::07-vayyetse::maftir" in notes[2].missing_tags
     assert "aliyya::bereshit::07-vayyetse::maftir" in notes[3].missing_tags
+
+
+# =============================================================
+#  migrate_legacy_tags
+# =============================================================
+def _cache_with_sefaria_parasha_names(tmp_path) -> SefariaCache:
+    """Parasha structures for all five books, so migrating old parasha::
+    tiqqun-card tags needs no network. Genesis gets Sefaria's real names
+    (what the old tags were built from); the other books placeholders of
+    the right length."""
+    cache = SefariaCache(cache_dir=tmp_path)
+    genesis = ["Bereshit", "Noach", "Lech Lecha", "Vayera", "Chayei Sara", "Toldot",
+               "Vayetzei", "Vayishlach", "Vayeshev", "Miketz", "Vayigash", "Vayechi"]
+    for book in TORAH_VERSE_COUNTS:
+        names = genesis if book == "Genesis" else [f"{book} {i}" for i in range(len(parasha_table(book)))]
+        cache.set_parasha_structure(book, [{"name": n, "refs": []} for n in names])
+    return cache
+
+
+def test_migrate_legacy_tags_renames_only_our_old_tags(tmp_path, fake_anki):
+    old_tags = [
+        "aliyah::bereshit::05-haye_sara::3", "holiday::simchat_torah::1", "amud::012",
+        "ankipasuk-aliyah", "parasha::Chayei-Sara", "my-own-tag", "holiday::purim::1",
+    ]
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 23:1"}, tags=list(old_tags))
+    cache = _cache_with_sefaria_parasha_names(tmp_path)
+
+    preview = migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=True)
+    assert preview == {"total_notes": 1, "notes_changed": 1, "tags_renamed": 5}
+    assert sorted(fake_anki.notes[1]["tags"]) == sorted(old_tags)
+
+    migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=False)
+    assert sorted(fake_anki.notes[1]["tags"]) == sorted([
+        "aliyya::bereshit::05-hayye_sara::3", "holiday::simhat_tora::1", "ammud::012",
+        "ankipasuk-aliyya", "parasha::hayye_sara", "my-own-tag", "holiday::purim::1",
+    ])
+
+    again = migrate_legacy_tags(DECK, url="http://fake", cache=cache, dry_run=False)
+    assert again["tags_renamed"] == 0
+
+
+def test_migrate_legacy_tags_skips_sefaria_when_no_parasha_tags(tmp_path, fake_anki):
+    # No parasha:: tags, so Sefaria's names are never needed -- an empty
+    # cache would otherwise force a network fetch.
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bamidbar 13:1"},
+                                   tags=["aliyah::bamidbar::04-shlach::1"])
+    migrate_legacy_tags(DECK, url="http://fake", cache=SefariaCache(cache_dir=tmp_path), dry_run=False)
+    assert fake_anki.notes[1]["tags"] == ["aliyya::bemidbar::04-shelah_lekha::1"]
+
+
+def test_tagging_flags_old_tags_and_points_to_migration(tmp_path, fake_anki):
+    fake_anki.add_note_with_fields(1, DECK, {"Source": "Bereshit 1:1"},
+                                   tags=["aliyah::bereshit::01-bereshit::1"])
+    cache = _cache_with_genesis(tmp_path, {"bereshit": ["Genesis 1:1-2:3"] + ["Genesis 1:31"] * 6})
+    plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
+    assert plan.notes[0].conflicting_tags == ["aliyah::bereshit::01-bereshit::1"]
+
+    logs = []
+    apply_tagging_plan(plan, url="http://fake", dry_run=True, log=logs.append)
+    assert any("ankipasuk-migrate-tags" in line for line in logs)

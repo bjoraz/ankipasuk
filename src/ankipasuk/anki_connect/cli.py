@@ -14,7 +14,7 @@ import sys
 
 from .client import DEFAULT_URL, AnkiConnectError, invoke
 from .scheduling import initialize_stems, process_lapses, process_promotions
-from .tagging import apply_tagging_plan, compute_tagging_plan
+from .tagging import apply_tagging_plan, compute_tagging_plan, migrate_legacy_tags
 
 
 def _pause() -> None:
@@ -205,6 +205,51 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
         _pause()
 
 
+def migrate_tags_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: bool = True) -> None:
+    from ..cache import SefariaCache
+
+    print()
+    print("=" * 60)
+    print("MIGRATE TAGS TO THE NEW SPELLING")
+    print("=" * 60)
+    print()
+    print(f"Deck: {deck}")
+    print("MODE:", "DRY RUN" if dry_run else "LIVE")
+
+    try:
+        print()
+        print("Connecting to Anki...")
+        version = invoke("version", url=url)
+        print(f"Connected. AnkiConnect version: {version}")
+        print()
+        summary = migrate_legacy_tags(deck, url=url, cache=SefariaCache(), dry_run=dry_run, log=print)
+    except AnkiConnectError as e:
+        print()
+        print("ERROR")
+        print("-" * 40)
+        print(e)
+        if pause:
+            _pause()
+        sys.exit(1)
+
+    print()
+    print("=" * 60)
+    print("DONE")
+    print("=" * 60)
+    print()
+    print(f"Total notes:     {summary['total_notes']}")
+    print(f"Notes changed:   {summary['notes_changed']}")
+    print(f"Tags renamed:    {summary['tags_renamed']}")
+
+    if dry_run:
+        print()
+        print("DRY RUN -- no changes were made.")
+        print("If the plan looks correct, change DRY_RUN to False.")
+
+    if pause:
+        _pause()
+
+
 # =============================================================
 #  console_scripts entry points (installed via pip; terminal use,
 #  as an alternative to double-clicking the scripts/ wrappers)
@@ -254,3 +299,16 @@ def _console_tag_deck() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
     args = parser.parse_args()
     tag_deck_cli(args.deck, url=args.url, dry_run=args.dry_run, pause=False)
+
+
+def _console_migrate_tags() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Rename tags made with the old spelling to the new one (see docs/transliteration.md)."
+    )
+    parser.add_argument("deck", help='e.g. "Qeriya"')
+    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--dry-run", action="store_true", help="Show what would change; make no changes.")
+    args = parser.parse_args()
+    migrate_tags_cli(args.deck, url=args.url, dry_run=args.dry_run, pause=False)
