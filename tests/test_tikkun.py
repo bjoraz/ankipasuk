@@ -141,7 +141,7 @@ def test_pointed_text_keeps_sof_pasuk():
 
 
 def test_pointed_text_resolves_ketiv_kri_to_the_kri_reading():
-    # "#" inside a word marks a ketiv/kri correction -- only the text
+    # "#" inside a word marks a ketiv/qeri correction -- only the text
     # AFTER it (the "read as" form) is kept, matching a real Tikkun.
     assert scroll_pointed_text("כתיב#קרי") == "קרי"
 

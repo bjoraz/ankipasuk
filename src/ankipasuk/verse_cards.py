@@ -27,8 +27,8 @@ setumah/poetic ("brick") gap between two fragments is a real feature of
 the row's own layout, independent of where any verse boundary happens to
 fall. A gap can sit between two fragments that belong to different
 verses (an ordinary setumah between them), or entirely *within* one
-verse's own text (Az Yashir/Shirat HaYam's poetic layout, or the Aseret
-HaDibrot's), so word-level verse splitting and fragment-level gap
+verse's own text (Az Yashir/Shirat HaYam's poetic layout, or the 'Aseret
+haDibberot's), so word-level verse splitting and fragment-level gap
 rendering are two independent things this module has to get right at
 once, not one implying the other.
 
@@ -46,7 +46,7 @@ is. Unlike the tail side, this can chain arbitrarily deep -- the verse
 just before the range can ITSELF share leading words with the verse
 before IT, and so on, for as long as consecutive rows keep landing verse
 boundaries mid-fragment (which ordinary Torah text does constantly; the
-Aseret HaDibrot's run of one-per-line "commandments" needs many verses'
+'Aseret haDibberot's run of one-per-line "commandments" needs many verses'
 worth of this before reaching a safe starting point) -- see
 :func:`ankipasuk.tikkun.leading_verses_needing_alignment` for how far
 back :func:`_build_from_verse_refs` walks to find one, and that function
@@ -79,7 +79,7 @@ Row = tuple[list[list[str]], bool, int]
 # build_verse_cards_from_words's own rendering of it. Bracketed like
 # BEGINNING_MARKER, for the same reason: it's a structural note about the
 # scroll, not text anyone recites.
-AMUD_BREAK_MARKER = "['Amud {page_num}]"
+AMUD_BREAK_MARKER = "['Ammud {page_num}]"
 
 
 def _verse_word_count(book: str, ch: int, vs: int, cache: SefariaCache) -> int:
@@ -434,7 +434,7 @@ def build_amud_verse_cards(
     own last row too, when that verse's own tail crosses onto the NEXT
     amud (:func:`ankipasuk.tikkun.get_row_fragments_for_range`'s
     ``generous_tail`` already fetches it) -- rendered with a visible
-    "['Amud N]" break (see :func:`_render_amud_break`) rather than
+    "['Ammud N]" break (see :func:`_render_amud_break`) rather than
     silently splicing the new column's lines onto this one, since a real
     reciter following along on an actual scroll needs to know they've
     turned to a new column mid-verse.

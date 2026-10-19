@@ -61,7 +61,7 @@ const RANGE_ROW_TEMPLATE = `
     <label>Mode:
       <select class="range-mode">
         <option value="cv">Chapter / Verse</option>
-        <option value="pa">Parasha / 'Aliya</option>
+        <option value="pa">Parasha / 'Aliyya</option>
       </select>
     </label>
     <label>Book:
@@ -77,7 +77,7 @@ const RANGE_ROW_TEMPLATE = `
 
     <span class="range-pa-controls inline-group" hidden>
       <label>Parasha: <select class="range-parasha"></select></label>
-      <label>'Aliya: <select class="range-aliyah"></select></label>
+      <label>'Aliyya: <select class="range-aliyah"></select></label>
     </span>
 
     <button class="btn-remove-range" type="button" title="Remove this range">Remove</button>
@@ -153,7 +153,7 @@ async function refreshRangeAliyahDropdown(row) {
     if (!parasha) return;
     const result = await api().get_aliyah_count(book, parasha);
     if (!result.ok) {
-        showToast("Could not load 'aliyot: " + result.error, true);
+        showToast("Could not load 'aliyyot: " + result.error, true);
         return;
     }
     const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
@@ -331,7 +331,7 @@ async function refreshLpcgAliyahDropdown(which) {
     if (!parasha) return;
     const result = await api().get_aliyah_count(book, parasha);
     if (!result.ok) {
-        showToast("Could not load 'aliyot: " + result.error, true);
+        showToast("Could not load 'aliyyot: " + result.error, true);
         return;
     }
     const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
@@ -370,11 +370,11 @@ async function doExportLpcg() {
             return;
         }
         status.textContent =
-            `${result.aliyot} ${result.aliyot === 1 ? "'aliya" : "'aliyot"}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+            `${result.aliyot} ${result.aliyot === 1 ? "'aliyya" : "'aliyyot"}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
         showToast("Exported to Anki.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Export 'aliyot to Anki";
+        btn.textContent = "Export 'aliyyot to Anki";
     }
 }
 
@@ -389,7 +389,7 @@ async function doExportAmud() {
     const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
 
     if (!amud || amud < 1 || amud > 245) {
-        showToast("Enter an 'amud number from 1 to 245.", true);
+        showToast("Enter an 'ammud number from 1 to 245.", true);
         return;
     }
     if (!deckName) {
@@ -408,11 +408,11 @@ async function doExportAmud() {
             showToast("Export failed: " + result.error, true);
             return;
         }
-        status.textContent = `${result.book} 'amud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
+        status.textContent = `${result.book} 'ammud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
         showToast("Exported to Anki.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Export 'amud to Anki";
+        btn.textContent = "Export 'ammud to Anki";
     }
 }
 

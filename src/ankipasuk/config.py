@@ -142,7 +142,7 @@ QERIYA_DECK_NAMES = {
 CSV_FLAGS = "1,0,false,true,false,true"
 
 # =============================================================
-#  TE'AMIM: UNICODE -> NAME AND RANK
+#  TA'AMIM: UNICODE -> NAME AND RANK
 # =============================================================
 # name, disjunctive rank (1 = strongest / verse-final, 4 = weakest; 0 = mesharet)
 #

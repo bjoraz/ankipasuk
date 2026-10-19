@@ -83,7 +83,7 @@ def adjust_for_munach_legarmeh(tokens) -> None:
     The condition deliberately accepts any level-3 mafsiq, not only a
     ravia' (the usual case). This follows Joshua Jacobson's *Chanting the
     Hebrew Bible*: there are rare cases of it before the other level-3
-    te'amim. Don't narrow it to ravia' alone.
+    ta'amim. Don't narrow it to ravia' alone.
 
     The stroke's own token gets the new level and the name
     :data:`ankipasuk.config.LEGARMEH_NAME`. Mutates ``tokens`` in place."""

@@ -300,7 +300,7 @@ def get_aliyah_ref(book: str, parasha_name: str, aliyah_num: int, cache: Sefaria
             refs = p["refs"]
             if 1 <= aliyah_num <= len(refs):
                 return refs[aliyah_num - 1]
-            raise ValueError(f"{parasha_name} does not have 'aliya {aliyah_num}.")
+            raise ValueError(f"{parasha_name} does not have 'aliyya {aliyah_num}.")
     raise ValueError(f"Parasha {parasha_name} not found in {book}.")
 
 
@@ -358,7 +358,7 @@ def fetch_aliyot_in_range(
 
             if first_num < 1 or last_num > len(refs) or first_num > last_num:
                 raise ValueError(
-                    f"{parasha['name']} does not have 'aliyot {first_num}-{last_num} "
+                    f"{parasha['name']} does not have 'aliyyot {first_num}-{last_num} "
                     f"(it has {len(refs)})."
                 )
 

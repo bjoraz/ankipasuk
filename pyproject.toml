@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ankipasuk"
 version = "0.1.0"
-description = "Anki cards for reading from the Sefer Tora: nested clozes split along the te'amim, and scroll-accurate recitation cards."
+description = "Anki cards for reading from the Sefer Tora: nested clozes split along the ta'amim, and scroll-accurate recitation cards."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Alexis Fonjallaz" }]
-keywords = ["anki", "tora", "hebrew", "te'amim", "cantillation", "sefaria"]
+keywords = ["anki", "tora", "hebrew", "ta'amim", "cantillation", "sefaria"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

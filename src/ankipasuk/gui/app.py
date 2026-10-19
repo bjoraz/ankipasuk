@@ -574,7 +574,7 @@ class AnkiPasukApp:
         root.grid_rowconfigure(6, weight=3)
 
         # --- Source controls ---
-        source_labelframe = ttk.LabelFrame(root, text="Source (Sefaria, Torah only)")
+        source_labelframe = ttk.LabelFrame(root, text="Source (Sefaria, Tora only)")
         source_labelframe.grid(
             row=0, column=0, rowspan=2, columnspan=2, sticky="ew", padx=PADX, pady=(PADY, 4)
         )

@@ -1,24 +1,24 @@
 # AnkiPasuk
 
 AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for learning to read
-from the sefer. It takes the text and te'amim from
+from the sefer. It takes the text and ta'amim from
 [Sefaria](https://www.sefaria.org/) and gives you two kinds of cards, each
 with its own job:
 
 - **Cloze cards** are for learning the pesuqim and their structure. Each
-  pasuq is taken apart along its own te'amim: first into its two halves,
+  pasuq is taken apart along its own ta'amim: first into its two halves,
   then each half into its clauses, down to the smallest phrases the
   mafsiqim allow. You learn the reading a piece at a time and see how the
-  te'amim divide the pasuq as you go. The hidden part shows only its bare
+  ta'amim divide the pasuq as you go. The hidden part shows only its bare
   letters, the way it's written in the sefer, and you supply the reading.
 - **Tiqqun cards** are for memorizing what you'll actually read: a whole
-  'aliya or 'amud, line by line, laid out as in the sefer (the standard
-  layout of 245 'amudim with 42 lines each). The cloze cards teach you the
+  'aliyya or 'ammud, line by line, laid out as in the sefer (the standard
+  layout of 245 'ammudim with 42 lines each). The cloze cards teach you the
   pesuqim; these make sure you can read them off the column in front of
   you.
 
 There's also a statistics window for whatever range you've loaded
-(including a way to find pesuqim that share the same te'amim structure),
+(including a way to find pesuqim that share the same ta'amim structure),
 and a few optional tools that work on your Anki collection directly.
 
 ## The structure algorithm
@@ -31,7 +31,7 @@ This is what drives the cloze cards. Here it is step by step, with Bereshit
 Every mafsiq has a rank, following the usual four classes (qesarim,
 melakhim, mishnim, shalishim):
 
-| Rank | Te'amim |
+| Rank | Ta'amim |
 |---|---|
 | 1 | Sof pasuq, Atnaḥ |
 | 2 | Segolta, Shalshelet, Zaqef qaton, Zaqef gadol, Tarḥa |
@@ -50,7 +50,7 @@ part of a mafsiq or just a pause:
 
 The next mafsiq is usually a ravia', but any rank-3 mafsiq counts. That
 follows Joshua Jacobson's *Chanting the Hebrew Bible*, which has rare cases
-before the other rank-3 te'amim. In the code the plain stroke is labeled
+before the other rank-3 ta'amim. In the code the plain stroke is labeled
 "Pesiq" to keep it apart from paseq. That label is AnkiPasuk's own, not an
 established Sephardi term, and it's never shown in the app.
 
@@ -67,7 +67,7 @@ does AnkiPasuk. `TROPE_UNICODE` in `config.py` has the full mapping.
 ### 2. Group mesharetim with the mafsiq they lead into
 
 Each run of mesharetim joins the mafsiq that ends it. These groups are the
-smallest units the te'amim let you cut the pasuq into. Bereshit 1:2 has
+smallest units the ta'amim let you cut the pasuq into. Bereshit 1:2 has
 eight:
 
 | | Group | Ends with | Rank |
@@ -118,7 +118,7 @@ c7     └─ מרחפת על פני המים
 ```
 
 Each cloze is written as `{{cN::pointed text::unpointed text}}`, so the
-hint Anki shows in the gap is the same words without niqqud or te'amim,
+hint Anki shows in the gap is the same words without niqqud or ta'amim,
 just as they look in the sefer. On card c1 you see the rest of the pasuq
 fully pointed and have to read וְהָאָ֗רֶץ from its letters. On c9 you get
 the letters of the whole pasuq and nothing else. Nested clozes need Anki
@@ -168,18 +168,18 @@ format_structure(verse_structure_signature(pasuq))  # '(((L3 (L3 L2)) (L2 L1)) (
   nothing else.
 
 Tehillim, Mishle and Iyov aren't supported, because the Sifre Emet use a
-different system of te'amim.
+different system of ta'amim.
 
 ## Tiqqun cards
 
-Tiqqun cards are for memorizing the qeriya itself, a whole 'aliya or 'amud
-at a time. Choose a range of 'aliyot (or a single 'amud, 1 to 245) and
+Tiqqun cards are for memorizing the qeriya itself, a whole 'aliyya or 'ammud
+at a time. Choose a range of 'aliyyot (or a single 'ammud, 1 to 245) and
 AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on.
-In the app they're in the **Export 'aliyot to Anki (recitation cards)**
+In the app they're in the **Export 'aliyyot to Anki (recitation cards)**
 panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
-layout data, which follows the standard layout of the sefer: 245 'amudim
+layout data, which follows the standard layout of the sefer: 245 'ammudim
 of 42 lines each. Lines break where they do in that layout and are
 justified edge to edge, petuḥot and setumot appear as real gaps
 (Az Yashir and the 'Aseret haDibberot included), and the font is the same
@@ -200,7 +200,7 @@ card tests that pasuq's words and nothing more:
 - On a line shared with the next pasuq, its opening words are covered by a
   gray bar on both sides of the card, so this card doesn't give away the
   next one.
-- A pasuq that runs over onto the next 'amud gets a visible "['Amud N]"
+- A pasuq that runs over onto the next 'ammud gets a visible "['Ammud N]"
   divider where the column changes.
 
 The alignment also works backwards. If the first pasuq you asked for starts
@@ -247,7 +247,7 @@ scripts in `scripts/`.
   so you drill them alongside it until it's back up. Details in
   [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
 - **Tag notes by where they're read.** Each note is tagged with its parasha
-  and 'aliya, whether it's in the maftir, and any holiday or fast-day
+  and 'aliyya, whether it's in the maftir, and any holiday or fast-day
   reading it belongs to, for example `aliyah::bereshit::04-vayera::7` and
   `holiday::rosh_hashana_ii::1`. It only ever adds tags. If an existing tag
   disagrees with what it worked out, that's reported and left alone.
@@ -273,7 +273,7 @@ notes.
 
 ## Using the app
 
-1. Add one or more ranges, by chapter and verse or by parasha and 'aliya,
+1. Add one or more ranges, by chapter and verse or by parasha and 'aliyya,
    from the Tora, Nevi'im or the five Megillot, then click **Fetch all
    ranges**. Ranges are joined in the order you add them, so you can run
    the end of one book into the start of the next.
@@ -287,7 +287,7 @@ notes.
    settings string. The tagging tool looks for the reference in a field
    called `Source`.
 4. For tiqqun cards, use the panel at the bottom: book, first and last
-   parasha and 'aliya (or an 'amud number), deck name, and how to divide
+   parasha and 'aliyya (or an 'ammud number), deck name, and how to divide
    the cards.
 
 **Reset cloze numbering for each line** is on by default, so each pasuq
@@ -316,7 +316,7 @@ src/ankipasuk/
 ├── cloze.py             tree → nested cloze markup, structure signature
 ├── structure.py         grouping pesuqim by structure
 ├── stats.py             statistics for a loaded range
-├── qeriya.py            parasha / 'aliya / maftir / holiday tag logic
+├── qeriya.py            parasha / 'aliyya / maftir / holiday tag logic
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both
@@ -350,12 +350,12 @@ ruff check src tests scripts
 
 The tests don't touch the network. They use hand-built pesuqim with real
 ta'am characters, fake tikkun.io pages (including lines shared between
-pesuqim and across 'amudim), and an in-memory stand-in for AnkiConnect.
+pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 
 ## Credits
 
-- Text and te'amim from the [Sefaria API](https://www.sefaria.org/).
-- The 'amud layout and the Shlomo semiStam font from
+- Text and ta'amim from the [Sefaria API](https://www.sefaria.org/).
+- The 'ammud layout and the Shlomo semiStam font from
   [tikkun.io](https://github.com/akivajgordon/tikkun.io) (MIT; the font is
   by Shlomo Orbach under the SIL Open Font License).
 - Maftir lengths and the holiday reading table come from

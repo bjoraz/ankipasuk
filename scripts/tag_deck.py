@@ -1,4 +1,4 @@
-"""Tag every note in a deck with its parasha/'aliya/maftir/holiday tags,
+"""Tag every note in a deck with its parasha/'aliyya/maftir/holiday tags,
 computed from Sefaria (live, cached locally) + a small bundled data table.
 
 Never removes or overwrites existing tags -- only adds missing ones, and

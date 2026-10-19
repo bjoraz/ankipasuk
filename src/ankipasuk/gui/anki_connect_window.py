@@ -286,7 +286,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
             tag_tab.log("")
             tag_tab.log(
                 f"Total notes: {summary['total_notes']}  "
-                f"Not a Torah ref: {summary['unparsed_notes']}  "
+                f"Not a Tora ref: {summary['unparsed_notes']}  "
                 f"Notes tagged: {summary['notes_needing_tags']}  "
                 f"Tags added: {summary['total_tags_to_add']}  "
                 f"Conflicts: {summary['notes_with_conflicts']}"

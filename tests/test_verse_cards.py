@@ -307,7 +307,7 @@ def test_petucha_row_gets_the_petucha_class():
 
 def test_a_setuma_gap_within_one_verse_gets_the_setuma_class_and_a_real_gap():
     """The exact regression this was built for: a poetic "brick" gap
-    (Az Yashir/Shirat HaYam, or the Aseret HaDibrot) entirely within one
+    (Az Yashir/Shirat HaYam, or the 'Aseret haDibberot) entirely within one
     verse's OWN tested content must still render as separate
     .fragment.setuma spans -- not collapse into one plain justified
     run -- so the CSS still draws the real gap tikkun.io itself does."""
@@ -349,7 +349,7 @@ def test_amud_break_inserted_between_own_rows_on_different_pages():
     rows = [([["a"]], False, 1), ([["b"]], False, 2)]
     fields = build_verse_cards_from_words(rows, [(1, 1)], [2], None, title="T", box_width="5ch")
     row_a = '<div class="line"><div class="column"><span class="fragment"><span class="cloze-inline">a'
-    break_marker = '<div class="amud-break">[\'Amud 2]</div>'
+    break_marker = '<div class="amud-break">[\'Ammud 2]</div>'
     assert row_a in fields[0]["BackRows"]
     assert break_marker in fields[0]["BackRows"]
     # The break sits strictly between the two rows.
@@ -371,7 +371,7 @@ def test_amud_break_between_context_row_and_own_rows():
     rows = [([["b"]], False, 2)]
     preceding = ([["a"]], False, 1)
     fields = build_verse_cards_from_words(rows, [(1, 1)], [1], preceding, title="T", box_width="5ch")
-    assert '<div class="amud-break">[\'Amud 2]</div>' in fields[0]["BackRows"]
+    assert '<div class="amud-break">[\'Ammud 2]</div>' in fields[0]["BackRows"]
 
 
 def test_no_amud_break_against_the_beginning_marker():

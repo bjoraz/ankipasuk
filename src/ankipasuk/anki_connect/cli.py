@@ -46,7 +46,7 @@ def check_connection(url: str = DEFAULT_URL, *, pause: bool = True) -> None:
 def initialize_stems_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: bool = True) -> None:
     print()
     print("=" * 60)
-    print("TORAH STEM INITIALIZER")
+    print("TORA STEM INITIALIZER")
     print("=" * 60)
     print()
     print(f"Deck: {deck}")
@@ -150,7 +150,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
 
     print()
     print("=" * 60)
-    print("PARASHA / 'ALIYA / MAFTIR / HOLIDAY TAGGER")
+    print("PARASHA / 'ALIYYA / MAFTIR / HOLIDAY TAGGER")
     print("=" * 60)
     print()
     print(f"Deck: {deck}")
@@ -247,7 +247,7 @@ def _console_tag_deck() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Tag every note in a deck with its parasha/'aliya/maftir/holiday tags."
+        description="Tag every note in a deck with its parasha/'aliyya/maftir/holiday tags."
     )
     parser.add_argument("deck", help='e.g. "Qeriya"')
     parser.add_argument("--url", default=DEFAULT_URL)

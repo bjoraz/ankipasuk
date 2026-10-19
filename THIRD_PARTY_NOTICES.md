@@ -36,13 +36,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-The weekly 'aliya divisions are not taken from this data. They're fetched
+The weekly 'aliyya divisions are not taken from this data. They're fetched
 live from the [Sefaria API](https://www.sefaria.org/) and cached locally
 (see `ankipasuk.sefaria.get_parasha_structure`). The bundled data is used
 only for two things Sefaria's `Parasha` structure doesn't provide:
 
 1. **How many pesuqim each parasha's maftir has** (a number, such as 4).
-   This is counted back from the live end of the seventh 'aliya to find the
+   This is counted back from the live end of the seventh 'aliyya to find the
    actual maftir, so differences in chapter numbering between sources can't
    throw it off (see `docs/anki-tagging.md` for why this matters at
    Bereshit 31/32).
