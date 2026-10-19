@@ -470,7 +470,7 @@ def get_amud_row_fragments(amud_num: int, cache: SefariaCache) -> list[tuple[lis
     """Like :func:`get_amud_lines`, but each row is its own fragments
     (see :func:`_row_fragments`) instead of rendered HTML."""
     if not (1 <= amud_num <= TOTAL_AMUDIM):
-        raise ValueError(f"Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
+        raise ValueError(f"'Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
     return [_row_fragments(entry, amud_num) for entry in get_page(amud_num, cache)]
 
 
@@ -490,7 +490,7 @@ def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
     and this always has a single unambiguous answer.
     """
     if not (1 <= page_num <= TOTAL_AMUDIM):
-        raise ValueError(f"Amud must be between 1 and {TOTAL_AMUDIM} (got {page_num}).")
+        raise ValueError(f"'Amud must be between 1 and {TOTAL_AMUDIM} (got {page_num}).")
 
     toc = get_toc(cache)
     for book, book_num in TIKKUN_BOOK_NUMBERS.items():
@@ -500,7 +500,7 @@ def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
         if page_num <= last_page:
             return book
 
-    raise ValueError(f"Amud {page_num} is out of range (Torah has {TOTAL_AMUDIM} amudim).")
+    raise ValueError(f"'Amud {page_num} is out of range (the Torah has {TOTAL_AMUDIM} 'amudim).")
 
 
 def _preceding_entry(book: str, ch: int, vs: int, cache: SefariaCache) -> tuple[dict, int] | None:
@@ -573,7 +573,7 @@ def get_verse_row_indices_on_amud(amud_num: int, cache: SefariaCache) -> list[tu
     tested on this amud's very first card.
     """
     if not (1 <= amud_num <= TOTAL_AMUDIM):
-        raise ValueError(f"Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
+        raise ValueError(f"'Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
 
     page = get_page(amud_num, cache)
     return [
@@ -592,7 +592,7 @@ def get_amud_lines(amud_num: int, cache: SefariaCache) -> list[dict]:
     (see :func:`get_page`), so the whole page's lines are returned as-is.
     """
     if not (1 <= amud_num <= TOTAL_AMUDIM):
-        raise ValueError(f"Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
+        raise ValueError(f"'Amud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
 
     page = get_page(amud_num, cache)
     lines = []

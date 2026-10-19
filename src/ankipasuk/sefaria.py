@@ -261,9 +261,9 @@ def get_parasha_structure(book: str, cache: SefariaCache):
         resp.raise_for_status()
         data = resp.json()
     except requests.RequestException as e:
-        raise RuntimeError(f"Could not load parashah structure for {book}: {e}") from e
+        raise RuntimeError(f"Could not load parasha structure for {book}: {e}") from e
     except ValueError as e:
-        raise RuntimeError(f"Invalid JSON in parashah structure for {book}.") from e
+        raise RuntimeError(f"Invalid JSON in parasha structure for {book}.") from e
 
     alt_structs = data.get("alt_structs", {})
     parasha_struct = alt_structs.get("Parasha")
@@ -286,7 +286,7 @@ def get_parasha_structure(book: str, cache: SefariaCache):
             })
 
     if not out:
-        raise RuntimeError(f"No parashah nodes found for {book}.")
+        raise RuntimeError(f"No parasha nodes found for {book}.")
 
     cache.set_parasha_structure(book, out)
     return out
@@ -300,8 +300,8 @@ def get_aliyah_ref(book: str, parasha_name: str, aliyah_num: int, cache: Sefaria
             refs = p["refs"]
             if 1 <= aliyah_num <= len(refs):
                 return refs[aliyah_num - 1]
-            raise ValueError(f"{parasha_name} does not have aliyah {aliyah_num}.")
-    raise ValueError(f"Parashah {parasha_name} not found in {book}.")
+            raise ValueError(f"{parasha_name} does not have 'aliya {aliyah_num}.")
+    raise ValueError(f"Parasha {parasha_name} not found in {book}.")
 
 
 def fetch_aliyot_in_range(
@@ -337,14 +337,14 @@ def fetch_aliyot_in_range(
     names = [p["name"] for p in parashot]
 
     if start_parasha not in names:
-        raise ValueError(f"Parashah {start_parasha!r} not found in {book}.")
+        raise ValueError(f"Parasha {start_parasha!r} not found in {book}.")
     if end_parasha not in names:
-        raise ValueError(f"Parashah {end_parasha!r} not found in {book}.")
+        raise ValueError(f"Parasha {end_parasha!r} not found in {book}.")
 
     start_idx = names.index(start_parasha)
     end_idx = names.index(end_parasha)
     if end_idx < start_idx:
-        raise ValueError("End parashah must not come before start parashah.")
+        raise ValueError("End parasha must not come before start parasha.")
 
     chapter_lengths = get_book_structure(book, cache, version_param)
     aliyot: list[dict] = []
@@ -358,7 +358,7 @@ def fetch_aliyot_in_range(
 
             if first_num < 1 or last_num > len(refs) or first_num > last_num:
                 raise ValueError(
-                    f"{parasha['name']} does not have aliyot {first_num}-{last_num} "
+                    f"{parasha['name']} does not have 'aliyot {first_num}-{last_num} "
                     f"(it has {len(refs)})."
                 )
 

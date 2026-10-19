@@ -102,5 +102,5 @@ def test_end_before_start_raises(tmp_path):
 
 def test_aliyah_number_out_of_range_raises(tmp_path):
     cache = _seed(tmp_path, _three_parashot(), _chapter_texts())
-    with pytest.raises(ValueError, match="does not have aliyot"):
+    with pytest.raises(ValueError, match="does not have 'aliyot"):
         fetch_aliyot_in_range(BOOK, "Bereshit", 1, "Bereshit", 5, cache, "source")

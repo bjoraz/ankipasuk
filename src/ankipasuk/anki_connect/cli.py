@@ -95,7 +95,7 @@ def sync_scheduling_cli(
 ) -> None:
     print()
     print("=" * 70)
-    print("TORAH LEYNING ANKI AUTOMATION")
+    print("TORAH READING ANKI AUTOMATION")
     print("=" * 70)
     print()
     print(f"Deck: {deck}")
@@ -150,7 +150,7 @@ def tag_deck_cli(deck: str, *, url: str = DEFAULT_URL, dry_run: bool, pause: boo
 
     print()
     print("=" * 60)
-    print("PARASHA / ALIYAH / MAFTIR / HOLIDAY TAGGER")
+    print("PARASHA / 'ALIYA / MAFTIR / HOLIDAY TAGGER")
     print("=" * 60)
     print()
     print(f"Deck: {deck}")
@@ -247,7 +247,7 @@ def _console_tag_deck() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Tag every note in a deck with its parasha/aliyah/Maftir/holiday tags."
+        description="Tag every note in a deck with its parasha/'aliya/maftir/holiday tags."
     )
     parser.add_argument("deck", help='e.g. "Leyning"')
     parser.add_argument("--url", default=DEFAULT_URL)

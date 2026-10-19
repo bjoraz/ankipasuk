@@ -170,7 +170,7 @@ card tests that pasuk's words and nothing more:
 - On a line shared with the next pasuk, its opening words are covered by a
   gray bar on both sides of the card, so this card doesn't give away the
   next one.
-- A pasuk that runs over onto the next 'amud gets a visible "[Amud N]"
+- A pasuk that runs over onto the next 'amud gets a visible "['Amud N]"
   divider where the column changes.
 
 The alignment also works backwards. If the first pasuk you asked for starts

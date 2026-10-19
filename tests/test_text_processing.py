@@ -18,7 +18,7 @@ def test_tokenize_assigns_disjunctive_levels(genesis_1_1):
     assert tokens[0]["level"] == 0
     # last word carries Sof Pasuq -> level 1
     assert tokens[-1]["level"] == 1
-    assert tokens[-1]["trope_name"] == "Sof pasuq"
+    assert tokens[-1]["trope_name"] == "Sof pasuk"
 
 
 def test_munach_legarmeh_upgrade(munach_legarmeh_verse):
@@ -26,7 +26,7 @@ def test_munach_legarmeh_upgrade(munach_legarmeh_verse):
     # word 1 (index 1) should be upgraded to level 4 and flagged
     assert tokens[1]["is_legarmeh"] is True
     assert tokens[1]["level"] == 4
-    assert tokens[1]["trope_name"] == "Munach legarmeh"
+    assert tokens[1]["trope_name"] == "Munaḥ legarmeh"
 
 
 def test_group_into_units_covers_all_words(genesis_1_1):

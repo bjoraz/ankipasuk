@@ -553,7 +553,7 @@ class Api:
         if result["ok"]:
             result["aliyot"] = len(aliyot)
         elif result["error"] == "No text was found to export.":
-            result["error"] = "No aliyot with text were found in that range."
+            result["error"] = "No 'aliyot with text were found in that range."
         return result
 
     def export_amud_to_anki(
@@ -590,7 +590,7 @@ class Api:
         try:
             book = get_book_for_page(amud_num, self._cache)
             hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-            title = f"{hebrew_book} Amud {amud_num}"
+            title = f"{hebrew_book} 'Amud {amud_num}"
             if card_division == "verse":
                 fields_list = build_amud_verse_cards(book, amud_num, self._cache, title=title)
             else:
@@ -609,7 +609,7 @@ class Api:
             result["amud"] = amud_num
             result["book"] = book
         elif result["error"] == "No text was found to export.":
-            result["error"] = f"Amud {amud_num} has no text."
+            result["error"] = f"'Amud {amud_num} has no text."
         return result
 
     # =============================================================

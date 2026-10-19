@@ -83,7 +83,7 @@ def adjust_for_munach_legarmeh(tokens) -> None:
                 j += 1
             if j < n and tokens[j]["level"] == 3:
                 tokens[i + 1]["level"] = 4
-                tokens[i + 1]["trope_name"] = "Munach legarmeh"
+                tokens[i + 1]["trope_name"] = "Munaḥ legarmeh"
                 tokens[i + 1]["is_legarmeh"] = True
 
 

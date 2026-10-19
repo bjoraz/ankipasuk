@@ -349,7 +349,7 @@ def test_amud_break_inserted_between_own_rows_on_different_pages():
     rows = [([["a"]], False, 1), ([["b"]], False, 2)]
     fields = build_verse_cards_from_words(rows, [(1, 1)], [2], None, title="T", box_width="5ch")
     row_a = '<div class="line"><div class="column"><span class="fragment"><span class="cloze-inline">a'
-    break_marker = '<div class="amud-break">[Amud 2]</div>'
+    break_marker = '<div class="amud-break">[\'Amud 2]</div>'
     assert row_a in fields[0]["BackRows"]
     assert break_marker in fields[0]["BackRows"]
     # The break sits strictly between the two rows.
@@ -371,7 +371,7 @@ def test_amud_break_between_context_row_and_own_rows():
     rows = [([["b"]], False, 2)]
     preceding = ([["a"]], False, 1)
     fields = build_verse_cards_from_words(rows, [(1, 1)], [1], preceding, title="T", box_width="5ch")
-    assert '<div class="amud-break">[Amud 2]</div>' in fields[0]["BackRows"]
+    assert '<div class="amud-break">[\'Amud 2]</div>' in fields[0]["BackRows"]
 
 
 def test_no_amud_break_against_the_beginning_marker():
