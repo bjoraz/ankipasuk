@@ -289,6 +289,10 @@ pip install -e .
 ankipasuk
 ```
 
+To update, run `git pull` in the checkout. The install is editable (`-e`),
+so it runs the code in the checkout and picks up changes without
+reinstalling.
+
 The window uses [pywebview](https://pywebview.flowrl.com/), which draws
 with the system's own web engine (WebView2 on Windows, WKWebView on
 macOS), so nothing else is needed there.
@@ -308,7 +312,7 @@ sudo zypper install python3-gobject typelib-1_0-WebKit2-4_1         # openSUSE
 python3 -m venv --system-site-packages .venv
 ```
 
-Then continue as above. With pipx: `pipx install --system-site-packages .`
+Then continue as above. With pipx: `pipx install --editable --system-site-packages .`
 
 Qt WebEngine installs from pip instead, without root but about 100 MB:
 `pip install -e ".[qt]"`. It needs the system's EGL and OpenGL libraries,
