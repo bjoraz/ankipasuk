@@ -24,6 +24,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# pywebview drives the OS's own web engine rather than bundling one. On
+# Windows (WebView2) and macOS (WKWebView) it pulls in everything it needs
+# on its own. On Linux it needs either PyGObject/WebKitGTK -- system
+# packages, see the README -- or Qt WebEngine, which this extra installs
+# for a pip-only setup that needs no root. See ankipasuk.webgui.backend.
+qt = [
+    "pywebview[qt]>=5.0",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
@@ -31,7 +39,7 @@ dev = [
 
 [project.scripts]
 ankipasuk = "ankipasuk.webgui:main"
-ankipasuk-tk-legacy = "ankipasuk.gui.app:main"
+ankipasuk-tk-legacy = "ankipasuk.gui:main"
 ankipasuk-check-connection = "ankipasuk.anki_connect.cli:_console_check_connection"
 ankipasuk-init-stems = "ankipasuk.anki_connect.cli:_console_init_stems"
 ankipasuk-sync-scheduling = "ankipasuk.anki_connect.cli:_console_sync_scheduling"

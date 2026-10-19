@@ -283,9 +283,50 @@ ankipasuk            # or: python -m ankipasuk
 ```
 
 The app window uses [pywebview](https://pywebview.flowrl.com/), which
-draws with the system's own web engine (WebView2 on Windows, WebKit on
-macOS). On Linux it also needs GTK or Qt bindings; see pywebview's install
-notes.
+draws with the system's own web engine instead of bundling a browser. On
+Windows (WebView2) and macOS (WKWebView) that's all you need.
+
+### Linux
+
+On Linux the web engine isn't reachable from a fresh virtualenv, so there's
+one more step. Install either of the two below; the app finds whichever is
+there, and prefers WebKitGTK if you have both.
+
+**WebKitGTK** is the engine your desktop already uses, so the window fits
+in and nothing large is downloaded. Install the system packages:
+
+```bash
+sudo apt install python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0  # Debian/Ubuntu
+sudo dnf install python3-gobject webkit2gtk4.1                      # Fedora
+sudo pacman -S python-gobject webkit2gtk-4.1                        # Arch
+sudo zypper install python3-gobject typelib-1_0-WebKit2-4_1         # openSUSE
+```
+
+They live outside any virtualenv, so create the environment with access to
+them (from your `ankipasuk` checkout):
+
+```bash
+python3 -m venv --system-site-packages .venv    # venv
+pipx install --system-site-packages .           # pipx
+```
+
+An existing virtualenv can't be given access afterwards: recreate it, or
+set `include-system-site-packages = true` in its `pyvenv.cfg`.
+
+**Qt WebEngine** needs no system packages and no root, but it's a download
+of about 100 MB:
+
+```bash
+pip install -e ".[qt]"
+```
+
+With neither installed, `ankipasuk` prints these instructions and exits
+instead of failing with a traceback. To force one backend, set
+`PYWEBVIEW_GUI=gtk` or `PYWEBVIEW_GUI=qt`.
+
+The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter, which
+most distributions package separately: `python3-tk` on Debian and Ubuntu,
+`python3-tkinter` on Fedora.
 
 ## Using the app
 

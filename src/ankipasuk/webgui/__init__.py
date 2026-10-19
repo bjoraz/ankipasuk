@@ -10,17 +10,72 @@ using a web view for the UI itself requires or uses the internet.
 
 from __future__ import annotations
 
+import os
+import sys
+import threading
 from pathlib import Path
 
 import webview
 
 from ..cache import default_cache_dir
 from .api import Api
+from .backend import NoWebViewBackendError, choose_backend
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
 
-def main() -> None:
+def _exit_even_if_threads_linger(status: int) -> int:
+    """Leave the process, whether or not pywebview's leftovers let us.
+
+    Loading the frontend from ``static/index.html`` makes pywebview start
+    its own bottle HTTP server to serve the page and its assets (it does
+    this for any local URL, on every platform). That server is a
+    ``ThreadingMixIn`` + ``WSGIServer``, and pywebview never sets
+    ``daemon_threads`` on it -- so, unlike ``http.server``'s own threading
+    server, it inherits ``socketserver``'s ``daemon_threads = False``
+    default and spawns a *non-daemon* thread per request. Under WebKitGTK
+    the page is still holding a keep-alive connection when the window
+    closes, which leaves one such thread parked in a socket read forever:
+    ``webview.start()`` returns, ``main()`` returns, and then the
+    interpreter refuses to shut down because it is waiting on a thread
+    that will never finish. Closing the window leaves a live process
+    behind every single time.
+
+    There is no handle to shut that server down with -- the ``WSGIServer``
+    instance is a local inside pywebview's own adapter -- so the fix is to
+    stop waiting. Once the window is gone the app is over and nothing is
+    left to clean up: cached verses and saved settings are written through
+    synchronously as they change, and the web view's own storage belongs
+    to WebKit's separate process, which persisted it when the window was
+    destroyed. Flushing our own streams is the only cleanup that is ours.
+
+    The leftover thread is checked for rather than assumed, so this is a
+    plain return on any platform or pywebview version that doesn't strand
+    one, and only the stuck case gets the blunt instrument.
+    """
+    sys.stdout.flush()
+    sys.stderr.flush()
+    stuck = [
+        t
+        for t in threading.enumerate()
+        if t.is_alive() and not t.daemon and t is not threading.main_thread()
+    ]
+    if stuck:
+        os._exit(status)
+    return status
+
+
+def main() -> int:
+    #  Checked before building anything: on Linux the rendering backend is
+    #  a separate install (see .backend), and finding that out only once
+    #  webview.start() is reached buries the one actionable line under
+    #  pywebview's own import tracebacks.
+    try:
+        gui = choose_backend()
+    except NoWebViewBackendError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
     api = Api()
     window = webview.create_window(
         "Nested Anki Cloze Generator",
@@ -45,8 +100,9 @@ def main() -> None:
     # project already stores and is easy to find/clear together.
     storage_path = default_cache_dir() / "webview_storage"
     storage_path.mkdir(parents=True, exist_ok=True)
-    webview.start(private_mode=False, storage_path=str(storage_path))
+    webview.start(gui=gui, private_mode=False, storage_path=str(storage_path))
+    return _exit_even_if_threads_linger(0)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
