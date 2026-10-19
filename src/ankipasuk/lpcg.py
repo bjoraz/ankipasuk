@@ -190,7 +190,7 @@ CARD_TEMPLATES = [{"Name": "Recite", "Front": _FRONT_TEMPLATE, "Back": _BACK_TEM
 
 # Adapted from tikkun.io's own page.css (github.com/akivajgordon/
 # tikkun.io) -- same class names, same fragment/column/setuma mechanism,
-# since that's the visual technique a scroll-accurate recitation card
+# since that's the visual technique a scroll-accurate tiqqun card
 # should reproduce -- but NOT its HTML structure:
 #
 #  - tikkun.io uses an HTML table, letting its auto layout *discover* a

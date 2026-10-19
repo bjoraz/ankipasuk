@@ -180,7 +180,7 @@ different system of ta'amim.
 Tiqqun cards are for memorizing the qeriya itself, a whole 'aliyya or 'ammud
 at a time. Choose a range of 'aliyyot (or a single 'ammud, 1 to 245) and
 AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on.
-In the app they're in the **Export 'aliyyot to Anki (recitation cards)**
+In the app they're in the **Export 'aliyyot to Anki (tiqqun cards)**
 panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s

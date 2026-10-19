@@ -3,6 +3,7 @@
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
+let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
 function api() {
     return window.pywebview.api;
@@ -33,7 +34,7 @@ function setOptions(select, values, keepSelection, labels) {
     }
 }
 
-function setBookOptions(select, booksByCategory, keepSelection) {
+function setBookOptions(select, booksByCategory, keepSelection, labels) {
     const prev = select.value;
     select.innerHTML = "";
     for (const [category, books] of Object.entries(booksByCategory)) {
@@ -42,7 +43,7 @@ function setBookOptions(select, booksByCategory, keepSelection) {
         for (const b of books) {
             const opt = document.createElement("option");
             opt.value = b;
-            opt.textContent = b;
+            opt.textContent = (labels && labels[b]) || b;
             group.appendChild(opt);
         }
         select.appendChild(group);
@@ -95,7 +96,7 @@ async function onRangeModeChange(row) {
     // to the Tora so an invalid (book, mode) combination can't be selected at
     // all, rather than only failing later when fetched.
     const books = isCV ? cachedBooks : { Tora: cachedBooks.Tora };
-    setBookOptions(row.querySelector(".range-book"), books, true);
+    setBookOptions(row.querySelector(".range-book"), books, true, cachedBookLabels);
 
     await onRangeBookChange(row);
 }
@@ -499,6 +500,7 @@ async function copyText(text) {
 // =============================================================
 window.addEventListener("pywebviewready", async () => {
     cachedBooks = await api().get_books();
+    cachedBookLabels = await api().get_book_labels();
     addRangeRow(); // start with exactly one range row
     document.getElementById("cache-status").textContent = await api().get_cache_status();
     injectTikkunCss();
@@ -550,7 +552,7 @@ window.addEventListener("pywebviewready", async () => {
     });
 
     document.getElementById("lpcg-deck").value = await api().get_lpcg_deck_name();
-    setBookOptions(document.getElementById("lpcg-book"), { Tora: cachedBooks.Tora }, false);
+    setBookOptions(document.getElementById("lpcg-book"), { Tora: cachedBooks.Tora }, false, cachedBookLabels);
     await refreshLpcgParashaDropdowns();
     document.getElementById("lpcg-book").addEventListener("change", refreshLpcgParashaDropdowns);
     document.getElementById("lpcg-start-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("start"));

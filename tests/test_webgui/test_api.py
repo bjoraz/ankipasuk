@@ -26,6 +26,15 @@ def test_get_books_returns_categorized_dict():
     assert "Esther" in books["Megillot"]
 
 
+def test_get_book_labels_covers_every_book_with_both_scripts():
+    api = Api()
+    labels = api.get_book_labels()
+    assert set(labels) == {b for books in api.get_books().values() for b in books}
+    assert labels["Genesis"] == "Bereshit · בראשית"
+    assert labels["I Samuel"] == "Shemuel Alef · שמואל א׳"
+    assert labels["Song of Songs"] == "Shir haShirim · שיר השירים"
+
+
 def test_get_chapter_count_and_verse_count():
     api = Api()
     assert api.get_chapter_count("Genesis") == {"ok": True, "count": 50}

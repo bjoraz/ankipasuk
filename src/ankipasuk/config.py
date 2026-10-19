@@ -127,6 +127,42 @@ BOOK_HEBREW_NAMES = {
     "Esther": "Ester",
 }
 
+# The same books in Hebrew script, shown next to the transliteration in
+# the app's book pickers. Display only: nothing is stored under these.
+BOOK_HEBREW_SCRIPT_NAMES = {
+    "Genesis": "בראשית",
+    "Exodus": "שמות",
+    "Leviticus": "ויקרא",
+    "Numbers": "במדבר",
+    "Deuteronomy": "דברים",
+    "Joshua": "יהושע",
+    "Judges": "שופטים",
+    "I Samuel": "שמואל א׳",
+    "II Samuel": "שמואל ב׳",
+    "I Kings": "מלכים א׳",
+    "II Kings": "מלכים ב׳",
+    "Isaiah": "ישעיהו",
+    "Jeremiah": "ירמיהו",
+    "Ezekiel": "יחזקאל",
+    "Hosea": "הושע",
+    "Joel": "יואל",
+    "Amos": "עמוס",
+    "Obadiah": "עובדיה",
+    "Jonah": "יונה",
+    "Micah": "מיכה",
+    "Nahum": "נחום",
+    "Habakkuk": "חבקוק",
+    "Zephaniah": "צפניה",
+    "Haggai": "חגי",
+    "Zechariah": "זכריה",
+    "Malachi": "מלאכי",
+    "Song of Songs": "שיר השירים",
+    "Ruth": "רות",
+    "Lamentations": "איכה",
+    "Ecclesiastes": "קהלת",
+    "Esther": "אסתר",
+}
+
 # Spellings used before docs/transliteration.md. Notes created with them
 # (their Source field is fixed text) must still be recognized, so the
 # tagger accepts these too -- see anki_connect.tagging.HEBREW_TO_BOOK.

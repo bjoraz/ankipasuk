@@ -29,7 +29,7 @@ from ..anki_connect.operations import sync_model_css as anki_sync_model_css
 from ..anki_connect.operations import sync_model_templates as anki_sync_model_templates
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
-from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, CSV_FLAGS, POINTED_VERSION
+from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, BOOK_HEBREW_SCRIPT_NAMES, CSV_FLAGS, POINTED_VERSION
 from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
@@ -95,6 +95,14 @@ class Api:
         frontend uses this to build a book <select> with one <optgroup>
         per category."""
         return BOOK_CATEGORIES
+
+    def get_book_labels(self) -> dict[str, str]:
+        """How each book is shown in the pickers, e.g. "Bereshit · בראשית".
+        The option values stay the English names Sefaria uses."""
+        return {
+            book: f"{BOOK_HEBREW_NAMES[book]} · {BOOK_HEBREW_SCRIPT_NAMES[book]}"
+            for books in BOOK_CATEGORIES.values() for book in books
+        }
 
     def get_chapter_count(self, book: str) -> dict:
         try:
@@ -484,7 +492,7 @@ class Api:
         group_size: int = 1,
     ) -> dict:
         """Fetch every 'aliyya from (start_parasha, start_aliyah) through
-        (end_parasha, end_aliyah) and push one Anki note per recitation
+        (end_parasha, end_aliyah) and push one Anki note per tiqqun
         card to ``deck_name`` via AnkiConnect -- one 'aliyya = one LPCG
         "poem", so cards from different 'aliyyot never overlap each other's
         context window.
@@ -580,7 +588,7 @@ class Api:
         recite_lines: int = 1,
         group_size: int = 1,
     ) -> dict:
-        """Push one Anki note per recitation card for the single 'ammud
+        """Push one Anki note per tiqqun card for the single 'ammud
         (sefer column) ``amud_num`` (1-245, see
         :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name`` via
         AnkiConnect.

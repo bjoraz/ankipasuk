@@ -1,4 +1,4 @@
-"""Builds verse-anchored LPCG recitation cards with true word-level
+"""Builds verse-anchored LPCG tiqqun cards with true word-level
 precision at row boundaries.
 
 :mod:`ankipasuk.tikkun`'s row data never trims a physical scroll row --

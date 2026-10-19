@@ -181,7 +181,7 @@ def _render_line(entry: dict, *, pointed: bool = False) -> dict | None:
 
     More than one column (a rare poetic layout, e.g. Ha'azinu) is
     approximated by simply rendering multiple ``.column`` divs -- side-by-
-    side poetic layout is out of scope for a recitation flashcard.
+    side poetic layout is out of scope for a tiqqun card.
     """
     display_filter = scroll_pointed_text if pointed else scroll_plain_text
     column_htmls = []
@@ -420,7 +420,7 @@ def _row_fragments(entry: dict, page_num: int) -> tuple[list[list[str]], bool, i
     Multiple COLUMNS (the rare side-by-side poetic layout, e.g. Ha'azinu)
     are flattened together in array order, same as :func:`_render_line`
     approximates them -- true side-by-side reading order is out of scope
-    for a recitation flashcard either way (see that function's own
+    for a tiqqun card either way (see that function's own
     docstring). Fragment boundaries *within* a column are real and always
     preserved, though: a poetic "brick" layout (e.g. Az Yashir/Shirat
     HaYam) uses that exact same multi-fragment mechanism to lay out
@@ -506,7 +506,7 @@ def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
 def _preceding_entry(book: str, ch: int, vs: int, cache: SefariaCache) -> tuple[dict, int] | None:
     """The raw tikkun.io entry (and its own 'ammud/page number) for the row
     immediately before the row where verse (ch, vs) itself begins -- the
-    fixed one-row lookback a verse-based recitation card uses (see
+    fixed one-row lookback a verse-based tiqqun card uses (see
     :mod:`ankipasuk.verse_cards`). None if that row is the very first row
     of the Tora (Genesis 1:1's own first row), the one case with nothing
     to look back to.
@@ -549,7 +549,7 @@ def get_preceding_row_fragments(
 
 def get_verses_starting_on_amud(amud_num: int, cache: SefariaCache) -> list[tuple[int, int]]:
     """Every (chapter, verse) whose own first row is on 'ammud ``amud_num``,
-    in row order -- i.e. exactly the verses a verse-based recitation card
+    in row order -- i.e. exactly the verses a verse-based tiqqun card
     (see :mod:`ankipasuk.verse_cards`) should get its own card for when
     exporting this 'ammud.
 
