@@ -139,7 +139,7 @@ def test_clear_ranges_empties_accumulated_verse_data(genesis_1_1):
 
 
 def _seed_tikkun_source(api, tmp_path, monkeypatch):
-    """A tiny 2-verse fake Genesis chapter with real nikud/trope in its
+    """A tiny 2-verse fake Genesis chapter with real niqqud/ta'amim in its
     tikkun.io row text, for exercising fetch_tikkun_chapter_verse /
     fetch_tikkun_parashah_aliyah with zero network access."""
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
@@ -272,19 +272,19 @@ def test_export_csv_uses_each_verses_own_book_for_the_label(genesis_1_1, tmp_pat
 
 
 def _seed_two_aliyah_parasha(api, tmp_path):
-    """Pre-seed api._cache with a single parashah ("Bereshit") of two
-    one-verse aliyot, entirely within Genesis chapter 1 -- enough for
+    """Pre-seed api._cache with a single parasha ("Bereshit") of two
+    one-verse 'aliyyot, entirely within Genesis chapter 1 -- enough for
     export_aliyot_to_anki to run with zero network access.
 
     Card content comes from tikkun.io's scroll-line data (see
     ankipasuk.tikkun), not Sefaria's per-verse text, so both a fake
     parasha structure/text AND a fake tikkun table-of-contents/page are
     seeded here -- each of the two verses given its own scroll line, so
-    each aliyah still produces exactly one card in these tests.
+    each 'aliyya still produces exactly one card in these tests.
 
     verse-mode (the default) additionally needs a Sefaria word count per
     verse (see ankipasuk.verse_cards), fetched by chapter ref
-    ("Genesis 1") rather than aliyah ref -- seeded here too (one word per
+    ("Genesis 1") rather than 'aliyya ref -- seeded here too (one word per
     verse, matching each verse's own one-word tikkun row below), so that
     lookup doesn't fall back to a real network fetch.
     """
@@ -294,7 +294,7 @@ def _seed_two_aliyah_parasha(api, tmp_path):
         "Genesis",
         [{"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}],
     )
-    # fetch_aliyot_in_range fetches text keyed by each aliyah's own ref
+    # fetch_aliyot_in_range fetches text keyed by each 'aliyya's own ref
     # string (single verses here), not per chapter.
     api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
     api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
@@ -321,7 +321,7 @@ def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_pat
 
     assert result["ok"] is True
     assert result["aliyot"] == 2
-    assert result["notes_added"] == 2  # one scroll line per aliyah -> one card per aliyah
+    assert result["notes_added"] == 2  # one scroll line per 'aliyya -> one card per 'aliyya
     assert LPCG_MODEL_NAME in fake_anki.models
     assert all(n["deck"] == "Qeriya::Recitation" for n in fake_anki.notes.values())
 
@@ -335,7 +335,7 @@ _SEFARIA_GENESIS_NAMES = [
 def _seed_full_genesis(api, tmp_path):
     """Like _seed_two_aliyah_parasha, but with all twelve of Genesis's
     parashiyyot in Sefaria's spelling (so they pair with the bundled table
-    by position), the two one-verse aliyot belonging to "Chayei Sara"."""
+    by position), the two one-verse 'aliyyot belonging to "Chayei Sara"."""
     _seed_two_aliyah_parasha(api, tmp_path)
     api._cache.set_parasha_structure("Genesis", [
         {"name": name, "refs": ["Genesis 1:1", "Genesis 1:2"] if name == "Chayei Sara" else ["Genesis 1:31"]}
@@ -364,7 +364,7 @@ def test_export_aliyot_uses_our_names_in_title_and_tags(tmp_path, fake_anki):
 
 
 def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
-    """A single aliyah covering two verses that share a physical scroll
+    """A single 'aliyya covering two verses that share a physical scroll
     row: verse 1 is one word ("אאא") and verse 2 (three words: "בבב",
     "גגג", "דדד") starts on that same row, then continues across two more
     rows on its own. Exercises the "tail ends cohabiting a shared row"
@@ -373,9 +373,9 @@ def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
 
     verse-mode's word-alignment (ankipasuk.verse_cards) needs each verse's
     own Sefaria word count too, fetched (like ankipasuk.sefaria elsewhere)
-    by chapter ref ("Genesis 1"), not by aliyah ref -- unrelated to (and a
+    by chapter ref ("Genesis 1"), not by 'aliyya ref -- unrelated to (and a
     different cache key than) the aliyah-ref text fetch_aliyot_in_range
-    itself uses to discover aliyah boundaries.
+    itself uses to discover 'aliyya boundaries.
     """
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
     api._cache = SefariaCache(cache_dir=tmp_path)
@@ -410,7 +410,7 @@ def test_export_aliyot_to_anki_verse_mode_shares_a_boundary_row(tmp_path, fake_a
     assert result["notes_added"] == 2  # one card per verse, not per row
     back_rows = sorted(n["fields"]["BackRows"] for n in fake_anki.notes.values())
     # Verse 1's card tests only its own word ("אאא") -- verse 2's word on
-    # that same row ("בבב") still occupies the row (a real Torah scroll
+    # that same row ("בבב") still occupies the row (a real sefer
     # doesn't blank out the next verse's opening word), but must be
     # masked rather than shown, so verse 2's own card isn't spoiled.
     short_card, long_card = back_rows
@@ -430,9 +430,9 @@ def test_export_aliyot_to_anki_verse_mode_shares_a_boundary_row(tmp_path, fake_a
 
 
 def _seed_aliyah_starting_mid_row(api, tmp_path, monkeypatch):
-    """Two one-verse aliyot sharing a physical scroll row -- but unlike
+    """Two one-verse 'aliyyot sharing a physical scroll row -- but unlike
     _seed_two_verses_sharing_a_row, the EXPORT only covers the SECOND
-    aliyah (verse 2), excluding verse 1 entirely. Verse 1's own word
+    'aliyya (verse 2), excluding verse 1 entirely. Verse 1's own word
     ("קקק") still shares row 0 with verse 2's own first word ("בבב"),
     exactly as Exodus 20:1's row also carries the last word of 19:25 --
     the regression this fixture targets: without accounting for the
@@ -512,13 +512,13 @@ def test_export_aliyot_to_anki_remembers_the_deck_name_for_next_time(tmp_path, f
     api = Api()
     _seed_two_aliyah_parasha(api, tmp_path)
 
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Qeriya::Aliyot")
-    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
+    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Qeriya::Aliyyot")
+    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
 
     # Simulates a fresh app launch reading the same on-disk settings.
     api2 = Api()
     api2._settings = Settings(cache_dir=tmp_path)
-    assert api2.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
+    assert api2.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
 
 
 def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fake_anki):
@@ -536,7 +536,7 @@ def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fa
 
 def test_export_aliyot_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki):
     """A note type created by an older version of this code (before a CSS
-    change, e.g. adding the STAM font or setumah-gap styling) must not be
+    change, e.g. adding the STAM font or setuma-gap styling) must not be
     stuck with stale styling forever -- ensure_model alone never updates
     an existing model, so export_aliyot_to_anki must also refresh it."""
     from ankipasuk.anki_connect.operations import ensure_model
@@ -574,7 +574,7 @@ def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
 
 
 def _seed_one_amud(api, tmp_path, monkeypatch):
-    """Pre-seed api._cache with a single one-line amud (amud 1, wholly
+    """Pre-seed api._cache with a single one-line 'ammud ('ammud 1, wholly
     within a fake single-chapter Genesis) -- enough for export_amud_to_anki
     to run with zero network access.
 
@@ -622,8 +622,8 @@ def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkey
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    api.export_amud_to_anki(1, "Master::Qeriya::Aliyot")
-    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyot"
+    api.export_amud_to_anki(1, "Master::Qeriya::Aliyyot")
+    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
 
 
 def test_export_amud_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):

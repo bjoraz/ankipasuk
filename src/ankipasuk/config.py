@@ -13,7 +13,7 @@ REQUEST_TIMEOUT = 20
 POINTED_VERSION = "source"
 
 # =============================================================
-#  TORAH STRUCTURE
+#  TORA STRUCTURE
 # =============================================================
 TORAH_VERSE_COUNTS = {
     "Genesis": [
@@ -58,7 +58,7 @@ TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 # Unlike TORAH_VERSE_COUNTS, these have no hardcoded per-chapter verse
 # counts -- Nevi'im alone is 21 books, several very long (Isaiah,
 # Jeremiah, Ezekiel, Psalms-length material), so hand-maintaining that
-# table the way Torah's is maintained isn't practical. Chapter/verse
+# table the way Tora's is maintained isn't practical. Chapter/verse
 # counts for these are instead discovered live from Sefaria on first use
 # (see sefaria.get_book_chapter_count / get_chapter_lengths) and cached
 # afterward via SefariaCache, the same caching layer everything else here
@@ -66,8 +66,8 @@ TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 #
 # All of these use the standard 21-book cantillation system (the same
 # TROPE_UNICODE table below applies unchanged) -- this deliberately
-# excludes Psalms, Proverbs, and Job, which use the distinct "three
-# books" (Sifre Emet) cantillation system with a different trope
+# excludes Tehillim, Mishle and Iyov, which use the distinct "three
+# books" (Sifre Emet) cantillation system with a different ta'amim
 # hierarchy entirely, not supported here.
 NEVIIM_BOOKS = [
     "Joshua", "Judges", "I Samuel", "II Samuel", "I Kings", "II Kings",
@@ -81,7 +81,7 @@ MEGILLOT_BOOKS = [
 ]
 
 # Category -> ordered book list, the single source of truth the frontend
-# uses to build a grouped book picker (Torah / Nevi'im / Megillot
+# uses to build a grouped book picker (Tora / Nevi'im / Megillot
 # optgroups) and that ALL_BOOKS is derived from.
 BOOK_CATEGORIES = {
     "Tora": list(TORAH_BOOKS.keys()),
@@ -256,11 +256,11 @@ PASEQ = "\u05C0"
 RLE = "\u202B"
 PDF = "\u202C"
 
-# Fonts that render Hebrew cantillation (trope) combining marks well, most
-# to least capable. Proper trope-mark stacking is a much narrower font
+# Fonts that render the ta'amim (cantillation combining marks) well, most
+# to least capable. Proper ta'am stacking is a much narrower font
 # requirement than plain Hebrew support -- most system-default fonts (and
 # Tk's silent substitute when none of these are installed) will show
-# niqud/trope crowding or overlap. See gui.fonts.pick_hebrew_font, which
+# niqqud/ta'amim crowding or overlap. See gui.fonts.pick_hebrew_font, which
 # picks the first of these actually installed, falling back to Tk's
 # default if none are. For the best rendering, install one of the first
 # three (all free): SBL Hebrew, Ezra SIL, or a Taamey Torah font from

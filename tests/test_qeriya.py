@@ -1,12 +1,12 @@
 """Tests for ankipasuk.qeriya.
 
 The regression tests at the bottom replay the exact validation done during
-development: reconstructing "Sefaria-shaped" aliyah refs from the user's
+development: reconstructing "Sefaria-shaped" 'aliyya refs from the user's
 own hand-applied tags (bereshit.apkg) and confirming every single one of
 the 568 tagged (verse, tag) pairs is reproduced exactly. That data isn't
 shipped with the repo (it's someone's personal Anki deck), so these tests
 use small, hand-built stand-ins that exercise the same code paths and edge
-cases (in particular, the Genesis 31/32 Maftir chapter-boundary case).
+cases (in particular, the Genesis 31/32 maftir chapter-boundary case).
 """
 
 from ankipasuk import qeriya as qr
@@ -23,7 +23,7 @@ def test_parse_ref_range_same_chapter_short_form():
 def test_parse_ref_range_accepts_en_dash():
     """Regression test for a real bug: Sefaria's API doesn't consistently
     use a plain ASCII hyphen for ranges -- an en-dash (U+2013) was observed
-    in the wild for a live-fetched aliyah ref, which broke tagging with
+    in the wild for a live-fetched 'aliyya ref, which broke tagging with
     ValueError: Could not parse ref range. Same-chapter short form and full
     cross-chapter form should both work with any common dash variant."""
     assert qr.parse_ref_range("Deuteronomy 33:1\u20137") == ("Deuteronomy", 33, 1, 33, 7)
@@ -48,12 +48,12 @@ def test_verse_index_is_monotonic_across_chapter_boundary():
 
 
 def test_compute_maftir_range_same_chapter():
-    # Bereshit: aliyah 7 ends 6:8, maftir is 4 verses -> 6:5-6:8
+    # Bereshit: 'aliyya 7 ends 6:8, maftir is 4 verses -> 6:5-6:8
     assert qr.compute_maftir_range("Genesis", (6, 8), 4) == (6, 5, 6, 8)
 
 
 def test_compute_maftir_range_crosses_chapter_boundary():
-    # Vayetzei: aliyah 7 ends 32:2 (Jewish/Sefaria numbering), maftir is 3
+    # Vayyetse: 'aliyya 7 ends 32:2 (Jewish/Sefaria numbering), maftir is 3
     # verses -> crosses back into chapter 31 -> 31:55-32:2.
     assert qr.compute_maftir_range("Genesis", (32, 2), 3) == (31, 55, 32, 2)
 
@@ -78,7 +78,7 @@ def test_chapter_counts_override_changes_verse_index():
 
 def test_compute_maftir_range_uses_chapter_counts_override():
     """Regression test: if the live chapter-31 count differs from the
-    static table, the Maftir backward-walk must reflect the live value,
+    static table, the maftir backward-walk must reflect the live value,
     not silently compute an off-by-one range."""
     live_counts = list(qr.TORAH_VERSE_COUNTS["Genesis"])
     live_counts[30] = 54  # chapter 31 has 54 verses in this (hypothetical) live count
@@ -118,11 +118,11 @@ def test_holiday_readings_are_all_torah_only():
 def _fake_sefaria_parashot(overrides: dict) -> list[dict]:
     """Build a 12-entry Genesis-shaped Sefaria parasha list (matching
     qr.parasha_table('Genesis') positionally), with real refs only for the
-    parshiot named in ``overrides`` (by slug) and harmless placeholders
+    parashiyyot named in ``overrides`` (by slug) and harmless placeholders
     everywhere else. The placeholder is Genesis 1:31 (not 1:1) so there's
-    room to subtract any parasha's Maftir verse count without going
-    negative -- these placeholder parshiot are never queried in the tests
-    below, but build_parasha_intervals still computes a Maftir range for
+    room to subtract any parasha's maftir verse count without going
+    negative -- these placeholder parashiyyot are never queried in the tests
+    below, but build_parasha_intervals still computes a maftir range for
     every entry in the table, so the placeholder must be valid."""
     table = qr.parasha_table("Genesis")
     out = []
@@ -133,7 +133,7 @@ def _fake_sefaria_parashot(overrides: dict) -> list[dict]:
 
 
 def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
-    # Real aliyah boundaries for Parashat Bereshit, as Sefaria would return them.
+    # Real 'aliyya boundaries for Parashat Bereshit, as Sefaria would return them.
     refs = [
         "Genesis 1:1-2:3", "Genesis 2:4-2:19", "Genesis 2:20-3:21",
         "Genesis 3:22-4:18", "Genesis 4:19-4:22", "Genesis 4:23-5:24",
@@ -148,7 +148,7 @@ def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
     assert "aliyya::bereshit::01-bereshit::7" in qr.tags_for_verse(
         "Genesis", 6, 8, intervals, []
     )
-    # Maftir: last 4 verses of the parasha (validated against the real deck).
+    # The maftir: last 4 verses of the parasha (validated against the real deck).
     for ch, vs in [(6, 5), (6, 6), (6, 7), (6, 8)]:
         assert "aliyya::bereshit::01-bereshit::maftir" in qr.tags_for_verse(
             "Genesis", ch, vs, intervals, []
@@ -159,7 +159,7 @@ def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
 
 
 def test_tags_for_verse_vayetzei_maftir_crosses_chapter_boundary():
-    # Vayetzei is the 7th parasha of Genesis (rel=7). Aliyah 7 real end is
+    # Vayyetse is the 7th parasha of Genesis (rel=7). 'Aliyya 7 real end is
     # 32:2 in Jewish/Sefaria numbering; maftir is 3 verses -> 31:55-32:2.
     refs = ["Genesis 1:1"] * 6 + ["Genesis 31:43-32:2"]
     sefaria_parashot = _fake_sefaria_parashot({"vayyetse": refs})
@@ -178,14 +178,14 @@ def test_tags_for_verse_holiday_reading_independent_of_parasha():
     intervals = qr.build_parasha_intervals("Genesis", _fake_sefaria_parashot({}))
     holiday_intervals = qr.build_holiday_intervals()
 
-    # Rosh Hashana I reads Genesis 21:1-21:4 as aliyah 1.
+    # Rosh haShana I reads Genesis 21:1-21:4 as 'aliyya 1.
     tags = qr.tags_for_verse("Genesis", 21, 2, intervals, holiday_intervals)
     assert "holiday::rosh_hashana_i::1" in tags
 
 
 def test_tags_for_verse_returns_multiple_tags_when_applicable():
-    # Genesis 22:1 is simultaneously part of Vayera's weekly aliyah 7 *and*
-    # the Rosh Hashana II holiday reading's aliyah 1 -- both should be
+    # Genesis 22:1 is simultaneously part of Vayyera's weekly 'aliyya 7 *and*
+    # the Rosh haShana II holiday reading's 'aliyya 1 -- both should be
     # returned together.
     refs = ["Genesis 1:1"] * 6 + ["Genesis 22:1-22:24"]
     sefaria_parashot = _fake_sefaria_parashot({"vayyera": refs})

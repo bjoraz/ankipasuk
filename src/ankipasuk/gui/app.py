@@ -269,12 +269,12 @@ class AnkiPasukApp:
 
         Deliberately does NOT hand Tk a whole line and trust its automatic
         bidi reordering (via a single RLE...PDF wrapping the full line) --
-        confirmed unreliable for long, niqud/teamim-heavy lines (Tk seems
+        confirmed unreliable for long, niqqud/ta'amim-heavy lines (Tk seems
         to force a wrap despite wrap=NONE and then reorders the two halves
         incorrectly, the same class of bug seen in render_colored_tree).
         Instead, words are reversed in Python first and left-justified, so
         Tk only ever lays characters out in the exact order given -- RLE/PDF
-        is used per word, just to keep each word's own niqud/teamim
+        is used per word, just to keep each word's own niqqud/ta'amim
         correctly ordered, which is a much smaller, apparently reliable
         operation.
         """
@@ -344,7 +344,7 @@ class AnkiPasukApp:
                 return
             worker = partial(self._fetch_chapter_verse_range, book, start_ch, start_vs, end_ch, end_vs)
 
-        elif mode == "Parashah / Aliyah":
+        elif mode == "Parasha / 'Aliyya":
             parasha_name = self.parasha_var.get()
             try:
                 aliyah_num = int(self.aliyah_var.get())
@@ -528,7 +528,7 @@ class AnkiPasukApp:
     def clear_cache(self) -> None:
         if not messagebox.askyesno(
             "Clear cache",
-            "This deletes all locally cached Sefaria text and parashah data. "
+            "This deletes all locally cached Sefaria text and parasha data. "
             "It will be re-downloaded next time it's needed. Continue?",
         ):
             return
@@ -586,7 +586,7 @@ class AnkiPasukApp:
         ttk.Label(source_frame, text="Mode:").grid(row=0, column=0, padx=(0, 4), sticky="w")
         mode_combo = ttk.Combobox(
             source_frame, textvariable=self.selection_mode_var,
-            values=["Chapter / Verse", "Parashah / Aliyah"], state="readonly", width=18
+            values=["Chapter / Verse", "Parasha / 'Aliyya"], state="readonly", width=18
         )
         mode_combo.grid(row=0, column=1, padx=(0, 12), sticky="w")
 
@@ -625,11 +625,11 @@ class AnkiPasukApp:
         pa_frame.grid(row=0, column=4, columnspan=10, sticky="w")
         self.pa_frame = pa_frame
 
-        ttk.Label(pa_frame, text="Parashah:").grid(row=0, column=0, padx=(0, 4), sticky="w")
+        ttk.Label(pa_frame, text="Parasha:").grid(row=0, column=0, padx=(0, 4), sticky="w")
         self.parasha_combo = ttk.Combobox(pa_frame, textvariable=self.parasha_var, state="readonly", width=18)
         self.parasha_combo.grid(row=0, column=1, padx=(0, 12), sticky="w")
 
-        ttk.Label(pa_frame, text="Aliyah:").grid(row=0, column=2, padx=(0, 4), sticky="w")
+        ttk.Label(pa_frame, text="'Aliyya:").grid(row=0, column=2, padx=(0, 4), sticky="w")
         self.aliyah_combo = ttk.Combobox(pa_frame, textvariable=self.aliyah_var, state="readonly", width=5)
         self.aliyah_combo.grid(row=0, column=3, padx=(0, 12), sticky="w")
 

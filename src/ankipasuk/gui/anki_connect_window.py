@@ -251,7 +251,7 @@ def show_anki_connect_tools(parent: tk.Misc) -> None:
     # =========================================================
     tag_tab = _OperationTab(
         notebook, "Tag Deck",
-        "Compute and add parasha/aliyah/Maftir/holiday tags for every "
+        "Compute and add parasha/'aliyya/maftir/holiday tags for every "
         "note in a deck. Never removes or changes an existing tag -- "
         "conflicts are reported in the log instead. See "
         "docs/anki-tagging.md for details.",

@@ -1,8 +1,8 @@
-"""Tests for the new (non-Torah) book-structure discovery and fetch
+"""Tests for the new (non-Tora) book-structure discovery and fetch
 functions in sefaria.py -- discover_book_structure, get_book_structure,
 and fetch_verse_range.
 
-fetch_torah_range and get_chapter_lengths (the pre-existing, Torah-only
+fetch_torah_range and get_chapter_lengths (the pre-existing, Tora-only
 functions) are deliberately left untouched by the Nevi'im/Megillot work,
 so they aren't retested here.
 """
@@ -90,12 +90,12 @@ def test_discover_book_structure_persists_across_cache_instances(tmp_path, fake_
 
 
 def test_get_book_structure_uses_static_table_for_torah(tmp_path):
-    """Torah books must never hit the network -- config.TORAH_VERSE_COUNTS
+    """Tora books must never hit the network -- config.TORAH_VERSE_COUNTS
     is authoritative and free."""
     cache = SefariaCache(cache_dir=tmp_path)
 
     def fail_if_called(*a, **kw):
-        raise AssertionError("should not make a network call for a Torah book")
+        raise AssertionError("should not make a network call for a Tora book")
 
     import ankipasuk.sefaria as sm
     original = sm.requests.get
@@ -128,7 +128,7 @@ def test_fetch_verse_range_stamps_each_verse_with_its_book(tmp_path, fake_isaiah
 
 def test_fetch_verse_range_works_for_torah_too(tmp_path):
     """fetch_verse_range is the general-purpose replacement used by the
-    web GUI -- it must still handle Torah books correctly, not just the
+    web GUI -- it must still handle Tora books correctly, not just the
     new ones."""
     cache = SefariaCache(cache_dir=tmp_path)
 

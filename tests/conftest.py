@@ -1,5 +1,5 @@
-"""Shared fixtures: small, hand-built pointed verses using real trope
-combining marks, so tests exercise the actual parsing logic without
+"""Shared fixtures: small, hand-built pointed verses using real ta'amim
+(combining marks), so tests exercise the actual parsing logic without
 depending on network access to Sefaria."""
 
 import pytest
@@ -19,7 +19,7 @@ def word(base: str, *marks: str) -> str:
 
 @pytest.fixture
 def genesis_1_1() -> str:
-    """A short verse: 7 words, ending Sof Pasuq, with an Etnachta split."""
+    """A short verse: 7 words, ending Sof pasuq, with an atnaḥ split."""
     return " ".join([
         word("בְּרֵאשִׁית"),
         word("בָּרָא", REVIA),
@@ -52,9 +52,9 @@ def genesis_1_2() -> str:
 
 @pytest.fixture
 def munach_legarmeh_verse() -> str:
-    """A word carrying Munach immediately followed by a Paseq-marked word,
-    with the next disjunctive at Revia level -- this should be upgraded to
-    Munach Legarmeh (level 4)."""
+    """A word carrying shofar holekh (Unicode MUNAH) immediately followed by a
+    pesiq, with the next mafsiq at ravia's level -- this should be read as
+    paseq (Ashkenazi munach legarmeh, level 4)."""
     return " ".join([
         word("אָב", MUNACH),
         word("גָּדוֹל", PASEQ),

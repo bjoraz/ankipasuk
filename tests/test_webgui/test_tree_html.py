@@ -22,7 +22,7 @@ def test_words_appear_in_natural_logical_order(genesis_1_1):
     html = tree_to_html(tree)
 
     first_word = escape("בְּרֵאשִׁית")
-    second_word = escape("בָּרָא\u0597")  # with its Revia mark, as verse_to_nested_cloze produces it
+    second_word = escape("בָּרָא\u0597")  # with its ravia' mark, as verse_to_nested_cloze produces it
     assert html.index(first_word) < html.index(second_word)
 
 
@@ -43,12 +43,12 @@ def test_split_tree_produces_one_div_per_leaf(genesis_1_2):
 def test_conjunctive_words_get_conj_class(genesis_1_1):
     _cl, _last, tree, _tok, _units = verse_to_nested_cloze(genesis_1_1, max_leaf_disj=100)
     html = tree_to_html(tree)
-    assert 'class="conj"' in html  # "בְּרֵאשִׁית" has no disjunctive trope
+    assert 'class="conj"' in html  # "בְּרֵאשִׁית" has no mafsiq
 
 
 def test_html_is_escaped_safely():
     # A leaf is a list of units; construct one directly to check escaping
-    # without depending on real trope data containing special characters.
+    # without depending on real ta'amim containing special characters.
     fake_leaf = [{"level": 3, "subs": [{"text": "<script>", "level": 3}]}]
     html = tree_to_html(fake_leaf)
     assert "<script>" not in html
@@ -115,7 +115,7 @@ def test_each_row_is_wrapped_in_viz_row(genesis_1_2):
 # =============================================================
 def _leaf(text: str, level: int = 1):
     """A minimal, hand-built leaf (list of one unit) for precise,
-    synthetic tree construction -- independent of real trope parsing, so
+    synthetic tree construction -- independent of parsing real ta'amim, so
     the exact tree shape under test is fully controlled."""
     return [{"level": level, "subs": [{"text": text, "level": level}]}]
 

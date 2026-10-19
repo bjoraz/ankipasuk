@@ -14,9 +14,9 @@ def test_tokenize_word_count(genesis_1_1):
 
 def test_tokenize_assigns_disjunctive_levels(genesis_1_1):
     tokens = tokenize_pasuk(genesis_1_1)
-    # first word has no trope mark at all -> conjunctive (level 0)
+    # first word has no ta'am at all -> conjunctive (level 0)
     assert tokens[0]["level"] == 0
-    # last word carries Sof Pasuq -> level 1
+    # last word carries Sof pasuq -> level 1
     assert tokens[-1]["level"] == 1
     assert tokens[-1]["trope_name"] == "Sof pasuq"
 
@@ -68,7 +68,7 @@ def test_split_segment_no_split_needed_returns_units_unchanged(genesis_1_1):
 
 def test_strip_vowels_and_trope_removes_marks(genesis_1_1):
     plain = strip_vowels_and_trope(genesis_1_1)
-    # No leftover combining marks (nikud/trope) should remain.
+    # No leftover combining marks (niqqud/ta'amim) should remain.
     import unicodedata
     normalized = unicodedata.normalize("NFD", plain)
     assert not any(unicodedata.category(ch) == "Mn" for ch in normalized)

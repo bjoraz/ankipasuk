@@ -1,18 +1,18 @@
-"""Computes parasha/aliyah/Maftir/holiday tags for individual verses.
+"""Computes parasha/'aliyya/maftir/holiday tags for individual verses.
 
 Two data sources feed this, deliberately kept separate:
 
-- The weekly aliyah 1-7 boundaries come **live from Sefaria** (see
+- The weekly 'aliyya 1-7 boundaries come **live from Sefaria** (see
   :func:`ankipasuk.sefaria.get_parasha_structure`), the same source the rest
   of the app already uses -- so they're guaranteed to use the exact same
   chapter/verse numbering as the fetched verse text, with zero risk of a
   numbering mismatch between data sources.
-- Maftir length (how many verses) and holiday/fast-day reading ranges come
+- The maftir's length (how many verses) and holiday/fast-day reading ranges come
   from a small bundled table (``data/parashot.json``, ``data/holiday_readings.json``),
   derived from the ``@hebcal/leyning`` package -- see ``THIRD_PARTY_NOTICES.md``.
-  Maftir is expressed as a **verse count**, not an absolute reference,
+  The maftir is expressed as a **verse count**, not an absolute reference,
   specifically so it's immune to the one well-known chapter-numbering
-  discrepancy in the Torah (Genesis 31/32, "Vayetzei" -- different textual
+  discrepancy in the Tora (Genesis 31/32, Vayyetse -- different textual
   traditions place the chapter break a verse apart).
 
 That immunity only holds if the per-chapter verse *counts* used to walk
@@ -216,8 +216,8 @@ def parse_ref_range(ref: str) -> tuple[str, int, int, int, int]:
 def compute_maftir_range(
     book: str, aliyah7_end: tuple[int, int], n_verses: int, chapter_counts: list[int] | None = None
 ) -> tuple[int, int, int, int]:
-    """Given the live-fetched end of aliyah 7 and the bundled Maftir verse
-    count, return (start_ch, start_vs, end_ch, end_vs) for Maftir -- the
+    """Given the live-fetched end of 'aliyya 7 and the bundled maftir verse
+    count, return (start_ch, start_vs, end_ch, end_vs) for the maftir -- the
     last ``n_verses`` verses of the parasha, correctly walking backward
     across a chapter boundary if needed."""
     ech, evs = aliyah7_end
@@ -235,21 +235,21 @@ def compute_maftir_range(
 def build_parasha_intervals(
     book: str, sefaria_parashot: list[dict], chapter_counts: list[int] | None = None
 ) -> list[tuple[int, int, str]]:
-    """Build (start_idx, end_idx, tag) intervals for every aliyah and
-    Maftir in ``book``, by pairing Sefaria's live per-parasha aliyah refs
+    """Build (start_idx, end_idx, tag) intervals for every 'aliyya and
+    the maftir in ``book``, by pairing Sefaria's live per-parasha 'aliyya refs
     (``sefaria_parashot``, as returned by
     :func:`ankipasuk.sefaria.get_parasha_structure`, in canonical order)
-    with the bundled slug/Maftir-count table, matched by position. Pass a
+    with the bundled slug/maftir-count table, matched by position. Pass a
     live-fetched ``chapter_counts`` (see
     :func:`ankipasuk.sefaria.get_chapter_lengths`) to avoid relying on the
-    static verse-count table for the Maftir backward-walk."""
+    static verse-count table for the maftir backward-walk."""
     book_slug = to_slug(BOOK_HEBREW_NAMES.get(book, book))
     table = parasha_table(book)
     intervals = []
 
     for i, entry in enumerate(table):
         if i >= len(sefaria_parashot):
-            break  # bundled table has more parshiot than Sefaria returned (shouldn't happen)
+            break  # bundled table has more parashiyyot than Sefaria returned (shouldn't happen)
 
         refs = sefaria_parashot[i].get("refs", [])
         slug = entry["slug"]

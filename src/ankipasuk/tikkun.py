@@ -1,19 +1,19 @@
 """Fetches scroll-accurate line-layout data from the tikkun.io project
 (https://github.com/akivajgordon/tikkun.io, MIT licensed).
 
-Torah scribes follow a fixed, traditional line-by-line layout for each
-column (amud) of a kosher Sefer Torah -- line breaks fall in specific
-places regardless of verse or aliyah boundaries. tikkun.io has precomputed
-that layout for the whole Torah and checked it in as static per-amud JSON
+Tora scribes follow a fixed, traditional line-by-line layout for each
+column ('ammud) of a sefer -- line breaks fall in specific
+places regardless of verse or 'aliyya boundaries. tikkun.io has precomputed
+that layout for the whole Tora and checked it in as static per-'ammud JSON
 ("pages" -- tikkun.io's own name for them, kept here for consistency with
-its source; there are exactly 245 of them, the traditional total amud
+its source; there are exactly 245 of them, the traditional total 'ammud
 count), plus a table of contents mapping every (book, chapter, verse) to
 the page/line it starts on. This module fetches that data live (like
 Sefaria data elsewhere in this project) and caches it locally via
 :class:`~ankipasuk.cache.SefariaCache`, since it never changes.
 
-tikkun.io itself never trims a physical scroll line at a verse or aliyah
-boundary -- when an aliyah starts or ends mid-line, it just labels the
+tikkun.io itself never trims a physical scroll line at a verse or 'aliyya
+boundary -- when an 'aliyya starts or ends mid-line, it just labels the
 line, leaving the full line's text (which may include a few words from the
 verse just before or after) intact. :func:`get_scroll_lines_for_range`
 does the same: a returned line may carry a couple of words belonging to
@@ -33,7 +33,7 @@ from .config import REQUEST_TIMEOUT, TORAH_VERSE_COUNTS
 
 TIKKUN_RAW_BASE = "https://raw.githubusercontent.com/akivajgordon/tikkun.io/master/src/data"
 
-# The STAM-style (Torah scroll handwriting) font tikkun.io itself renders
+# The STAM-style (sefer handwriting) font tikkun.io itself renders
 # with -- "Shlomo semiStam" by Shlomo Orbach, SIL Open Font License, so
 # freely redistributable. Fetched live (not vendored) like everything else
 # here, and pushed into the user's own Anki collection as media -- see
@@ -42,7 +42,7 @@ TIKKUN_RAW_BASE = "https://raw.githubusercontent.com/akivajgordon/tikkun.io/mast
 FONT_RAW_URL = "https://raw.githubusercontent.com/akivajgordon/tikkun.io/master/assets/fonts/ShlomosemiStam.ttf"
 FONT_ANKI_FILENAME = "_ankipasuk_shlomosemistam.ttf"
 
-# tikkun.io's table of contents numbers Torah books 1-5 in reading order --
+# tikkun.io's table of contents numbers Tora books 1-5 in reading order --
 # the same order TORAH_VERSE_COUNTS is already defined in.
 TIKKUN_BOOK_NUMBERS = {book: i for i, book in enumerate(TORAH_VERSE_COUNTS, start=1)}
 
@@ -93,13 +93,13 @@ def get_toc(cache: SefariaCache) -> dict:
 
 
 def get_page(page_num: int, cache: SefariaCache) -> list[dict]:
-    """One amud's line data (tikkun.io's own term for it is "page" --
+    """One 'ammud's line data (tikkun.io's own term for it is "page" --
     ``page_num`` is 1-245, see :data:`TOTAL_AMUDIM`): a list of line
     entries, each ``{"text": [[fragment, ...], ...], "verses": [...],
     "aliyot": [...], "isPetucha": bool}``. ``text`` is a list of columns
     (almost always one -- a rare poetic layout aside, see _render_line),
     each a list of fragments -- more than one fragment in a column marks a
-    setumah (mid-line paragraph gap)."""
+    setuma (mid-line paragraph gap)."""
     cached = cache.get_tikkun_page(page_num)
     if cached is not None:
         return cached
@@ -125,18 +125,18 @@ def scroll_plain_text(fragment: str) -> str:
 
 
 def scroll_pointed_text(fragment: str) -> str:
-    """Like :func:`scroll_plain_text`, but keeps nikud/trope and the
+    """Like :func:`scroll_plain_text`, but keeps niqqud/ta'amim and the
     maqaf character itself (as ``־``, not collapsed to a space) -- a
     direct port of tikkun.io's own ``text-filter.ts`` ``annotated: true``
     branch (its "nikud on" scroll view), used for a pointed-text
     tikkun-style display (see :mod:`ankipasuk.webgui.api`).
 
     Unlike :func:`scroll_plain_text`, this does NOT run a Hebrew-letter
-    whitelist filter -- it only removes the petucha marker and resolves
+    whitelist filter -- it only removes the petuḥa marker and resolves
     ketiv/qeri word annotations (a ``#`` inside a maqaf-separated word
     marks a ketiv/qeri correction; only the text AFTER the ``#`` -- the
     "read as" form -- is kept, matching a real Tikkun's own display), so
-    punctuation like sof-pasuk survives untouched, as real pointed Torah
+    punctuation like sof pasuq survives untouched, as real pointed Tora
     text should show it.
     """
     text = fragment.replace("#(פ)", "")
@@ -160,7 +160,7 @@ def _render_line(entry: dict, *, pointed: bool = False) -> dict | None:
     "char_count": ...}``, using the same ``<div class="column"><span
     class="fragment">...</span></div>`` markup tikkun.io's own ``Line.ts``
     renders -- so the CSS in :mod:`ankipasuk.lpcg` (a port of tikkun.io's
-    ``page.css``) can lay it out identically: a setumah (more than one
+    ``page.css``) can lay it out identically: a setuma (more than one
     fragment) spaced apart with a real gap instead of running its two
     halves together. Returns None if the line strips down to nothing (e.g.
     a stray punctuation-only fragment).
@@ -169,7 +169,7 @@ def _render_line(entry: dict, *, pointed: bool = False) -> dict | None:
     :func:`scroll_pointed_text` -- for the HTML content only.
     ``char_count`` -- the line's total visible letter count, ignoring
     markup -- always comes from the PLAIN filter regardless, even in
-    pointed mode: nikud/trope stack on their base letter in a proper
+    pointed mode: niqqud and ta'amim stack on their base letter in a proper
     Hebrew rendering and add no horizontal width of their own, so
     counting their own Unicode codepoints here would overestimate how
     wide the line actually renders. This is what
@@ -256,23 +256,23 @@ def leading_verses_needing_alignment(
     just before it, and THAT verse's own row can, in turn, share leading
     words with the verse before IT, and so on for as long as consecutive
     rows keep landing verse boundaries mid-fragment instead of at a
-    fragment break (ordinary Torah text almost always does exactly this
+    fragment break (ordinary Tora text almost always does exactly this
     -- see that module's own docstring) -- e.g. the 'Aseret haDibberot's
     entire run of one-per-line "commandments" needs many verses' worth
     of this walk-back before reaching a safe starting point.
 
     A verse is safe to stop at once reached (i.e. does NOT itself need
-    prepending) if it's the Torah's very first verse (nothing before it
+    prepending) if it's the Tora's very first verse (nothing before it
     at all), or if its own row is NOT also the verse-just-before-it's own
     row (they don't share a row) AND the row immediately before its own
-    row is a petucha (a paragraph genuinely ending there, leaving the
+    row is a petuḥa (a paragraph genuinely ending there, leaving the
     rest of that row blank) -- either way, nothing can bleed onto it.
     Two verses sharing the exact same own-row (tikkun.io registers each
     verse's row independently, so a short verse and the one right after
     it can both be tagged to the very same row) is NEVER by itself a safe
     stopping point, regardless of page position -- the row being the very
     first row of its own page does NOT mean nothing precedes this verse
-    ON that row (a kosher Torah scroll's own column boundaries don't
+    ON that row (a sefer's own column boundaries don't
     align with verse boundaries, so an earlier verse's tail can still
     land there).
     """
@@ -305,7 +305,7 @@ def _row_entries_for_range(
 ) -> list[tuple[dict, int]]:
     """The raw tikkun.io page-line entries spanning verses (start_ch,
     start_vs) through (end_ch, end_vs) inclusive, each paired with its own
-    amud (page) number -- the boundary-walking logic shared by
+    'ammud (page) number -- the boundary-walking logic shared by
     :func:`get_scroll_lines_for_range` (renders each entry to HTML) and
     :func:`get_row_fragments_for_range` (extracts each entry's words) --
     see either's docstring for the boundary semantics (why a returned row
@@ -324,7 +324,7 @@ def _row_entries_for_range(
     - True (used by word-anchored :func:`get_row_fragments_for_range`):
       always stop at the next verse's own start row itself, wherever
       that is -- even on a LATER page, when the end verse's own tail
-      crosses an amud boundary (a verse's length is fixed by its text,
+      crosses an 'ammud boundary (a verse's length is fixed by its text,
       not by where a scribe's column happens to end). The False formula
       silently drops the end verse's own tail whenever that verse spans
       *more than one* row before reaching a row it shares with the next
@@ -361,7 +361,7 @@ def _row_entries_for_range(
         if generous_tail:
             # Unlike the False branch below, this may push end_page past
             # the end verse's own starting page -- the whole point being
-            # to never lose a tail that crosses an amud boundary.
+            # to never lose a tail that crosses an 'ammud boundary.
             end_page, end_line = next_loc["p"], next_loc["l"]
         elif next_loc["p"] == end_page:
             end_line = max(end_loc["l"], next_loc["l"] - 1)
@@ -382,14 +382,14 @@ def get_scroll_lines_for_range(
 ) -> list[dict]:
     """Return the scroll-accurate lines spanning verses (start_ch,
     start_vs) through (end_ch, end_vs) inclusive, broken exactly where a
-    real Torah scroll's column would break -- unvoweled block letters by
-    default, or full nikud/trope if ``pointed`` (see
+    real sefer's column would break -- unvoweled block letters by
+    default, or full niqqud/ta'amim if ``pointed`` (see
     :func:`scroll_pointed_text`).
 
     Each line is ``{"html": ..., "is_petucha": ...}`` -- see
     :func:`ankipasuk.lpcg.build_lpcg_fields`, which accepts this shape
-    directly and renders a petucha line unjustified (its text stops short
-    of the line's end, exactly as on the actual scroll) and a setumah gap
+    directly and renders a petuḥa line unjustified (its text stops short
+    of the line's end, exactly as on the actual scroll) and a setuma gap
     as real whitespace, instead of treating every line as an ordinary
     justified paragraph line.
 
@@ -407,14 +407,14 @@ def get_scroll_lines_for_range(
 
 def _row_fragments(entry: dict, page_num: int) -> tuple[list[list[str]], bool, int]:
     """A page-line entry's own fragments (see :func:`get_page`), its
-    petucha flag, and its own amud (page) number -- the word-level
+    petuḥa flag, and its own 'ammud (page) number -- the word-level
     counterpart to :func:`_render_line`, used by
     :mod:`ankipasuk.verse_cards` to align tikkun.io's own row text against
-    Sefaria's per-verse word counts, to reproduce a setumah/poetic
+    Sefaria's per-verse word counts, to reproduce a setuma/poetic
     ("brick") gap's exact position when only part of a row is being
     rendered (see :func:`ankipasuk.verse_cards.segment_rows_by_verse`),
     AND to mark a real transition from one physical scroll column to the
-    next when a verse's own content crosses an amud boundary (see
+    next when a verse's own content crosses an 'ammud boundary (see
     :func:`get_row_fragments_for_range`'s own docstring).
 
     Multiple COLUMNS (the rare side-by-side poetic layout, e.g. Ha'azinu)
@@ -425,7 +425,7 @@ def _row_fragments(entry: dict, page_num: int) -> tuple[list[list[str]], bool, i
     preserved, though: a poetic "brick" layout (e.g. Az Yashir/Shirat
     HaYam) uses that exact same multi-fragment mechanism to lay out
     several visually-gapped runs on one row, and can do so entirely
-    *within* a single verse's own text -- not just at a setumah paragraph
+    *within* a single verse's own text -- not just at a setuma paragraph
     break -- so this must never collapse fragments into one flat run the
     way a mere word list would.
     """
@@ -451,7 +451,7 @@ def get_row_fragments_for_range(
 
     Fetches with ``generous_tail=True`` (see :func:`_row_entries_for_range`):
     the end verse's own tail can span more than one row -- even crossing
-    onto a LATER amud entirely -- before reaching a row it shares with
+    onto a LATER 'ammud entirely -- before reaching a row it shares with
     the very next verse, which the row-anchored fetch's own tighter bound
     can silently drop. A word-precise caller can safely discard whatever
     harmless extra this pulls in (see that function's docstring), so it
@@ -474,19 +474,19 @@ def get_amud_row_fragments(amud_num: int, cache: SefariaCache) -> list[tuple[lis
     return [_row_fragments(entry, amud_num) for entry in get_page(amud_num, cache)]
 
 
-# The traditional total column count for a Sefer Torah written to the
+# The traditional total column count for a sefer written to the
 # widely-followed Chabad/Vilna Gaon layout -- and, not by coincidence,
 # exactly how many page files tikkun.io's own data has (1-245): its
-# "pages" are amudim, not chapters, even though early Genesis happens to
-# have one chapter per amud (misleading if read too quickly).
+# "pages" are 'ammudim, not chapters, even though early Genesis happens to
+# have one chapter per 'ammud (misleading if read too quickly).
 TOTAL_AMUDIM = 245
 
 
 def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
-    """Which of the 5 Torah books amud ``page_num`` falls in.
+    """Which of the 5 Tora books 'ammud ``page_num`` falls in.
 
-    A kosher Sefer Torah always starts each of the 5 books (Chumashim) at
-    the top of a fresh column -- so an amud can never straddle two books,
+    A sefer always starts each of the 5 books (Ḥummashim) at
+    the top of a fresh column -- so an 'ammud can never straddle two books,
     and this always has a single unambiguous answer.
     """
     if not (1 <= page_num <= TOTAL_AMUDIM):
@@ -504,11 +504,11 @@ def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
 
 
 def _preceding_entry(book: str, ch: int, vs: int, cache: SefariaCache) -> tuple[dict, int] | None:
-    """The raw tikkun.io entry (and its own amud/page number) for the row
+    """The raw tikkun.io entry (and its own 'ammud/page number) for the row
     immediately before the row where verse (ch, vs) itself begins -- the
     fixed one-row lookback a verse-based recitation card uses (see
     :mod:`ankipasuk.verse_cards`). None if that row is the very first row
-    of the Torah (Genesis 1:1's own first row), the one case with nothing
+    of the Tora (Genesis 1:1's own first row), the one case with nothing
     to look back to.
     """
     if book not in TIKKUN_BOOK_NUMBERS:
@@ -548,15 +548,15 @@ def get_preceding_row_fragments(
 
 
 def get_verses_starting_on_amud(amud_num: int, cache: SefariaCache) -> list[tuple[int, int]]:
-    """Every (chapter, verse) whose own first row is on amud ``amud_num``,
+    """Every (chapter, verse) whose own first row is on 'ammud ``amud_num``,
     in row order -- i.e. exactly the verses a verse-based recitation card
     (see :mod:`ankipasuk.verse_cards`) should get its own card for when
-    exporting this amud.
+    exporting this 'ammud.
 
-    A verse whose OWN first row is on an earlier amud (this amud's first
+    A verse whose OWN first row is on an earlier 'ammud (this 'ammud's first
     row merely continues it) is not included -- its card belongs to
-    whichever amud it actually starts on. That verse's tail end on this
-    amud's first row still surfaces on-card, just as another verse's
+    whichever 'ammud it actually starts on. That verse's tail end on this
+    'ammud's first row still surfaces on-card, just as another verse's
     context row rather than its own card -- see the module docstring on
     row/verse-boundary overlap.
     """
@@ -565,12 +565,12 @@ def get_verses_starting_on_amud(amud_num: int, cache: SefariaCache) -> list[tupl
 
 def get_verse_row_indices_on_amud(amud_num: int, cache: SefariaCache) -> list[tuple[tuple[int, int], int]]:
     """Like :func:`get_verses_starting_on_amud`, but each verse paired
-    with the 0-based row index (within this amud's own page -- see
+    with the 0-based row index (within this 'ammud's own page -- see
     :func:`get_page`) its own tag appears on. :mod:`ankipasuk.verse_cards`
-    uses this to know exactly where the amud's first tagged verse's own
+    uses this to know exactly where the 'ammud's first tagged verse's own
     content begins, so it can exclude any earlier, untagged rows (belonging
-    to a verse that actually started on a previous amud) from what gets
-    tested on this amud's very first card.
+    to a verse that actually started on a previous 'ammud) from what gets
+    tested on this 'ammud's very first card.
     """
     if not (1 <= amud_num <= TOTAL_AMUDIM):
         raise ValueError(f"'Ammud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
@@ -584,11 +584,11 @@ def get_verse_row_indices_on_amud(amud_num: int, cache: SefariaCache) -> list[tu
 
 
 def get_amud_lines(amud_num: int, cache: SefariaCache) -> list[dict]:
-    """Every scroll-accurate line on amud ``amud_num`` (1-245), in the
+    """Every scroll-accurate line on 'ammud ``amud_num`` (1-245), in the
     same ``{"html": ..., "is_petucha": ..., "char_count": ...}`` shape as
     :func:`get_scroll_lines_for_range` -- see that function's docstring
-    for what each field means. Unlike a verse/aliyah range, this needs no
-    slicing at all: an amud already *is* tikkun.io's own per-page unit
+    for what each field means. Unlike a verse/'aliyya range, this needs no
+    slicing at all: an 'ammud already *is* tikkun.io's own per-page unit
     (see :func:`get_page`), so the whole page's lines are returned as-is.
     """
     if not (1 <= amud_num <= TOTAL_AMUDIM):

@@ -15,8 +15,8 @@ from .charts import draw_bar_chart, draw_chapter_bar_chart, draw_scatter_chart, 
 
 
 def build_trope_frequency_widget(parent: tk.Misc, stats: dict) -> tk.Text:
-    """Text widget listing disjunctive trope frequency; click a line to see
-    which verses contain that trope."""
+    """Text widget listing how often each mafsiq occurs; click a line to see
+    which verses contain that ta'am."""
     text = tk.Text(parent, wrap=tk.WORD, font=("Courier", 10), cursor="arrow")
     text.pack(fill="both", expand=True)
 
@@ -25,7 +25,7 @@ def build_trope_frequency_widget(parent: tk.Misc, stats: dict) -> tk.Text:
         text.config(state="disabled")
         return text
 
-    text.insert(tk.END, "Click a trope to see which verses contain it.\n\n")
+    text.insert(tk.END, "Click a ta'am to see which verses contain it.\n\n")
     for name, cnt in stats["trope_freq"].most_common():
         tag = f"trope_{name}"
         text.insert(tk.END, f"{name}: {cnt}\n", (tag,))
@@ -34,7 +34,7 @@ def build_trope_frequency_widget(parent: tk.Misc, stats: dict) -> tk.Text:
         text.tag_bind(
             tag, "<Button-1>",
             lambda e, n=name, lbls=labels: show_verse_list_popup(
-                text, f"Trope: {n}", lbls, stats["verse_lookup"]
+                text, f"Ta'am: {n}", lbls, stats["verse_lookup"]
             )
         )
         text.tag_bind(tag, "<Enter>", lambda e: text.config(cursor="hand2"))
@@ -131,7 +131,7 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
     win.minsize(640, 480)
 
     tk.Label(
-        win, text="Click any bar, point, or trope to see the verses behind it.",
+        win, text="Click any bar, point, or ta'am to see the verses behind it.",
         anchor="w", fg="gray30"
     ).pack(fill="x", padx=10, pady=(10, 4))
 
@@ -231,9 +231,9 @@ def show_stats_window(parent: tk.Misc, verse_data, max_leaf_disj: int) -> None:
                                       "Words in verse", "Split-tree depth", stats["verse_lookup"])
     )
 
-    # --- Trope frequency ---
+    # --- Mafsiqim ---
     trope_frame = ttk.Frame(notebook)
-    notebook.add(trope_frame, text="Trope frequency")
+    notebook.add(trope_frame, text="Mafsiqim")
     build_trope_frequency_widget(trope_frame, stats)
 
     # --- Structure (sub-tabbed: the two verse nesting-structure

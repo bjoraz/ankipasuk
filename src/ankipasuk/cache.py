@@ -1,7 +1,7 @@
 """Local, on-disk cache for data fetched from the Sefaria API.
 
-Sefaria verse text and parashah structure don't change, so once a (ref,
-version) pair or a book's parashah layout has been fetched it's safe to
+Sefaria verse text and parasha structure don't change, so once a (ref,
+version) pair or a book's parasha layout has been fetched it's safe to
 reuse it forever. Caching it on disk (not just in memory) means the app
 doesn't have to re-fetch the same range from the network every time it is
 launched.

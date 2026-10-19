@@ -15,7 +15,7 @@ from ..config import PDF, RLE
 
 def show_verse_list_popup(parent: tk.Misc, title: str, labels, verse_lookup: dict) -> None:
     """Window listing the verses (reference + Hebrew text) behind a clicked
-    bar/point/trope."""
+    bar/point/ta'am."""
     from ..stats import _label_sort_key
 
     labels = sorted(set(labels), key=_label_sort_key)

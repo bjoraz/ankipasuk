@@ -1,12 +1,13 @@
-"""Automatic parasha/aliyah/Maftir/holiday tagging.
+"""Automatic parasha/'aliyya/maftir/holiday tagging.
 
 Reads each note's "Source" field (e.g. ``"Bereshit 1:1"``, as produced by
 the CSV export), computes the tags that verse should have (see
 :mod:`ankipasuk.qeriya`), and adds any that are missing.
 
 Existing tags are **never removed or overwritten**. If a note already has
-a tag that looks like one this tool would generate (``aliyah::...`` or
-``holiday::...``) but it doesn't match what was just computed, that's
+a tag that looks like one this tool would generate (``aliyya::...``,
+``holiday::...``, or the old ``aliyah::...``) but it doesn't match what
+was just computed, that's
 reported as a conflict for you to review by hand -- it is not silently
 changed. This makes the tool safe to run repeatedly and safe to run on a
 deck (like this one) that already has some tags applied by hand.
@@ -51,8 +52,8 @@ _OWNED_PREFIXES = (ALIYYA_TAG_NAMESPACE, HOLIDAY_TAG_NAMESPACE, LEGACY_ALIYAH_TA
 
 def parse_source_field(source: str):
     """Parse a "Source" field like "Bereshit 1:1" into (book, ch, vs), using
-    English book names. Returns None if it doesn't look like a Torah verse
-    reference (e.g. blank, or a non-Torah book)."""
+    English book names. Returns None if it doesn't look like a Tora verse
+    reference (e.g. blank, or a book outside the Tora)."""
     m = _SOURCE_RE.match(source.strip())
     if not m:
         return None

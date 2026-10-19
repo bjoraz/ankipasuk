@@ -13,7 +13,7 @@ DECK = "Qeriya"
 
 
 def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
-    """Sefaria-shaped parasha list for Genesis: real refs for parshiot named
+    """Sefaria-shaped parasha list for Genesis: real refs for parashiyyot named
     in ``overrides`` (by slug), harmless placeholders elsewhere -- same
     approach as tests/test_qeriya.py."""
     overrides = overrides or {}
@@ -28,7 +28,7 @@ def _placeholder_genesis_parashot(overrides: dict | None = None) -> list[dict]:
 def _cache_with_genesis(tmp_path, overrides=None, chapter_length_overrides=None) -> SefariaCache:
     """A SefariaCache pre-seeded with everything compute_tagging_plan needs
     for Genesis without touching the network: a parasha structure (real
-    refs for the parshiot named in ``overrides``, placeholders elsewhere --
+    refs for the parashiyyot named in ``overrides``, placeholders elsewhere --
     see ``_placeholder_genesis_parashot``) and per-chapter text long enough
     to derive verse counts matching the static table, unless overridden
     per chapter via ``chapter_length_overrides`` (e.g. to simulate live
@@ -130,9 +130,9 @@ def test_compute_tagging_plan_collects_unparsed_notes(tmp_path, fake_anki):
 
 
 def test_apply_tagging_plan_dry_run_makes_no_changes(tmp_path, fake_anki):
-    # Genesis 2:4-2:19 (aliyah 2), verified to have zero overlap with any
-    # curated holiday reading -- unlike aliyah 1 (Genesis 1:1-2:3), which
-    # entirely coincides with Simchat Torah's reading (see
+    # Genesis 2:4-2:19 ('aliyya 2), verified to have zero overlap with any
+    # curated holiday reading -- unlike 'aliyya 1 (Genesis 1:1-2:3), which
+    # entirely coincides with Simḥat Tora's reading (see
     # test_holiday_tag_applied_independent_of_parasha_data). This test is
     # only about dry-run behavior, so we want an unambiguous single tag.
     bereshit_refs = ["Genesis 1:1", "Genesis 2:4-2:19"] + ["Genesis 1:31"] * 5
@@ -228,15 +228,15 @@ def test_tagging_batches_requests_on_a_large_deck(tmp_path, fake_anki):
 
 
 def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_path, fake_anki):
-    """Regression test for a real reported bug: Maftir computation used to
+    """Regression test for a real reported bug: the maftir computation used to
     trust a static, hardcoded per-chapter verse-count table that can drift
     out of sync with what Sefaria's live text actually has -- exactly what
-    happened in practice at the Genesis 31/32 boundary, corrupting Maftir
-    (and everything downstream in the book, e.g. Vayishlach) tagging.
+    happened in practice at the Genesis 31/32 boundary, corrupting the maftir
+    (and everything downstream in the book, e.g. Vayyishlaḥ) tagging.
 
     Seeds the cache with live chapter lengths that deliberately differ
     from the static table (chapter 31 has 54 verses here, not the static
-    table's 55) and confirms the computed Maftir tag reflects the live
+    table's 55) and confirms the computed maftir tag reflects the live
     count, not the stale static one.
     """
     vayetzei_refs = ["Genesis 1:31"] * 6 + ["Genesis 31:43-32:2"]
@@ -251,7 +251,7 @@ def test_compute_tagging_plan_uses_live_chapter_lengths_not_static_table(tmp_pat
     plan = compute_tagging_plan(DECK, url="http://fake", cache=cache)
     notes = {n.note_id: n for n in plan.notes}
 
-    # With the live count (54 verses in chapter 31), Maftir is 31:54-32:2 --
+    # With the live count (54 verses in chapter 31), the maftir is 31:54-32:2 --
     # NOT 31:55-32:2, which is what the stale static table would produce.
     assert "aliyya::bereshit::07-vayyetse::maftir" not in notes[1].missing_tags
     assert "aliyya::bereshit::07-vayyetse::maftir" in notes[2].missing_tags
