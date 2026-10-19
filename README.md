@@ -39,9 +39,12 @@ melakhim, mishnim, shalishim):
 | 4 | Gerish, Shene gerishin, Pazer gadol, Talsha, Paseq |
 | 0 | the mesharetim: Shofar holekh, Ma'arikh, Shofar mehuppakh, Azla, Darga, Tarsa |
 
-A word takes the rank of the strongest ta'am on it. The vertical stroke
-after a shofar holekh needs one extra rule, since the same sign can be
-part of a mafsiq or just a pause:
+A word takes the rank of the strongest ta'am on it. Tere qadmin, the
+qadma written twice on a word whose stress isn't on its last syllable, is
+the same ta'am and counts as qadma.
+
+The vertical stroke after a shofar holekh needs one extra rule, since the
+same sign can be part of a mafsiq or just a pause:
 
 | Shofar holekh + stroke | Read as | Rank | Ashkenazi name |
 |---|---|---|---|
@@ -59,8 +62,10 @@ The names follow the table in Wikipedia's
 article. If you work with the Unicode characters directly, go by the
 codepoint rather than Unicode's character name, which often differs: Qadma
 here is U+0599 (Unicode calls it PASHTA), Azla is U+05A8 (Unicode's QADMA),
-Atnaḥ is U+0591 (ETNAHTA), and so on. Unicode also has the names of zarqa
-and tsinnorit the wrong way round: zarqa is U+05AE (named ZINOR) and
+Atnaḥ is U+0591 (ETNAHTA), and so on. In tere qadmin the extra mark on the
+stressed syllable is also written U+05A8; that isn't an azla, and the word
+counts as qadma. Unicode also has the names of zarqa and tsinnorit the
+wrong way round: zarqa is U+05AE (named ZINOR) and
 tsinnorit is U+0598 (named ZARQA). Sefaria's text uses that encoding, and so
 does AnkiPasuk. `TROPE_UNICODE` in `config.py` has the full mapping.
 
@@ -73,7 +78,7 @@ eight:
 | | Group | Ends with | Rank |
 |---|---|---|---|
 | 1 | וְהָאָ֗רֶץ | Ravia' | 3 |
-| 2 | הָיְתָ֥ה תֹ֨הוּ֙ | Qadma | 3 |
+| 2 | הָיְתָ֥ה תֹ֨הוּ֙ | Tere qadmin | 3 |
 | 3 | וָבֹ֔הוּ | Zaqef qaton | 2 |
 | 4 | וְחֹ֖שֶׁךְ | Tarḥa | 2 |
 | 5 | עַל־פְּנֵ֣י תְה֑וֹם | Atnaḥ | 1 |
@@ -95,8 +100,8 @@ longer phrases intact and gives you fewer, harder cards.
 
 For Bereshit 1:2 the atnaḥ on תְה֑וֹם splits the pasuq. In the first half,
 the zaqef on וָבֹ֔הוּ outranks the tarḥa after it. In the piece before
-that, ravia' and qadma are both rank 3, so the cut comes after the ravia'.
-The second half splits at the zaqef on אֱלֹהִ֔ים.
+that, ravia' and tere qadmin are both rank 3, so the cut comes after the
+ravia'. The second half splits at the zaqef on אֱלֹהִ֔ים.
 
 ### 4. Turn the tree into clozes
 
