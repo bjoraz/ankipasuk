@@ -402,45 +402,45 @@ CSS = f"""\
     direction: ltr;
 }}
 
-/* Answer side: hovering (or tapping, on a phone) a word shows it with its
-   niqqud and ta'amim, above the word. Only the Back's words carry the
-   data (see verse_cards._words_html). The STAM font has no niqqud, so the
-   pop-up uses an ordinary pointed Hebrew font. */
+/* Answer side: hovering (or tapping, on a phone) a word turns it, in
+   place, into the same word with its niqqud and ta'amim. The plain
+   letters go invisible but keep their space, and the pointed form is
+   drawn over that spot, so the justified line doesn't reflow. Only the
+   Back's words carry the data (see verse_cards._words_html). The STAM
+   font has no niqqud, so the pointed form uses an ordinary pointed
+   Hebrew font. */
 .lines .w {{
     position: relative;
     cursor: help;
 }}
 
 .lines .w:hover {{
-    background-color: rgba(255, 220, 0, 0.25);
-    border-radius: 2px;
+    -webkit-text-fill-color: transparent;
 }}
 
 .lines .w:hover::after {{
     content: attr(data-p);
     position: absolute;
-    bottom: 110%;
     left: 50%;
-    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -52%);
     white-space: nowrap;
     direction: rtl;
+    -webkit-text-fill-color: initial;
     font-family: "SBL Hebrew", "Taamey Frank CLM", "Ezra SIL", "Noto Serif Hebrew", serif;
-    font-size: 1.4em;
-    line-height: 1.6;
-    color: black;
-    background: #fffbe6;
-    border: 1px solid #c8b560;
-    border-radius: 4px;
-    padding: 0.1em 0.4em;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    font-weight: normal;
+    font-size: 1.15em;
+    line-height: 1.5;
+    padding: 0 0.15em;
+    background: white;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(200, 181, 96, 0.6);
     z-index: 10;
     pointer-events: none;
 }}
 
 .nightMode .lines .w:hover::after {{
-    color: #eee;
-    background: #333;
-    border-color: #776;
+    background: #2f2f31;
 }}
 """
 
