@@ -115,16 +115,14 @@ def group_into_units(tokens):
         else:
             subs = list(conj_buf)
             subs.append({"text": tok["text"], "level": lvl})
-            # The name rides along so the analysis view can say which
-            # mafsiq closes the unit; nothing in the splitting reads it.
-            units.append({"level": lvl, "trope_name": tok["trope_name"], "subs": subs})
+            units.append({"level": lvl, "subs": subs})
             conj_buf = []
 
     if conj_buf:
         if units:
             units[-1]["subs"].extend(conj_buf)
         else:
-            units.append({"level": 0, "trope_name": None, "subs": conj_buf})
+            units.append({"level": 0, "subs": conj_buf})
 
     for k, u in enumerate(units, 1):
         u["uid"] = k

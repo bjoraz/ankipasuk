@@ -20,7 +20,6 @@ from pathlib import Path
 
 import webview
 
-from ..analysis import cloze_breakdown
 from ..anki_connect import client as anki_client
 from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
 from ..anki_connect.operations import add_notes as anki_add_notes
@@ -77,7 +76,6 @@ from ..sefaria import (
     parse_start_ref,
 )
 from ..settings import Settings
-from ..structure import format_structure, verse_structure_signature
 from ..text_processing import format_units, strip_vowels_and_trope
 from ..tikkun import (
     FONT_ANKI_FILENAME,
@@ -96,7 +94,7 @@ from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards, build_verse_cards
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
-from .tree_html import analysis_to_html, leaf_chips, tree_to_html
+from .tree_html import tree_to_html
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
@@ -420,15 +418,7 @@ class Api:
             )
             lines.append(cl)
             unit_debug_lines.append(format_units(units))
-            breakdown = cloze_breakdown(tree, start_counter)
-            label = f"{BOOK_HEBREW_NAMES.get(item['book'], item['book'])} {item['ch']}:{item['vs']}"
-            signature = format_structure(verse_structure_signature(v))
-            viz_html_blocks.append(
-                '<div class="viz-verse">'
-                f"{tree_to_html(tree, chips=leaf_chips(breakdown))}"
-                f"{analysis_to_html(label, signature, breakdown)}"
-                "</div>"
-            )
+            viz_html_blocks.append(f'<div class="viz-verse">{tree_to_html(tree)}</div>')
 
             if not reset_per_line:
                 next_start = last + 1
