@@ -405,10 +405,11 @@ CSS = f"""\
 /* Answer side: hovering (or tapping, on a phone) a word turns it, in
    place, into the same word with its niqqud and ta'amim. The plain
    letters go invisible but keep their space, and the pointed form is
-   drawn over that spot, so the justified line doesn't reflow. Only the
-   Back's words carry the data (see verse_cards._words_html). The STAM
-   font has no niqqud, so the pointed form uses an ordinary pointed
-   Hebrew font. */
+   drawn in exactly the same box, font, size and colour: the STAM font has
+   the marks, and they take no width, so the pointed word lines up letter
+   for letter and the justified line doesn't move. (No transform: a
+   fractional one blurs the text, which then looks lighter.) Only the
+   Back's words carry the data (see verse_cards._words_html). */
 .lines .w {{
     position: relative;
     cursor: help;
@@ -421,26 +422,13 @@ CSS = f"""\
 .lines .w:hover::after {{
     content: attr(data-p);
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -52%);
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
     white-space: nowrap;
-    direction: rtl;
     -webkit-text-fill-color: initial;
-    font-family: "SBL Hebrew", "Taamey Frank CLM", "Ezra SIL", "Noto Serif Hebrew", serif;
-    font-weight: normal;
-    font-size: 1.15em;
-    line-height: 1.5;
-    padding: 0 0.15em;
-    background: white;
-    border-radius: 3px;
-    box-shadow: 0 0 0 1px rgba(200, 181, 96, 0.6);
-    z-index: 10;
     pointer-events: none;
-}}
-
-.nightMode .lines .w:hover::after {{
-    background: #2f2f31;
 }}
 """
 
