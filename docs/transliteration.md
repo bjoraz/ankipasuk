@@ -90,7 +90,7 @@ The app gets its parasha list from Sefaria and pairs it with the table
 below by position (the same pairing it already uses for the maftir data),
 so Sefaria's own spellings never reach the screen. Notes, tags and decks
 made with the old names still work: the tagger reads both spellings of a
-book name, and `ankipasuk-migrate-tags` (also under **AnkiConnect Tools**)
+book name, and `ankipasuk-migrate-tags` (also under **Anki tools**)
 renames old tags to the new ones.
 
 

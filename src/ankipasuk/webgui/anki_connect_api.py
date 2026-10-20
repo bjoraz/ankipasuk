@@ -1,4 +1,4 @@
-"""API bridge for the AnkiConnect Tools window.
+"""API bridge for the Anki tools window.
 
 Mirrors ``gui/anki_connect_window.py``'s logic exactly (same underlying
 calls: ``invoke``, ``initialize_stems``, ``run_scheduling_cycle``,

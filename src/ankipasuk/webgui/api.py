@@ -398,7 +398,7 @@ class Api:
     # =============================================================
     def generate_cloze(self, max_leaf_disj: int, reset_per_line: bool) -> dict:
         if not self._current_verse_data:
-            return {"ok": False, "error": "Fetch a range of verses first."}
+            return {"ok": False, "error": "Choose some pesuqim first."}
 
         max_leaf_disj = max(1, max_leaf_disj)
         lines = []
@@ -434,7 +434,7 @@ class Api:
     # =============================================================
     def export_csv(self, max_leaf_disj: int, reset_per_line: bool) -> dict:
         if not self._current_verse_data:
-            return {"ok": False, "error": "Fetch a range of verses first."}
+            return {"ok": False, "error": "Choose some pesuqim first."}
         try:
             notes = build_cloze_notes(self._current_verse_data, max_leaf_disj, reset_per_line, self._cache)
         except Exception as e:  # noqa: BLE001 - e.g. Sefaria unreachable for the tags
@@ -526,7 +526,7 @@ class Api:
         a recording in a Sound field, say -- are safe. Re-running an export
         only fills in what's missing."""
         if not self._current_verse_data:
-            return {"ok": False, "error": "Fetch a range of verses first."}
+            return {"ok": False, "error": "Choose some pesuqim first."}
         deck_name = deck_name.strip()
         if not deck_name or not note_type:
             return {"ok": False, "error": "Choose a deck and a note type first."}
@@ -799,7 +799,7 @@ class Api:
     def open_anki_connect_window(self) -> dict:
         anki_api = AnkiConnectApi()
         window = webview.create_window(
-            "AnkiConnect Tools",
+            "Anki tools",
             str(_STATIC_DIR / "anki_connect.html"),
             js_api=anki_api,
             width=780,
@@ -811,11 +811,11 @@ class Api:
 
     def open_stats_window(self, max_leaf_disj: int) -> dict:
         if not self._current_verse_data:
-            return {"ok": False, "error": "Fetch a range of verses first."}
+            return {"ok": False, "error": "Choose some pesuqim first."}
         font = self.get_tikkun_font_css()
         stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "")
         window = webview.create_window(
-            "Corpus statistics",
+            "Statistics",
             str(_STATIC_DIR / "stats.html"),
             js_api=stats_api,
             width=1000,

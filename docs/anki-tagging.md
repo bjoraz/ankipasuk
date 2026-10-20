@@ -34,7 +34,7 @@ Earlier versions wrote these tags differently (`aliyah::bereshit::05-haye_sara::
 `holiday::simchat_torah::1`, and so on). If your deck has them, rename them
 before tagging:
 
-- **From the app:** **AnkiConnect Tools → Migrate Tags**.
+- **From the app:** **Anki tools → Migrate Tags**.
 - **As a script:** `python .\scripts\migrate_tags.py`
 - **As a command:**
   ```bash
@@ -65,7 +65,7 @@ Notes keep working either way: the tagger reads the book name in a note's
 
 ## Running it
 
-- **From the app:** **AnkiConnect Tools → Tag Deck**.
+- **From the app:** **Anki tools → Tag Deck**.
 - **As a script:**
   ```powershell
   python .\scripts\tag_deck.py

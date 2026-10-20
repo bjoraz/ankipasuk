@@ -38,7 +38,7 @@ Each sync does two things:
 
 Each step can be run three ways:
 
-- **From the app.** Launch `ankipasuk`, click **AnkiConnect Tools**, and
+- **From the app.** Launch `ankipasuk`, click **Anki tools** in the top bar, and
   use the tab for that step. Each tab has a deck field, a dry-run checkbox
   and a log.
 - **As a script.** Double-click the file in `scripts/` (handy on Windows).
