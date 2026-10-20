@@ -384,7 +384,8 @@ for context and asking for the pasuq's own lines. Pesuqim rarely start and
 end on a line break, and tikkun.io's data doesn't say where in a line one
 pasuq stops and the next starts. AnkiPasuk works it out by lining up the
 words on each line against Sefaria's word count for each pasuq, so every
-card tests that pasuq's words and nothing more:
+card tests that pasuq's words and nothing more. Each card is titled by its
+pasuq (`Bereshit 1:3`); its 'ammud is in its tags and deck.
 
 - On a line shared with the previous pasuq, its end is shown as ordinary
   text.
