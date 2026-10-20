@@ -477,6 +477,27 @@ function addAmmudRow() {
     });
 }
 
+async function doExportPages() {
+    const btn = document.getElementById("btn-export-pages");
+    const ammudim = selectedAmmudim();
+    const fmt = document.getElementById("page-format").value;
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+    try {
+        const result = await api().export_ammud_pages(ammudim, fmt);
+        if (!result.ok) {
+            if (result.error) showToast("Export failed: " + result.error, true);
+            return; // null error: the save dialog was cancelled
+        }
+        const what = result.count === 1 ? `'Ammud ${ammudim[0]}` : `${result.count} 'ammudim`;
+        document.getElementById("lpcg-status").textContent = `${what} saved as ${fmt.toUpperCase()} to ${result.path}`;
+        showToast("Saved.", false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Save page";
+    }
+}
+
 async function doExportAmud(toCsv) {
     const ammudim = selectedAmmudim();
     const args = [
@@ -652,6 +673,7 @@ window.addEventListener("pywebviewready", async () => {
 
     addAmmudRow();
     document.getElementById("btn-add-ammud-range").addEventListener("click", addAmmudRow);
+    document.getElementById("btn-export-pages").addEventListener("click", doExportPages);
     document.getElementById("btn-export-amud").addEventListener("click", () => doExportAmud(false));
     document.getElementById("btn-export-amud-csv").addEventListener("click", () => doExportAmud(true));
 

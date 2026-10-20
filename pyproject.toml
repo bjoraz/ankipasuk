@@ -32,6 +32,12 @@ dependencies = [
 qt = [
     "pywebview[qt]>=5.0",
 ]
+# PDF export of 'ammud pages (see ankipasuk.ammud_pages). WeasyPrint draws
+# text with Pango, which Linux desktops have; on Windows it needs a GTK
+# runtime. HTML export needs nothing extra.
+pdf = [
+    "weasyprint>=60",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",

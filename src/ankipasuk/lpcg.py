@@ -493,7 +493,7 @@ def _box_width(lines: list) -> str:
     return box_width_from_char_counts(_normalize_line(line)["char_count"] for line in lines)
 
 
-def render_scroll_html(lines: list) -> str:
+def render_scroll_html(lines: list, *, scalable: bool = True) -> str:
     """Render ``lines`` (:func:`ankipasuk.tikkun.get_scroll_lines_for_range`'s
     own shape, or plain strings) into one self-contained
     ``<div class="lines" style="width: ...">`` block -- the exact same
@@ -508,13 +508,16 @@ def render_scroll_html(lines: list) -> str:
     -- lets the caller wire up its own live ↔-/↔+ control (a CSS custom
     property on the document root) without needing to re-render this
     HTML on every click; the ``, 1`` fallback keeps the box at its
-    computed width if nothing ever sets that variable.
+    computed width if nothing ever sets that variable. With ``scalable``
+    off the width is the plain box width, for renderers without CSS
+    variables (the PDF export, see :mod:`ankipasuk.ammud_pages`).
     """
     if not lines:
         return ""
     box_width = _box_width(lines)
     rows_html = _as_rows(group_lines(lines, 1))
-    style = f"width: calc({box_width} * var(--ankipasuk-width-scale, 1))"
+    width = f"calc({box_width} * var(--ankipasuk-width-scale, 1))" if scalable else box_width
+    style = f"width: {width}"
     return f'<div class="lines" style="{style}">{rows_html}</div>'
 
 

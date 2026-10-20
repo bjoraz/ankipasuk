@@ -230,6 +230,14 @@ notes, plus `ammud::NNN`. Each card has small controls in the corner for text
 size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you set there
 applies to every card.
 
+**Export as** HTML or PDF saves the chosen 'ammudim as pages instead: each
+'ammud as its column of the sefer, one to a page, in the same font, blank
+lines between books included, to read from or print. The HTML carries the
+font inside it and prints a page per 'ammud from a browser. PDF needs
+WeasyPrint: `pip install -e ".[pdf]"`, or with pipx
+`pipx inject ankipasuk weasyprint`. It draws text with Pango, which Linux
+desktops have; on Windows it needs a GTK runtime.
+
 The same layout is in the main window too: tick **Tikkun.io scroll layout**
 to see the range you fetched as it appears in the sefer, with or without
 niqqud.
@@ -399,6 +407,7 @@ src/ankipasuk/
 ├── qeriya.py            parasha / 'aliyya / maftir / holiday / haftara tag logic
 ├── cloze_export.py      the cloze notes both exports (CSV, AnkiConnect) build
 ├── tiqqun_export.py     which pasuq a tiqqun card is (no duplicates), tiqqun CSV
+├── ammud_pages.py       'ammudim as HTML/PDF pages
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both

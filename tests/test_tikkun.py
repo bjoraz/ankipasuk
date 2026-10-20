@@ -606,3 +606,16 @@ def test_an_ammud_holding_the_end_of_one_book_and_the_start_of_the_next(tmp_path
     assert get_book_verses_on_amud(1, cache) == [
         ("Exodus", 40, 38), ("Leviticus", 1, 1), ("Leviticus", 1, 2),
     ]
+
+
+def test_blank_lines_between_books_are_kept_only_when_asked(tmp_path):
+    toc = {"1": {"50": {"26": {"p": 1, "l": 1}}}, "2": {"1": {"1": {"p": 1, "l": 3}}}}
+    pages = {1: [
+        _line("אאא", verses=[{"chapter": 50, "verse": 26}]),
+        _line(""),
+        _line("בבב", verses=[{"chapter": 1, "verse": 1}]),
+    ]}
+    cache = _seed(tmp_path, toc, pages)
+    assert len(get_amud_lines(1, cache)) == 2
+    lines = get_amud_lines(1, cache, keep_blank=True)
+    assert len(lines) == 3 and lines[1]["char_count"] == 0 and lines[1]["is_petucha"]

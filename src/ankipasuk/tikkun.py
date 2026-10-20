@@ -602,13 +602,19 @@ def get_verse_row_indices_on_amud(amud_num: int, cache: SefariaCache) -> list[tu
     ]
 
 
-def get_amud_lines(amud_num: int, cache: SefariaCache) -> list[dict]:
+def get_amud_lines(amud_num: int, cache: SefariaCache, *, keep_blank: bool = False) -> list[dict]:
     """Every scroll-accurate line on 'ammud ``amud_num`` (1-245), in the
     same ``{"html": ..., "is_petucha": ..., "char_count": ...}`` shape as
     :func:`get_scroll_lines_for_range` -- see that function's docstring
     for what each field means. Unlike a verse/'aliyya range, this needs no
     slicing at all: an 'ammud already *is* tikkun.io's own per-page unit
     (see :func:`get_page`), so the whole page's lines are returned as-is.
+
+    A row with no text -- the blank lines between two books, on an 'ammud
+    where one ends and the next begins -- is left out, unless
+    ``keep_blank``: then it's an empty line, as on the page itself (the
+    page export, :mod:`ankipasuk.ammud_pages`, wants that; a tiqqun card
+    has nothing to recite on it).
     """
     if not (1 <= amud_num <= TOTAL_AMUDIM):
         raise ValueError(f"'Ammud must be between 1 and {TOTAL_AMUDIM} (got {amud_num}).")
@@ -617,6 +623,9 @@ def get_amud_lines(amud_num: int, cache: SefariaCache) -> list[dict]:
     lines = []
     for entry in page:
         line = _render_line(entry)
+        if line is None and keep_blank:
+            line = {"html": '<div class="column"><span class="fragment">&nbsp;</span></div>',
+                    "is_petucha": True, "char_count": 0}
         if line is not None:
             lines.append(line)
     return lines

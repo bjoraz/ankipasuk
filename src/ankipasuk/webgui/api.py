@@ -20,6 +20,8 @@ from pathlib import Path
 
 import webview
 
+from ..ammud_pages import ammud_pages_html
+from ..ammud_pages import write_pdf as write_ammud_pages_pdf
 from ..anki_connect import client as anki_client
 from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
 from ..anki_connect.operations import add_notes as anki_add_notes
@@ -743,6 +745,34 @@ class Api:
         name = f"tiqqun_ammud_{unique[0]:03d}.csv" if len(unique) == 1 else (
             f"tiqqun_ammudim_{unique[0]:03d}-{unique[-1]:03d}.csv")
         return self._write_tiqqun_csv(notes, name)
+
+    def export_ammud_pages(self, ammudim: list[int], fmt: str) -> dict:
+        """Save the 'ammudim as pages -- each its sefer column, one per page
+        (see ankipasuk.ammud_pages) -- as ``fmt`` "html" or "pdf"."""
+        if fmt not in ("html", "pdf"):
+            return {"ok": False, "error": f"Unknown format: {fmt}"}
+        unique = sorted({int(n) for n in ammudim})
+        if not unique:
+            return {"ok": False, "error": "Choose at least one 'ammud."}
+        if self._window is None:
+            return {"ok": False, "error": "Window not ready."}
+        name = f"ammud_{unique[0]:03d}" if len(unique) == 1 else f"ammudim_{unique[0]:03d}-{unique[-1]:03d}"
+        path = self._window.create_file_dialog(
+            webview.SAVE_DIALOG, save_filename=f"{name}.{fmt}",
+            file_types=(f"{fmt.upper()} files (*.{fmt})", "All files (*.*)"),
+        )
+        if not path:
+            return {"ok": False, "error": None}  # cancelled
+        target = path if isinstance(path, str) else path[0]
+        try:
+            if fmt == "pdf":
+                write_ammud_pages_pdf(unique, self._cache, target)
+            else:
+                Path(target).write_text(ammud_pages_html(unique, self._cache), encoding="utf-8")
+        except (RuntimeError, ValueError, OSError) as e:
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        return {"ok": True, "count": len(unique), "path": target}
 
     # =============================================================
     #  Secondary windows
