@@ -103,11 +103,15 @@
 <div id="viz-box" class="text-box viz"></div>
 
 <fieldset class="panel">
-  <legend>Tiqqun cards: export an 'ammud to Anki</legend>
+  <legend>Tiqqun cards: export 'ammudim to Anki</legend>
+
+  <div id="ammud-ranges"></div>
+  <div class="row space-between">
+    <button id="btn-add-ammud-range" type="button">+ Add another 'ammud range</button>
+    <span class="muted">Deck: <span id="lpcg-deck"></span></span>
+  </div>
 
   <div class="row">
-    <label>'Ammud (1&ndash;245): <input type="number" id="lpcg-amud" min="1" max="245" value="1" style="width:5em"></label>
-    <span class="muted">Deck: <span id="lpcg-deck"></span></span>
     <label title="Verse: one card per verse, with exactly the one row before it as context. Row: the classic AnkiLPCG sliding window over physical scroll rows, tuned by the settings below.">
       Card division:
       <select id="lpcg-card-division">

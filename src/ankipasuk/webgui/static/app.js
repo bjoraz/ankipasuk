@@ -145,6 +145,11 @@ async function onRangeBookChange(row) {
     }
 }
 
+// The numbers from..to, inclusive.
+function numbersFrom(from, to) {
+    return Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
+}
+
 async function refreshRangeChapterVerseDropdowns(row) {
     const book = row.querySelector(".range-book").value;
     const result = await api().get_chapter_count(book);
@@ -152,14 +157,13 @@ async function refreshRangeChapterVerseDropdowns(row) {
         showToast("Could not load " + book + ": " + result.error, true);
         return;
     }
-    const chapters = Array.from({ length: result.count }, (_, i) => i + 1);
-    setOptions(row.querySelector(".range-start-ch"), chapters, true);
-    setOptions(row.querySelector(".range-end-ch"), chapters, true);
-    await refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs");
-    await refreshRangeVerseDropdown(row, "range-end-ch", "range-end-vs");
+    row.dataset.chapterCount = result.count;
+    setOptions(row.querySelector(".range-start-ch"), numbersFrom(1, result.count), true);
+    await refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs", 1);
+    await constrainRangeEnd(row);
 }
 
-async function refreshRangeVerseDropdown(row, chClass, vsClass) {
+async function refreshRangeVerseDropdown(row, chClass, vsClass, minVerse) {
     const book = row.querySelector(".range-book").value;
     const chapter = parseInt(row.querySelector("." + chClass).value, 10) || 1;
     const result = await api().get_verse_count(book, chapter);
@@ -167,8 +171,18 @@ async function refreshRangeVerseDropdown(row, chClass, vsClass) {
         showToast("Could not load verse count: " + result.error, true);
         return;
     }
-    const verses = Array.from({ length: result.count }, (_, i) => i + 1);
-    setOptions(row.querySelector("." + vsClass), verses, true);
+    setOptions(row.querySelector("." + vsClass), numbersFrom(minVerse, result.count), true);
+}
+
+// A range can't end before it starts: the end pickers only offer
+// chapters and verses from the start on, and an end the start has moved
+// past is moved up to the start.
+async function constrainRangeEnd(row) {
+    const startCh = parseInt(row.querySelector(".range-start-ch").value, 10) || 1;
+    const startVs = parseInt(row.querySelector(".range-start-vs").value, 10) || 1;
+    setOptions(row.querySelector(".range-end-ch"), numbersFrom(startCh, parseInt(row.dataset.chapterCount, 10)), true);
+    const endCh = parseInt(row.querySelector(".range-end-ch").value, 10);
+    await refreshRangeVerseDropdown(row, "range-end-ch", "range-end-vs", endCh === startCh ? startVs : 1);
 }
 
 async function refreshRangeParashaDropdown(row) {
@@ -207,10 +221,12 @@ function addRangeRow() {
 
     row.querySelector(".range-mode").addEventListener("change", () => onRangeModeChange(row));
     row.querySelector(".range-book").addEventListener("change", () => onRangeBookChange(row));
-    row.querySelector(".range-start-ch").addEventListener("change", () =>
-        refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs"));
-    row.querySelector(".range-end-ch").addEventListener("change", () =>
-        refreshRangeVerseDropdown(row, "range-end-ch", "range-end-vs"));
+    row.querySelector(".range-start-ch").addEventListener("change", async () => {
+        await refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs", 1);
+        await constrainRangeEnd(row);
+    });
+    row.querySelector(".range-start-vs").addEventListener("change", () => constrainRangeEnd(row));
+    row.querySelector(".range-end-ch").addEventListener("change", () => constrainRangeEnd(row));
     row.querySelector(".range-parasha").addEventListener("change", () => refreshRangeAliyahDropdown(row));
     row.querySelector(".btn-remove-range").addEventListener("click", () => {
         if (document.querySelectorAll(".range-row").length <= 1) {
@@ -396,25 +412,75 @@ async function doExportCsv() {
 // =============================================================
 //  'Aliyya range export to Anki (tiqqun cards)
 // =============================================================
+// =============================================================
+//  'Ammud ranges -- rows of "from 'ammud X to Y", like the source ranges
+//  above; every 'ammud in every row is exported, once, to its own deck.
+// =============================================================
+const TOTAL_AMMUDIM = 245;
+
 // The deck an 'ammud's cards go into is fixed: one per 'ammud (see
-// qeriya.tiqqun_ammud_deck), shown here, not typed.
+// qeriya.tiqqun_ammud_deck), shown, not typed.
 function ammudDeck(amud) {
-    return amud >= 1 && amud <= 245 ? "Ammudim::" + String(amud).padStart(3, "0") : "—";
+    return "Ammudim::" + String(amud).padStart(3, "0");
+}
+
+function selectedAmmudim() {
+    const all = new Set();
+    for (const row of document.querySelectorAll(".ammud-row")) {
+        const start = parseInt(row.querySelector(".ammud-start").value, 10);
+        const end = parseInt(row.querySelector(".ammud-end").value, 10);
+        for (const n of numbersFrom(start, end)) all.add(n);
+    }
+    return [...all].sort((a, b) => a - b);
 }
 
 function updateAmmudDeck() {
-    const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
-    document.getElementById("lpcg-deck").textContent = ammudDeck(amud);
+    const ammudim = selectedAmmudim();
+    let text = ammudDeck(ammudim[0]);
+    if (ammudim.length > 1) {
+        text = `${ammudim.length} 'ammudim, each to its own deck (${ammudDeck(ammudim[0])} … ${ammudDeck(ammudim.at(-1))})`;
+    }
+    document.getElementById("lpcg-deck").textContent = text;
+}
+
+// The end can't come before the start, as with the source ranges.
+function constrainAmmudEnd(row) {
+    const start = parseInt(row.querySelector(".ammud-start").value, 10);
+    setOptions(row.querySelector(".ammud-end"), numbersFrom(start, TOTAL_AMMUDIM), true);
+    updateAmmudDeck();
+}
+
+function addAmmudRow() {
+    const row = document.createElement("div");
+    row.className = "row ammud-row";
+    row.innerHTML = `
+      <label>From 'ammud: <select class="ammud-start"></select></label>
+      <label>to: <select class="ammud-end"></select></label>
+      <button class="btn-remove-ammud-range" type="button" title="Remove this range">Remove</button>`;
+    document.getElementById("ammud-ranges").appendChild(row);
+    // A new row starts just after the last row's end, or at 1.
+    const rows = document.querySelectorAll(".ammud-row");
+    const prev = rows.length > 1 ? parseInt(rows[rows.length - 2].querySelector(".ammud-end").value, 10) : 0;
+    const first = Math.min(prev + 1, TOTAL_AMMUDIM);
+    setOptions(row.querySelector(".ammud-start"), numbersFrom(1, TOTAL_AMMUDIM), false);
+    row.querySelector(".ammud-start").value = String(first);
+    constrainAmmudEnd(row);
+    row.querySelector(".ammud-start").addEventListener("change", () => constrainAmmudEnd(row));
+    row.querySelector(".ammud-end").addEventListener("change", updateAmmudDeck);
+    row.querySelector(".btn-remove-ammud-range").addEventListener("click", () => {
+        if (document.querySelectorAll(".ammud-row").length <= 1) {
+            showToast("At least one 'ammud range is required.", true);
+            return;
+        }
+        row.remove();
+        updateAmmudDeck();
+    });
 }
 
 async function doExportAmud(toCsv) {
-    const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
-    if (!amud || amud < 1 || amud > 245) {
-        showToast("Enter an 'ammud number from 1 to 245.", true);
-        return;
-    }
+    const ammudim = selectedAmmudim();
     const args = [
-        amud,
+        ammudim,
         document.getElementById("lpcg-card-division").value,
         parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0,
         parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1,
@@ -427,15 +493,16 @@ async function doExportAmud(toCsv) {
     btn.textContent = toCsv ? "Saving..." : "Exporting...";
     status.textContent = "";
     try {
-        const result = toCsv ? await api().export_amud_csv(...args) : await api().export_amud_to_anki(...args);
+        const result = toCsv ? await api().export_ammudim_csv(...args) : await api().export_ammudim_to_anki(...args);
         if (!result.ok) {
             if (result.error) showToast("Export failed: " + result.error, true);
             return; // null error: the save dialog was cancelled
         }
+        const what = ammudim.length === 1 ? `'Ammud ${ammudim[0]}` : `${ammudim.length} 'ammudim`;
         if (toCsv) {
-            status.textContent = `'Ammud ${amud}: ${result.count} card(s) saved to ${result.path}`;
+            status.textContent = `${what}: ${result.count} card(s) saved to ${result.path}`;
         } else {
-            let msg = `${result.book} 'ammud ${result.amud} → ${result.deck}: ${result.notes_added} card(s) added`;
+            let msg = `${what}: ${result.notes_added} card(s) added`;
             if (result.already_in_anki) msg += `, ${result.already_in_anki} already in Anki (left as they are)`;
             if (result.failed) msg += `, ${result.failed} rejected by Anki`;
             status.textContent = msg;
@@ -583,8 +650,8 @@ window.addEventListener("pywebviewready", async () => {
         await api().open_anki_connect_window();
     });
 
-    updateAmmudDeck();
-    document.getElementById("lpcg-amud").addEventListener("input", updateAmmudDeck);
+    addAmmudRow();
+    document.getElementById("btn-add-ammud-range").addEventListener("click", addAmmudRow);
     document.getElementById("btn-export-amud").addEventListener("click", () => doExportAmud(false));
     document.getElementById("btn-export-amud-csv").addEventListener("click", () => doExportAmud(true));
 

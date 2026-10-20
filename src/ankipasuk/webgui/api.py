@@ -558,9 +558,9 @@ class Api:
             "failed": len(result_ids) - added, "deck": deck_name,
         }
 
-    def _push_lpcg_notes(self, notes: list[dict], deck_name: str) -> dict:
-        """Send tiqqun notes (see _tiqqun_amud_notes)
-        to ``deck_name``, creating the deck if needed and making sure the
+    def _push_lpcg_notes(self, notes: list[dict]) -> dict:
+        """Send tiqqun notes (see _tiqqun_ammudim_notes), each to its own
+        ``"deck"``, creating decks as needed and making sure the
         font, note type, CSS and templates are in place (and refreshed if
         stale) first.
 
@@ -590,9 +590,10 @@ class Api:
                 if not tiqqun_is_duplicate(note, keys):
                     new.append(note)
                     keys.add(note["key"])  # nor twice within one export
-            anki_ensure_deck(deck_name, url=DEFAULT_URL)
+            for deck in sorted({note["deck"] for note in new}):
+                anki_ensure_deck(deck, url=DEFAULT_URL)
             payload = [{
-                "deckName": deck_name, "modelName": LPCG_MODEL_NAME,
+                "deckName": note["deck"], "modelName": LPCG_MODEL_NAME,
                 "fields": note["fields"], "tags": note["tags"],
                 "options": {"allowDuplicate": True},  # the check above is the duplicate check
             } for note in new]
@@ -606,7 +607,7 @@ class Api:
             "failed": len(result_ids) - added,
         }
 
-    def _write_tiqqun_csv(self, notes: list[dict], deck_name: str, default_name: str) -> dict:
+    def _write_tiqqun_csv(self, notes: list[dict], default_name: str) -> dict:
         """Save tiqqun notes as an Anki CSV. Importing it needs the
         tiqqun note type already in Anki (any export to Anki creates it)."""
         if not notes:
@@ -622,7 +623,7 @@ class Api:
         target = path if isinstance(path, str) else path[0]
         try:
             with open(target, "w", encoding="utf-8-sig", newline="") as f:
-                f.write(tiqqun_csv_text(notes, deck_name))
+                f.write(tiqqun_csv_text(notes))
         except OSError as e:
             return {"ok": False, "error": str(e)}
         return {"ok": True, "count": len(notes), "path": target}
@@ -668,16 +669,43 @@ class Api:
         context = qeriya_context({book}, self._cache)
         return self._tiqqun_notes(book, fields_list, verse_refs, tags, context), book
 
-    def export_amud_to_anki(
-        self, amud_num: int, card_division: str = "verse", context_lines: int = 2,
+    def _tiqqun_ammudim_notes(
+        self, ammudim: list[int], card_division: str, context_lines: int, recite_lines: int,
+        group_size: int,
+    ) -> tuple[list[int], list[dict]]:
+        """The tiqqun notes for several 'ammudim, each marked with its
+        'ammud's deck, ``Ammudim::NNN`` (see
+        :func:`ankipasuk.qeriya.tiqqun_ammud_deck`). Each 'ammud counts
+        once, in order, however the ranges overlap. Raises
+        RuntimeError/ValueError, naming the 'ammud."""
+        unique = sorted({int(n) for n in ammudim})
+        if not unique:
+            raise ValueError("Choose at least one 'ammud.")
+        notes = []
+        for n in unique:
+            try:
+                ammud_notes, _book = self._tiqqun_amud_notes(
+                    n, card_division, context_lines, recite_lines, group_size,
+                )
+            except (RuntimeError, ValueError) as e:
+                raise type(e)(f"'Ammud {n}: {e}") from e
+            if not ammud_notes:
+                raise ValueError(f"'Ammud {n} has no text.")
+            for note in ammud_notes:
+                note["deck"] = tiqqun_ammud_deck(n)
+            notes += ammud_notes
+        return unique, notes
+
+    def export_ammudim_to_anki(
+        self, ammudim: list[int], card_division: str = "verse", context_lines: int = 2,
         recite_lines: int = 1, group_size: int = 1,
     ) -> dict:
-        """Send the tiqqun cards for 'ammud ``amud_num`` (1-245, see
-        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to its own deck,
-        ``Ammudim::NNN`` (see :func:`ankipasuk.qeriya.tiqqun_ammud_deck`),
-        through AnkiConnect; see _push_lpcg_notes for duplicates.
+        """Send the tiqqun cards for the 'ammudim in ``ammudim`` (each 1-245,
+        see :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to Anki through
+        AnkiConnect, each 'ammud to its own deck, ``Ammudim::NNN``; see
+        _push_lpcg_notes for duplicates.
 
-        ``card_division`` picks how the 'ammud's lines become cards:
+        ``card_division`` picks how an 'ammud's lines become cards:
 
         - "verse" (default, recommended): one card per pasuq starting on
           the 'ammud, word-precise at any line it shares with the pasuq
@@ -696,34 +724,33 @@ class Api:
         (:data:`ankipasuk.lpcg.MODEL_NAME`) is created if missing.
         """
         try:
-            notes, book = self._tiqqun_amud_notes(
-                amud_num, card_division, context_lines, recite_lines, group_size,
+            unique, notes = self._tiqqun_ammudim_notes(
+                ammudim, card_division, context_lines, recite_lines, group_size,
             )
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        deck = tiqqun_ammud_deck(amud_num)
-        result = self._push_lpcg_notes(notes, deck)
+        result = self._push_lpcg_notes(notes)
         if result["ok"]:
-            result.update(amud=amud_num, book=book, deck=deck)
-        elif result["error"] == "No text was found to export.":
-            result["error"] = f"'Ammud {amud_num} has no text."
+            result.update(ammudim=unique, decks=[tiqqun_ammud_deck(n) for n in unique])
         return result
 
-    def export_amud_csv(
-        self, amud_num: int, card_division: str = "verse", context_lines: int = 2,
+    def export_ammudim_csv(
+        self, ammudim: list[int], card_division: str = "verse", context_lines: int = 2,
         recite_lines: int = 1, group_size: int = 1,
     ) -> dict:
-        """Like export_amud_to_anki, but saved as a CSV to import (into the
-        same ``Ammudim::NNN`` deck)."""
+        """Like export_ammudim_to_anki, but saved as one CSV to import; a
+        deck column keeps each 'ammud's cards in its own deck."""
         try:
-            notes, _book = self._tiqqun_amud_notes(
-                amud_num, card_division, context_lines, recite_lines, group_size,
+            unique, notes = self._tiqqun_ammudim_notes(
+                ammudim, card_division, context_lines, recite_lines, group_size,
             )
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        return self._write_tiqqun_csv(notes, tiqqun_ammud_deck(amud_num), f"tiqqun_ammud_{amud_num:03d}.csv")
+        name = f"tiqqun_ammud_{unique[0]:03d}.csv" if len(unique) == 1 else (
+            f"tiqqun_ammudim_{unique[0]:03d}-{unique[-1]:03d}.csv")
+        return self._write_tiqqun_csv(notes, name)
 
     # =============================================================
     #  Secondary windows

@@ -112,15 +112,19 @@ def is_duplicate(note: dict, keys: set[str]) -> bool:
     return note["key"] in keys or content_key(note["fields"]) in keys
 
 
-def csv_text(notes: list[dict], deck_name: str) -> str:
-    """The notes as an Anki CSV, its header naming the note type and deck.
-    Fields hold HTML (and may span lines), so they're quoted as needed."""
+def csv_text(notes: list[dict]) -> str:
+    """The notes as an Anki CSV, its header naming the note type; the last
+    two columns are each note's tags and deck. Fields hold HTML (and may
+    span lines), so they're quoted as needed."""
     buf = io.StringIO()
+    n = len(FIELD_NAMES)
     buf.write(
-        "#separator:tab\n#html:true\n"
-        f"#notetype:{MODEL_NAME}\n#deck:{deck_name}\n#tags column:{len(FIELD_NAMES) + 1}\n"
+        f"#separator:tab\n#html:true\n#notetype:{MODEL_NAME}\n"
+        f"#tags column:{n + 1}\n#deck column:{n + 2}\n"
     )
     writer = csv.writer(buf, delimiter="\t", lineterminator="\n")
     for note in notes:
-        writer.writerow([note["fields"].get(name, "") for name in FIELD_NAMES] + [" ".join(note["tags"])])
+        writer.writerow(
+            [note["fields"].get(name, "") for name in FIELD_NAMES] + [" ".join(note["tags"]), note["deck"]]
+        )
     return buf.getvalue()

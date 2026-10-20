@@ -51,10 +51,11 @@ def test_an_unrecognisable_note_still_matches_identical_lines(tmp_path):
     assert te.is_duplicate(same, keys) and not te.is_duplicate(other, keys)
 
 
-def test_csv_names_the_note_type_and_deck_and_quotes_multi_line_html():
-    notes = [{"fields": {"Title": "T", "FrontRows": "<div>a</div>\n<div>b</div>"}, "tags": ["ammud::001"]}]
-    text = te.csv_text(notes, "Ammudim::001")
-    header, body = text.split("#tags column:10\n")
-    assert "#notetype:Ankipasuk Aliyah" in header and "#deck:Ammudim::001" in header
+def test_csv_names_the_note_type_and_has_tags_and_deck_columns_and_quotes_multi_line_html():
+    notes = [{"fields": {"Title": "T", "FrontRows": "<div>a</div>\n<div>b</div>"}, "tags": ["ammud::001"],
+              "deck": "Ammudim::001"}]
+    header, body = te.csv_text(notes).split("#deck column:11\n")
+    assert "#notetype:Ankipasuk Aliyah" in header and "#tags column:10" in header
     (row,) = list(csv.reader(io.StringIO(body), delimiter="\t"))
-    assert row[0] == "T" and row[4] == "<div>a</div>\n<div>b</div>" and row[-1] == "ammud::001"
+    assert row[0] == "T" and row[4] == "<div>a</div>\n<div>b</div>"
+    assert row[-2:] == ["ammud::001", "Ammudim::001"]

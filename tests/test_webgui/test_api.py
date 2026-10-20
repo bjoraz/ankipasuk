@@ -480,7 +480,7 @@ def test_verse_cards_exclude_a_prior_verses_bleed_from_the_first_card(
 
 def _seed_one_amud(api, tmp_path, monkeypatch):
     """Pre-seed api._cache with a single one-line 'ammud ('ammud 1, wholly
-    within a fake single-chapter Genesis) -- enough for export_amud_to_anki
+    within a fake single-chapter Genesis) -- enough for export_ammudim_to_anki
     to run with zero network access.
 
     verse-mode (the default) needs a Sefaria word count per verse too
@@ -503,25 +503,24 @@ def _seed_one_amud(api, tmp_path, monkeypatch):
     api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
-def test_export_amud_to_anki_pushes_notes_for_the_whole_amud(tmp_path, fake_anki, monkeypatch):
+def test_export_ammudim_to_anki_pushes_notes_for_the_whole_amud(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    result = api.export_amud_to_anki(1)
+    result = api.export_ammudim_to_anki([1])
 
     assert result["ok"] is True
-    assert result["amud"] == 1
-    assert result["book"] == "Genesis"
+    assert result["ammudim"] == [1]
     assert result["notes_added"] == 1
-    assert result["deck"] == "Ammudim::001"
+    assert result["decks"] == ["Ammudim::001"]
     assert all(n["deck"] == "Ammudim::001" for n in fake_anki.notes.values())
 
 
-def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypatch):
+def test_export_ammudim_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    api.export_amud_to_anki(1)
+    api.export_ammudim_to_anki([1])
 
     (note,) = fake_anki.notes.values()
     # Plus the pasuq's own qeriya tags (Bereshit 1:1 is read on Simḥat
@@ -532,13 +531,13 @@ def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypa
 def test_exporting_the_same_ammud_twice_adds_nothing_the_second_time(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
-    first, again = api.export_amud_to_anki(1), api.export_amud_to_anki(1)
+    first, again = api.export_ammudim_to_anki([1]), api.export_ammudim_to_anki([1])
     assert (first["notes_added"], first["already_in_anki"]) == (1, 0)
     assert (again["notes_added"], again["already_in_anki"]) == (0, 1)
     assert len(fake_anki.notes) == 1
 
 
-def test_export_amud_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki, monkeypatch):
+def test_export_ammudim_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki, monkeypatch):
     """A note type created by an older version of this code (before a CSS
     change, e.g. adding the STAM font or setuma-gap styling) must not be
     stuck with stale styling forever -- ensure_model alone never updates
@@ -549,13 +548,13 @@ def test_export_amud_to_anki_refreshes_css_on_an_already_existing_model(tmp_path
     ensure_model(LPCG_MODEL_NAME, FIELD_NAMES, "stale old css", CARD_TEMPLATES, url="http://localhost:8765")
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
-    api.export_amud_to_anki(1)
+    api.export_ammudim_to_anki([1])
     assert fake_anki.models[LPCG_MODEL_NAME]["css"] != "stale old css"
 
 
-def test_export_amud_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):
+def test_export_ammudim_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):
     api = Api()
-    result = api.export_amud_to_anki(0)
+    result = api.export_ammudim_to_anki([0])
     assert result["ok"] is False
     assert "error" in result
 
@@ -704,7 +703,7 @@ def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, f
         "deck": "Amudim::001", "model": "Ankipasuk Aliyah", "tags": ["amud::001"],
         "fields": {"Title": "Bereshit Amud 1", "Sequence": "1", "FrontRows": "<old/>", "Line": ""},
     }
-    result = api.export_amud_to_anki(1)
+    result = api.export_ammudim_to_anki([1])
     assert (result["notes_added"], result["already_in_anki"]) == (0, 1)
     assert fake_anki.notes[50]["fields"]["FrontRows"] == "<old/>"  # untouched
 
@@ -712,7 +711,7 @@ def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, f
 def test_both_exports_create_a_missing_deck(tmp_path, genesis_1_1, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
-    api.export_amud_to_anki(1)
+    api.export_ammudim_to_anki([1])
     fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
     cloze_api = _api_with_haftara(tmp_path, genesis_1_1)
     cloze_api.export_cloze_to_anki(2, True, "New::Haftarot", "Leyning (by pasuk)")
@@ -729,8 +728,61 @@ def test_tiqqun_cards_can_be_saved_as_csv(tmp_path, monkeypatch):
             return str(out_path)
 
     api._window = FakeWindow()
-    result = api.export_amud_csv(1)
+    result = api.export_ammudim_csv([1])
     assert result == {"ok": True, "count": 1, "path": str(out_path)}
     text = out_path.read_text(encoding="utf-8-sig")
-    assert "#notetype:Ankipasuk Aliyah\n#deck:Ammudim::001\n" in text
-    assert text.rstrip().endswith("ammud::001 holiday::simhat_tora::7")
+    assert "#notetype:Ankipasuk Aliyah\n#tags column:10\n#deck column:11\n" in text
+    assert text.rstrip().endswith("ammud::001 holiday::simhat_tora::7\tAmmudim::001")
+
+
+def _seed_two_ammudim(api, tmp_path, monkeypatch):
+    """'Ammudim 1 and 2 of a fake two-verse Genesis, one pasuq each."""
+    from tests.test_anki_connect.test_tagging import _placeholder_genesis_parashot
+
+    monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [2]})
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_parasha_structure("Genesis", _placeholder_genesis_parashot())
+    api._cache.set_text("Genesis 1", POINTED_VERSION, ["א", "ב"])
+    api._cache.set_tikkun_toc({"1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 2, "l": 1}}}})
+    api._cache.set_tikkun_page(1, [
+        {"text": [["אאא"]], "verses": [{"chapter": 1, "verse": 1}], "aliyot": [], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_page(2, [
+        {"text": [["בבב"]], "verses": [{"chapter": 1, "verse": 2}], "aliyot": [], "isPetucha": False},
+    ])
+    api._cache.set_tikkun_font("ZmFrZS1mb250")
+
+
+def test_several_ammudim_each_go_to_their_own_deck_once(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_two_ammudim(api, tmp_path, monkeypatch)
+    # Overlapping ranges, out of order: each 'ammud still counts once.
+    result = api.export_ammudim_to_anki([2, 1, 2, 1])
+    assert result["ok"] is True, result
+    assert result["ammudim"] == [1, 2]
+    assert result["decks"] == ["Ammudim::001", "Ammudim::002"]
+    assert result["notes_added"] == 2
+    assert sorted(n["deck"] for n in fake_anki.notes.values()) == ["Ammudim::001", "Ammudim::002"]
+    assert {"Ammudim::001", "Ammudim::002"} <= fake_anki.decks
+
+
+def test_one_csv_holds_several_ammudim_with_their_decks(tmp_path, monkeypatch):
+    api = Api()
+    _seed_two_ammudim(api, tmp_path, monkeypatch)
+    out_path = tmp_path / "t.csv"
+
+    class FakeWindow:
+        def create_file_dialog(self, *a, save_filename=None, **kw):
+            assert save_filename == "tiqqun_ammudim_001-002.csv"
+            return str(out_path)
+
+    api._window = FakeWindow()
+    assert api.export_ammudim_csv([1, 2])["count"] == 2
+    rows = [line.split("\t")[-1] for line in out_path.read_text(encoding="utf-8-sig").splitlines()
+            if not line.startswith("#")]
+    assert rows == ["Ammudim::001", "Ammudim::002"]
+
+
+def test_no_ammudim_is_an_error(tmp_path):
+    assert Api().export_ammudim_to_anki([])["ok"] is False

@@ -178,10 +178,11 @@ different system of ta'amim.
 ## Tiqqun cards
 
 Tiqqun cards are for memorizing the qeriya itself, an 'ammud at a time.
-Choose an 'ammud (1 to 245) and AnkiPasuk sends its cards straight to Anki
-through the AnkiConnect add-on, or saves them as a CSV to import. Each
-'ammud has its own deck, `Ammudim::001` to `Ammudim::245`, so there's no
-deck to choose. In the app this is the **Tiqqun cards** panel.
+Choose one or more ranges of 'ammudim (1 to 245), the way you choose source
+ranges, and AnkiPasuk sends their cards straight to Anki through the
+AnkiConnect add-on, or saves them as one CSV to import. Each 'ammud has
+its own deck, `Ammudim::001` to `Ammudim::245`, so there's no deck to
+choose. In the app this is the **Tiqqun cards** panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
 layout data, which follows the standard layout of the sefer: 245 'ammudim
@@ -343,7 +344,8 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
 
 1. Add one or more ranges, by chapter and verse, by parasha and 'aliyya,
    or by haftara, from the Tora, Nevi'im or the five Megillot, then click
-   **Fetch all ranges**. Ranges are joined in the order you add them, so you can run
+   **Fetch all ranges**. A range's end can't come before its start: the end
+   pickers start where the start is. Ranges are joined in the order you add them, so you can run
    the end of one book into the start of the next.
 2. Set **Max disjunctive groups per leaf** and click **Generate cloze
    cards**. You'll see the cloze markup, the groups for each pasuq, and
@@ -365,8 +367,8 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
    Either way each note gets its tags: the parasha, 'aliyya and holiday
    tags for the Tora, and `haftara::<parasha>` for a haftara. The tagging
    tool looks for the reference in a field called `Source`.
-4. For tiqqun cards, use the panel at the bottom: the 'ammud, and how to
-   divide its cards.
+4. For tiqqun cards, use the panel at the bottom: one or more ranges of
+   'ammudim, and how to divide their cards.
 
 **Reset cloze numbering for each line** is on by default, so each pasuq
 starts again at c1 and becomes its own note. Turn it off if you'd rather
