@@ -36,9 +36,10 @@ def source_label(item: dict) -> str:
     return f"{BOOK_HEBREW_NAMES.get(item['book'], item['book'])} {item['ch']}:{item['vs']}"
 
 
-def _qeriya_context(books: set[str], cache: SefariaCache) -> dict:
+def qeriya_context(books: set[str], cache: SefariaCache) -> dict:
     """Per Tora book: live chapter lengths and the interval tables the
-    tagger uses, so exported tags match what ankipasuk-tag-deck computes."""
+    tagger uses, so exported tags match what ankipasuk-tag-deck computes.
+    Shared with the tiqqun export (see :func:`qeriya_tags`)."""
     context = {}
     for book in books & set(TORAH_VERSE_COUNTS):
         counts = get_chapter_lengths(book, cache)
@@ -48,6 +49,15 @@ def _qeriya_context(books: set[str], cache: SefariaCache) -> dict:
             "holidays": build_holiday_intervals({book: counts}),
         }
     return context
+
+
+def qeriya_tags(context: dict, book: str, ch: int, vs: int) -> list[str]:
+    """The parasha/'aliyya/holiday tags of a Tora pasuq, from a
+    :func:`qeriya_context` covering its book; ``[]`` for any other book."""
+    c = context.get(book)
+    if c is None:
+        return []
+    return tags_for_verse(book, ch, vs, c["parashot"], c["holidays"], c["counts"])
 
 
 def build_cloze_notes(
@@ -62,7 +72,7 @@ def build_cloze_notes(
     in the export otherwise. ``Previous``/``Next`` are the neighbouring
     pesuqim as fetched, but a haftara's never reach outside it."""
     max_leaf_disj = max(1, max_leaf_disj)
-    context = _qeriya_context({item["book"] for item in verse_data}, cache)
+    context = qeriya_context({item["book"] for item in verse_data}, cache)
     items = [item for item in verse_data if item["pointed"].strip()]
 
     def neighbour(i: int, j: int) -> str:
@@ -84,7 +94,7 @@ def build_cloze_notes(
         if book in context:
             c = context[book]
             number = verse_index(book, ch, vs, c["counts"]) + 1
-            tags += tags_for_verse(book, ch, vs, c["parashot"], c["holidays"], c["counts"])
+            tags += qeriya_tags(context, book, ch, vs)
         elif "haftara_pos" in item:
             number = item["haftara_pos"]
         else:

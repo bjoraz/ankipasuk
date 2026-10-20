@@ -128,6 +128,10 @@ class FakeAnki:
             })
         return out
 
+    def _do_createDeck(self, deck: str):
+        self.decks = getattr(self, "decks", set()) | {deck}
+        return 1
+
     def _do_modelNames(self):
         return list(self.models.keys())
 

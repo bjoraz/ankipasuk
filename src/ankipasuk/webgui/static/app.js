@@ -440,82 +440,86 @@ async function refreshLpcgAliyahDropdown(which) {
     setOptions(document.getElementById("lpcg-" + which + "-aliyah"), aliyot, true);
 }
 
-async function doExportLpcg() {
-    const btn = document.getElementById("btn-export-lpcg");
+function lpcgSettings() {
+    return {
+        deckName: document.getElementById("lpcg-deck").value.trim(),
+        cardDivision: document.getElementById("lpcg-card-division").value,
+        contextLines: parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0,
+        reciteLines: parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1,
+        groupSize: parseInt(document.getElementById("lpcg-group-size").value, 10) || 1,
+    };
+}
+
+// What a tiqqun export did, for the status line under the panel.
+function lpcgSummary(result, what, toCsv) {
+    if (toCsv) return `${what}: ${result.count} card(s) saved to ${result.path}`;
+    let msg = `${what}: ${result.notes_added} card(s) added`;
+    if (result.already_in_anki) msg += `, ${result.already_in_anki} already in Anki (left as they are)`;
+    if (result.failed) msg += `, ${result.failed} rejected by Anki`;
+    return msg;
+}
+
+async function runLpcgExport(btn, label, call, describe, toCsv) {
     const status = document.getElementById("lpcg-status");
-    const book = document.getElementById("lpcg-book").value;
-    const startParasha = document.getElementById("lpcg-start-parasha").value;
-    const startAliyah = parseInt(document.getElementById("lpcg-start-aliyah").value, 10);
-    const endParasha = document.getElementById("lpcg-end-parasha").value;
-    const endAliyah = parseInt(document.getElementById("lpcg-end-aliyah").value, 10);
-    const deckName = document.getElementById("lpcg-deck").value.trim();
-    const cardDivision = document.getElementById("lpcg-card-division").value;
-    const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
-    const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
-    const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
-
-    if (!deckName) {
-        showToast("Enter an Anki deck name.", true);
-        return;
-    }
-
     btn.disabled = true;
-    btn.textContent = "Exporting...";
+    btn.textContent = toCsv ? "Saving..." : "Exporting...";
     status.textContent = "";
     try {
-        const result = await api().export_aliyot_to_anki(
-            book, startParasha, startAliyah, endParasha, endAliyah, deckName,
-            cardDivision, contextLines, reciteLines, groupSize,
-        );
+        const result = await call();
         if (!result.ok) {
-            showToast("Export failed: " + result.error, true);
-            return;
+            if (result.error) showToast("Export failed: " + result.error, true);
+            return; // null error: the save dialog was cancelled
         }
-        status.textContent =
-            `${result.aliyot} ${result.aliyot === 1 ? "'aliyya" : "'aliyyot"}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
-        showToast("Exported to Anki.", false);
+        status.textContent = lpcgSummary(result, describe(result), toCsv);
+        showToast(toCsv ? "Saved." : "Exported to Anki.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Export 'aliyyot to Anki";
+        btn.textContent = label;
     }
 }
 
-async function doExportAmud() {
-    const btn = document.getElementById("btn-export-amud");
-    const status = document.getElementById("lpcg-status");
-    const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
-    const deckName = document.getElementById("lpcg-deck").value.trim();
-    const cardDivision = document.getElementById("lpcg-card-division").value;
-    const contextLines = parseInt(document.getElementById("lpcg-context-lines").value, 10) || 0;
-    const reciteLines = parseInt(document.getElementById("lpcg-recite-lines").value, 10) || 1;
-    const groupSize = parseInt(document.getElementById("lpcg-group-size").value, 10) || 1;
+async function doExportLpcg(toCsv) {
+    const s = lpcgSettings();
+    if (!s.deckName) {
+        showToast("Enter an Anki deck name.", true);
+        return;
+    }
+    const args = [
+        document.getElementById("lpcg-book").value,
+        document.getElementById("lpcg-start-parasha").value,
+        parseInt(document.getElementById("lpcg-start-aliyah").value, 10),
+        document.getElementById("lpcg-end-parasha").value,
+        parseInt(document.getElementById("lpcg-end-aliyah").value, 10),
+        s.deckName, s.cardDivision, s.contextLines, s.reciteLines, s.groupSize,
+    ];
+    const btn = document.getElementById(toCsv ? "btn-export-lpcg-csv" : "btn-export-lpcg");
+    await runLpcgExport(
+        btn, toCsv ? "Save as CSV" : "Export 'aliyyot to Anki",
+        () => (toCsv ? api().export_aliyot_csv(...args) : api().export_aliyot_to_anki(...args)),
+        (r) => (r.aliyot ? `${r.aliyot} ${r.aliyot === 1 ? "'aliyya" : "'aliyyot"}` : "'Aliyyot"),
+        toCsv,
+    );
+}
 
+async function doExportAmud(toCsv) {
+    const s = lpcgSettings();
+    const amud = parseInt(document.getElementById("lpcg-amud").value, 10);
     if (!amud || amud < 1 || amud > 245) {
         showToast("Enter an 'ammud number from 1 to 245.", true);
         return;
     }
-    if (!deckName) {
+    if (!s.deckName) {
         showToast("Enter an Anki deck name.", true);
         return;
     }
-
-    btn.disabled = true;
-    btn.textContent = "Exporting...";
-    status.textContent = "";
-    try {
-        const result = await api().export_amud_to_anki(
-            amud, deckName, cardDivision, contextLines, reciteLines, groupSize,
-        );
-        if (!result.ok) {
-            showToast("Export failed: " + result.error, true);
-            return;
-        }
-        status.textContent = `${result.book} 'ammud ${result.amud}, ${result.notes_added} note(s) added, ${result.notes_skipped} skipped (duplicates)`;
-        showToast("Exported to Anki.", false);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Export 'ammud to Anki";
-    }
+    const args = [amud, s.deckName, s.cardDivision, s.contextLines, s.reciteLines, s.groupSize];
+    const btn = document.getElementById(toCsv ? "btn-export-amud-csv" : "btn-export-amud");
+    await runLpcgExport(
+        btn, toCsv ? "Save as CSV" : "Export 'ammud to Anki",
+        () => (toCsv ? api().export_amud_csv(...args) : api().export_amud_to_anki(...args)),
+        (r) => (r.book ? `${r.book} 'ammud ${r.amud}` : `'Ammud ${amud}`),
+        toCsv,
+    );
 }
 
 // =============================================================
@@ -661,8 +665,10 @@ window.addEventListener("pywebviewready", async () => {
     document.getElementById("lpcg-book").addEventListener("change", refreshLpcgParashaDropdowns);
     document.getElementById("lpcg-start-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("start"));
     document.getElementById("lpcg-end-parasha").addEventListener("change", () => refreshLpcgAliyahDropdown("end"));
-    document.getElementById("btn-export-lpcg").addEventListener("click", doExportLpcg);
-    document.getElementById("btn-export-amud").addEventListener("click", doExportAmud);
+    document.getElementById("btn-export-lpcg").addEventListener("click", () => doExportLpcg(false));
+    document.getElementById("btn-export-lpcg-csv").addEventListener("click", () => doExportLpcg(true));
+    document.getElementById("btn-export-amud").addEventListener("click", () => doExportAmud(false));
+    document.getElementById("btn-export-amud-csv").addEventListener("click", () => doExportAmud(true));
 
     const updateCardDivisionVisibility = () => {
         const isRowMode = document.getElementById("lpcg-card-division").value === "row";

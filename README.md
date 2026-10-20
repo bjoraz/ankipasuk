@@ -184,9 +184,9 @@ different system of ta'amim.
 
 Tiqqun cards are for memorizing the qeriya itself, a whole 'aliyya or 'ammud
 at a time. Choose a range of 'aliyyot (or a single 'ammud, 1 to 245) and
-AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on.
-In the app they're in the **Export 'aliyyot to Anki (tiqqun cards)**
-panel.
+AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on,
+or saves them as a CSV to import. In the app they're in the **Export
+'aliyyot to Anki (tiqqun cards)** panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
 layout data, which follows the standard layout of the sefer: 245 'ammudim
@@ -225,7 +225,14 @@ and grouping can all be set. This is an independent reimplementation; you
 don't need AnkiLPCG installed.
 
 Both kinds use the same note type, "Ankipasuk Aliyah", which is created the
-first time you export. Each card has small controls in the corner for text
+first time you export to Anki (so do that once before importing a CSV).
+As with the cloze export, the deck is created if it's missing, and a card
+that's already in Anki is skipped, wherever it is: the same pasuq's card
+(even one exported earlier as part of an 'ammud rather than an 'aliyya),
+or in line mode the same lines. Existing cards are never changed. A pasuq's
+card is tagged with its parasha, 'aliyya and holidays like the cloze
+notes, plus `ammud::NNN` or `parasha::<slug>` for what it was exported
+as. Each card has small controls in the corner for text
 size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you set there
 applies to every card.
 
@@ -360,9 +367,9 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
    - **Send to Anki**, with Anki open and AnkiConnect installed. Pick a deck
      and a note type whose fields start with Number, Source, Text, Verse,
      Previous, Next, Back Extra and a settings field (the CSV's layout).
-     Only pesuqim that don't have a note yet are added. Existing notes,
-     with their scheduling and anything you added to them (a recording,
-     say), are never changed.
+     The deck is created if it's missing. Only pesuqim that don't have a
+     note yet are added. Existing notes, with their scheduling and anything
+     you added to them (a recording, say), are never changed.
 
    Either way each note gets its tags: the parasha, 'aliyya and holiday
    tags for the Tora, and `haftara::<parasha>` for a haftara. The tagging
@@ -400,6 +407,7 @@ src/ankipasuk/
 ├── stats.py             statistics for a loaded range
 ├── qeriya.py            parasha / 'aliyya / maftir / holiday / haftara tag logic
 ├── cloze_export.py      the cloze notes both exports (CSV, AnkiConnect) build
+├── tiqqun_export.py     which pasuq a tiqqun card is (no duplicates), tiqqun CSV
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both

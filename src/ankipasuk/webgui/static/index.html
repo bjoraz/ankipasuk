@@ -124,6 +124,7 @@
   <div class="row">
     <label>'Ammud (1&ndash;245): <input type="number" id="lpcg-amud" min="1" max="245" style="width:5em"></label>
     <button id="btn-export-amud">Export 'ammud to Anki</button>
+    <button id="btn-export-amud-csv" title="Importing the CSV needs the tiqqun note type in Anki: any export to Anki creates it">Save as CSV</button>
   </div>
 
   <div class="row">
@@ -142,12 +143,15 @@
     <label>Group size: <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>
   </div>
   <div class="row">
-    <span class="muted">Font size and line spacing are adjustable directly on each card (small controls in its corner).</span>
+    <span class="muted">Font size and line spacing are adjustable directly on each card (small controls in its corner). Cards already in Anki are skipped, never changed; a missing deck is created.</span>
   </div>
 
   <div class="row space-between">
     <span id="lpcg-status" class="muted"></span>
-    <button id="btn-export-lpcg">Export 'aliyyot to Anki</button>
+    <span class="inline-group">
+      <button id="btn-export-lpcg-csv" title="Importing the CSV needs the tiqqun note type in Anki: any export to Anki creates it">Save as CSV</button>
+      <button id="btn-export-lpcg">Export 'aliyyot to Anki</button>
+    </span>
   </div>
 </fieldset>
 

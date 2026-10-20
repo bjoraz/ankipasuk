@@ -11,6 +11,7 @@ Api-wide _current_book) threaded through correctly between calls.
 
 from ankipasuk.cache import SefariaCache
 from ankipasuk.config import POINTED_VERSION
+from ankipasuk.lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ankipasuk.lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ankipasuk.settings import Settings
 from ankipasuk.webgui.api import Api
@@ -315,15 +316,19 @@ def _seed_two_aliyah_parasha(api, tmp_path):
     """
     api._cache = SefariaCache(cache_dir=tmp_path)
     api._settings = Settings(cache_dir=tmp_path)
-    api._cache.set_parasha_structure(
-        "Genesis",
-        [{"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}],
-    )
+    from tests.test_anki_connect.test_tagging import _placeholder_genesis_parashot
+
+    # The other parashiyyot are placeholders: the export computes each
+    # card's qeriya tags, which pairs Sefaria's list with our table.
+    parashot = _placeholder_genesis_parashot()
+    parashot[0] = {"name": "Bereshit", "refs": ["Genesis 1:1", "Genesis 1:2"]}
+    api._cache.set_parasha_structure("Genesis", parashot)
     # fetch_aliyot_in_range fetches text keyed by each 'aliyya's own ref
     # string (single verses here), not per chapter.
     api._cache.set_text("Genesis 1:1", POINTED_VERSION, ["v1"])
     api._cache.set_text("Genesis 1:2", POINTED_VERSION, ["v2"])
     api._cache.set_text("Genesis 1", POINTED_VERSION, ["א", "ב"])
+
 
     api._cache.set_tikkun_toc({
         "1": {"1": {"1": {"p": 1, "l": 1}, "2": {"p": 1, "l": 2}, "3": {"p": 1, "l": 3}}},
@@ -385,7 +390,12 @@ def test_export_aliyot_uses_our_names_in_title_and_tags(tmp_path, fake_anki):
     assert result["ok"] is True
     note = next(iter(fake_anki.notes.values()))
     assert note["fields"]["Title"] == "Bereshit Ḥayye Sara 1 (Bereshit 1:1)"
-    assert sorted(note["tags"]) == ["ankipasuk-aliyya", "parasha::hayye_sara"]
+    # The fake Ḥayye Sara is Bereshit 1:1, so the pasuq's own qeriya tags
+    # come along too -- it really is read on Simḥat Tora.
+    assert sorted(note["tags"]) == [
+        "aliyya::bereshit::05-hayye_sara::1", "ankipasuk-aliyya", "holiday::simhat_tora::7",
+        "parasha::hayye_sara",
+    ]
 
 
 def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
@@ -608,9 +618,12 @@ def _seed_one_amud(api, tmp_path, monkeypatch):
     seeded here to match the tikkun row's own single word ("אאא"), so the
     word-alignment doesn't fall back to a real network fetch.
     """
+    from tests.test_anki_connect.test_tagging import _placeholder_genesis_parashot
+
     monkeypatch.setattr("ankipasuk.tikkun.TORAH_VERSE_COUNTS", {"Genesis": [1]})
     api._cache = SefariaCache(cache_dir=tmp_path)
     api._settings = Settings(cache_dir=tmp_path)
+    api._cache.set_parasha_structure("Genesis", _placeholder_genesis_parashot())  # for the qeriya tags
     api._cache.set_text("Genesis 1", POINTED_VERSION, ["א"])
     api._cache.set_tikkun_toc({"1": {"1": {"1": {"p": 1, "l": 1}}}})
     api._cache.set_tikkun_page(1, [
@@ -640,7 +653,9 @@ def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypa
     api.export_amud_to_anki(1, "Deck")
 
     (note,) = fake_anki.notes.values()
-    assert note["tags"] == ["ammud::001"]
+    # Plus the pasuq's own qeriya tags (Bereshit 1:1 is read on Simḥat
+    # Tora; the fixture's parashiyyot are placeholders, so no 'aliyya tag).
+    assert note["tags"] == ["ammud::001", "holiday::simhat_tora::7"]
 
 
 def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkeypatch):
@@ -787,3 +802,58 @@ def test_export_csv_has_the_anki_header_and_a_tags_column(tmp_path, genesis_1_1)
     assert lines[:2] == ["#separator:tab", "#tags column:9"]
     first = lines[2].split("\t")
     assert first[:2] == ["1", "Yesha'yahu 42:5"] and first[-1] == "haftara::bereshit"
+
+
+# =============================================================
+#  No duplicates, and the deck is created
+# =============================================================
+def test_exporting_the_same_aliyyot_twice_adds_nothing_the_second_time(tmp_path, fake_anki):
+    api = Api()
+    _seed_two_aliyah_parasha(api, tmp_path)
+    first = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 2, "Qeriya::Tiqqun")
+    again = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 2, "Elsewhere")
+    assert (first["notes_added"], first["already_in_anki"]) == (2, 0)
+    assert (again["notes_added"], again["already_in_anki"]) == (0, 2)
+    assert len(fake_anki.notes) == 2
+
+
+def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, fake_anki, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+    # An old-style note for Bereshit 1:1 from an earlier version: old title,
+    # old tag, different HTML -- still recognised as that pasuq's card.
+    fake_anki.models["Ankipasuk Aliyah"] = {"fields": list(LPCG_FIELD_NAMES), "css": "", "cardTemplates": []}
+    fake_anki.notes[50] = {
+        "deck": "Amudim::001", "model": "Ankipasuk Aliyah", "tags": ["amud::001"],
+        "fields": {"Title": "Bereshit Amud 1", "Sequence": "1", "FrontRows": "<old/>", "Line": ""},
+    }
+    result = api.export_amud_to_anki(1, "Ammudim::001")
+    assert (result["notes_added"], result["already_in_anki"]) == (0, 1)
+    assert fake_anki.notes[50]["fields"]["FrontRows"] == "<old/>"  # untouched
+
+
+def test_both_exports_create_a_missing_deck(tmp_path, genesis_1_1, fake_anki, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+    api.export_amud_to_anki(1, "New::Tiqqun")
+    fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
+    cloze_api = _api_with_haftara(tmp_path, genesis_1_1)
+    cloze_api.export_cloze_to_anki(2, True, "New::Haftarot", "Leyning (by pasuk)")
+    assert {"New::Tiqqun", "New::Haftarot"} <= fake_anki.decks
+
+
+def test_tiqqun_cards_can_be_saved_as_csv(tmp_path, monkeypatch):
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+    out_path = tmp_path / "tiqqun.csv"
+
+    class FakeWindow:
+        def create_file_dialog(self, *a, **kw):
+            return str(out_path)
+
+    api._window = FakeWindow()
+    result = api.export_amud_csv(1, "Ammudim::001")
+    assert result == {"ok": True, "count": 1, "path": str(out_path)}
+    text = out_path.read_text(encoding="utf-8-sig")
+    assert "#notetype:Ankipasuk Aliyah\n#deck:Ammudim::001\n" in text
+    assert text.rstrip().endswith("ammud::001 holiday::simhat_tora::7")

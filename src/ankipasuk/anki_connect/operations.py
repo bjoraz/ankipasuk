@@ -226,6 +226,12 @@ def add_notes(
     return added
 
 
+def ensure_deck(deck_name: str, *, url: str) -> None:
+    """Create ``deck_name`` (and its parents) if it doesn't exist yet. A
+    no-op for an existing deck: AnkiConnect's createDeck leaves it as is."""
+    invoke("createDeck", url=url, deck=deck_name)
+
+
 def ensure_media_file(filename: str, data_base64: str, *, url: str) -> None:
     """Make sure ``filename`` exists in Anki's media collection with this
     exact content, uploading it via AnkiConnect's ``storeMediaFile`` if it

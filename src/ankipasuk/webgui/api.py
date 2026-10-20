@@ -24,6 +24,7 @@ from ..analysis import cloze_breakdown
 from ..anki_connect import client as anki_client
 from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
 from ..anki_connect.operations import add_notes as anki_add_notes
+from ..anki_connect.operations import ensure_deck as anki_ensure_deck
 from ..anki_connect.operations import ensure_media_file as anki_ensure_media_file
 from ..anki_connect.operations import ensure_model as anki_ensure_model
 from ..anki_connect.operations import ensure_model_fields as anki_ensure_model_fields
@@ -40,6 +41,8 @@ from ..cloze_export import (
     build_cloze_notes,
     check_note_type_fields,
     csv_rows,
+    qeriya_context,
+    qeriya_tags,
 )
 from ..config import (
     BOOK_CATEGORIES,
@@ -54,6 +57,7 @@ from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
 from ..qeriya import (
+    ALIYYA_TAG_NAMESPACE,
     TIQQUN_ALIYYA_TAG,
     haftara_label,
     haftara_table,
@@ -81,7 +85,14 @@ from ..tikkun import (
     get_book_for_page,
     get_font_base64,
     get_scroll_lines_for_range,
+    get_verses_starting_on_amud,
 )
+from ..tiqqun_export import content_key as tiqqun_content_key
+from ..tiqqun_export import csv_text as tiqqun_csv_text
+from ..tiqqun_export import existing_keys as tiqqun_existing_keys
+from ..tiqqun_export import is_duplicate as tiqqun_is_duplicate
+from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
+from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards, build_verse_cards
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
@@ -540,6 +551,7 @@ class Api:
                 for n in anki_notes_info(existing_ids, url=DEFAULT_URL)
             }
             new = [n for n in notes if n["key"] not in existing]
+            anki_ensure_deck(deck_name, url=DEFAULT_URL)
             payload = [{
                 "deckName": deck_name, "modelName": note_type,
                 "fields": anki_fields(n, field_names), "tags": n["tags"],
@@ -566,35 +578,18 @@ class Api:
         DEFAULT_LPCG_DECK_NAME the first time the app is ever run."""
         return self._settings.get("lpcg_deck_name", self.DEFAULT_LPCG_DECK_NAME)
 
-    def _push_lpcg_notes(
-        self, note_groups: list[tuple[list[dict[str, str]], list[str]]], deck_name: str,
-    ) -> dict:
-        """Shared by export_aliyot_to_anki and export_amud_to_anki: given
-        one or more (fields_list, tags) groups -- ``fields_list`` already
-        built by :func:`ankipasuk.lpcg.build_lpcg_fields` or
-        :mod:`ankipasuk.verse_cards`'s builders -- turn every field dict
-        into an AnkiConnect note and push them all to ``deck_name`` in one
-        batch, ensuring the font/note-type/CSS/templates are in place
-        (and refreshed if stale) first.
+    def _push_lpcg_notes(self, notes: list[dict], deck_name: str) -> dict:
+        """Send tiqqun notes (see _tiqqun_aliyot_notes / _tiqqun_amud_notes)
+        to ``deck_name``, creating the deck if needed and making sure the
+        font, note type, CSS and templates are in place (and refreshed if
+        stale) first.
 
-        Returns ``{"ok": False, "error": ...}`` on any failure, otherwise
-        ``{"ok": True, "notes_added": ..., "notes_skipped": ...}`` --
-        callers add their own extra result fields (e.g. "aliyot" or
-        "amud") on top of this.
-        """
+        A note that's already in Anki -- the same pasuq's card, or the same
+        lines in row mode, anywhere in the collection (see
+        ankipasuk.tiqqun_export) -- is skipped; existing notes are never
+        changed. Returns ``{"ok": True, "notes_added", "already_in_anki",
+        "failed"}`` or ``{"ok": False, "error"}``."""
         self._settings.set("lpcg_deck_name", deck_name)
-
-        notes = []
-        for fields_list, tags in note_groups:
-            for fields in fields_list:
-                notes.append({
-                    "deckName": deck_name,
-                    "modelName": LPCG_MODEL_NAME,
-                    "fields": fields,
-                    "tags": tags,
-                    "options": {"allowDuplicate": True},
-                })
-
         if not notes:
             return {"ok": False, "error": "No text was found to export."}
 
@@ -609,76 +604,85 @@ class Api:
             anki_ensure_model_fields(LPCG_MODEL_NAME, LPCG_FIELD_NAMES, url=DEFAULT_URL)
             anki_sync_model_css(LPCG_MODEL_NAME, LPCG_CSS, url=DEFAULT_URL)
             anki_sync_model_templates(LPCG_MODEL_NAME, CARD_TEMPLATES, url=DEFAULT_URL)
-            result_ids = anki_add_notes(notes, url=DEFAULT_URL, dry_run=False)
-        except AnkiConnectError as e:
+            existing_ids = anki_find_notes(f'"note:{LPCG_MODEL_NAME}"', url=DEFAULT_URL)
+            keys = tiqqun_existing_keys(anki_notes_info(existing_ids, url=DEFAULT_URL), self._cache)
+            new = []
+            for note in notes:
+                if not tiqqun_is_duplicate(note, keys):
+                    new.append(note)
+                    keys.add(note["key"])  # nor twice within one export
+            anki_ensure_deck(deck_name, url=DEFAULT_URL)
+            payload = [{
+                "deckName": deck_name, "modelName": LPCG_MODEL_NAME,
+                "fields": note["fields"], "tags": note["tags"],
+                "options": {"allowDuplicate": True},  # the check above is the duplicate check
+            } for note in new]
+            result_ids = anki_add_notes(payload, url=DEFAULT_URL, dry_run=False) if payload else []
+        except (AnkiConnectError, RuntimeError) as e:
             return {"ok": False, "error": str(e)}
 
         added = sum(1 for r in result_ids if r is not None)
-        skipped = len(result_ids) - added
-        return {"ok": True, "notes_added": added, "notes_skipped": skipped}
+        return {
+            "ok": True, "notes_added": added, "already_in_anki": len(notes) - len(new),
+            "failed": len(result_ids) - added,
+        }
 
-    def export_aliyot_to_anki(
-        self,
-        book: str,
-        start_parasha: str,
-        start_aliyah: int,
-        end_parasha: str,
-        end_aliyah: int,
-        deck_name: str,
-        card_division: str = "verse",
-        context_lines: int = 2,
-        recite_lines: int = 1,
-        group_size: int = 1,
-    ) -> dict:
-        """Fetch every 'aliyya from (start_parasha, start_aliyah) through
-        (end_parasha, end_aliyah) and push one Anki note per tiqqun
-        card to ``deck_name`` via AnkiConnect -- one 'aliyya = one LPCG
-        "poem", so cards from different 'aliyyot never overlap each other's
-        context window.
-
-        ``card_division`` picks how each 'aliyya's rows are grouped into
-        cards:
-
-        - "verse" (default, recommended): one card per verse, word-precise
-          at any row it shares with the verse just before/after (see
-          :mod:`ankipasuk.verse_cards`) -- only that verse's own words are
-          tested; a neighbor's words on the same row show as plain
-          context instead. Exactly one extra row before as further
-          context. ``context_lines``/``recite_lines``/``group_size`` are
-          ignored in this mode.
-        - "row": the original AnkiLPCG-style sliding window over physical
-          rows, tuned by ``context_lines``/``recite_lines``/``group_size``
-          (see :func:`ankipasuk.lpcg.build_lpcg_fields`) -- a shared
-          row's full text (both verses' words) is tested on whichever
-          side's card includes it.
-
-        Either way, each card's text is a real sefer line (see
-        :mod:`ankipasuk.tikkun`): unvoweled block letters, justified and
-        broken exactly where a sefer's column would break
-        (petuḥot/setumot rendered too) -- not a per-verse paragraph -- so
-        reciting through the deck trains the same line-by-line memory a
-        reader uses from the actual scroll. Rendered in the same STAM-style
-        font tikkun.io itself uses, pushed into Anki as a media file on
-        first use. Font size and line spacing are adjustable directly on
-        the card (small controls in the corner), not export-time settings.
-
-        Anki must be running with the AnkiConnect add-on installed. Does
-        not require the AnkiLPCG add-on itself -- the note type
-        (:data:`ankipasuk.lpcg.MODEL_NAME`) is created automatically on
-        first use if missing.
-        """
+    def _write_tiqqun_csv(self, notes: list[dict], deck_name: str, default_name: str) -> dict:
+        """Save tiqqun notes as an Anki CSV. Importing it needs the
+        tiqqun note type already in Anki (any export to Anki creates it)."""
+        self._settings.set("lpcg_deck_name", deck_name)
+        if not notes:
+            return {"ok": False, "error": "No text was found to export."}
+        if self._window is None:
+            return {"ok": False, "error": "Window not ready."}
+        path = self._window.create_file_dialog(
+            webview.SAVE_DIALOG, save_filename=default_name,
+            file_types=("CSV files (*.csv)", "All files (*.*)"),
+        )
+        if not path:
+            return {"ok": False, "error": None}  # cancelled
+        target = path if isinstance(path, str) else path[0]
         try:
-            aliyot = fetch_aliyot_in_range(
-                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
-                self._cache, POINTED_VERSION,
-            )
-            ours = parasha_names(book, get_parasha_structure(book, self._cache))
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
+            with open(target, "w", encoding="utf-8-sig", newline="") as f:
+                f.write(tiqqun_csv_text(notes, deck_name))
+        except OSError as e:
             return {"ok": False, "error": str(e)}
+        return {"ok": True, "count": len(notes), "path": target}
 
+    def _tiqqun_notes(
+        self, book: str, fields_list: list[dict], verse_refs: list[tuple[int, int]] | None,
+        tags: list[str], context: dict,
+    ) -> list[dict]:
+        """``{"fields", "tags", "key"}`` per card. In pasuq mode
+        (``verse_refs`` given, one per card) each card also gets its
+        pasuq's qeriya tags, as the cloze export does."""
+        notes = []
+        for i, fields in enumerate(fields_list):
+            if verse_refs is not None and len(verse_refs) == len(fields_list):
+                ch, vs = verse_refs[i]
+                key = tiqqun_pasuq_key(book, ch, vs)
+                note_tags = tags + [t for t in qeriya_tags(context, book, ch, vs) if t not in tags]
+            elif fields.get("Line"):
+                key, note_tags = tiqqun_row_key(fields["Line"]), list(tags)
+            else:
+                key, note_tags = tiqqun_content_key(fields), list(tags)
+            notes.append({"fields": fields, "tags": note_tags, "key": key})
+        return notes
+
+    def _tiqqun_aliyot_notes(
+        self, book: str, start_parasha: str, start_aliyah: int, end_parasha: str, end_aliyah: int,
+        card_division: str, context_lines: int, recite_lines: int, group_size: int,
+    ) -> tuple[list[dict], int]:
+        """The tiqqun notes for a range of 'aliyyot, and how many 'aliyyot
+        that was. One 'aliyya is one LPCG "poem", so a card's context never
+        reaches into the next 'aliyya. Raises RuntimeError/ValueError."""
+        aliyot = fetch_aliyot_in_range(
+            book, start_parasha, start_aliyah, end_parasha, end_aliyah, self._cache, POINTED_VERSION,
+        )
+        ours = parasha_names(book, get_parasha_structure(book, self._cache))
+        context = qeriya_context({book}, self._cache)
         hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-        note_groups = []
+        notes = []
         for aliyah in aliyot:
             verses = aliyah["verses"]
             if not verses:
@@ -693,30 +697,111 @@ class Api:
                 ref = hebrew_book + ref[len(book):]
             title = f"{hebrew_book} {parasha_name} {aliyah['aliyah_num']} ({ref})"
             tags = [TIQQUN_ALIYYA_TAG, tiqqun_parasha_tag(parasha_slug)]
-            try:
-                if card_division == "verse":
-                    verse_refs = [(v["ch"], v["vs"]) for v in verses]
-                    fields_list = build_verse_cards(book, verse_refs, self._cache, title=title)
-                else:
-                    lines = get_scroll_lines_for_range(
-                        book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"],
-                        self._cache,
+            if card_division == "verse":
+                verse_refs = [(v["ch"], v["vs"]) for v in verses]
+                fields_list = build_verse_cards(book, verse_refs, self._cache, title=title)
+            else:
+                verse_refs = None
+                if entry:  # a row card spans lines, so it carries its 'aliyya's tag
+                    tags.append(
+                        f"{ALIYYA_TAG_NAMESPACE}{to_slug(hebrew_book)}::{entry['rel']:02d}-{entry['slug']}"
+                        f"::{aliyah['aliyah_num']}"
                     )
-                    fields_list = build_lpcg_fields(
-                        lines, title=title, context_lines=context_lines,
-                        recite_lines=recite_lines, group_size=group_size,
-                    )
-            except (RuntimeError, ValueError) as e:
-                traceback.print_exc()
-                return {"ok": False, "error": str(e)}
-            note_groups.append((fields_list, tags))
+                lines = get_scroll_lines_for_range(
+                    book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"], self._cache,
+                )
+                fields_list = build_lpcg_fields(
+                    lines, title=title, context_lines=context_lines,
+                    recite_lines=recite_lines, group_size=group_size,
+                )
+            notes += self._tiqqun_notes(book, fields_list, verse_refs, tags, context)
+        return notes, len(aliyot)
 
-        result = self._push_lpcg_notes(note_groups, deck_name)
+    def _tiqqun_amud_notes(
+        self, amud_num: int, card_division: str, context_lines: int, recite_lines: int, group_size: int,
+    ) -> tuple[list[dict], str]:
+        """The tiqqun notes for one 'ammud (sefer column), and its book. A
+        sefer starts each book on a fresh column, so an 'ammud is always
+        within one book. Raises RuntimeError/ValueError."""
+        book = get_book_for_page(amud_num, self._cache)
+        title = f"{BOOK_HEBREW_NAMES.get(book, book)} 'Ammud {amud_num}"
+        tags = [tiqqun_ammud_tag(amud_num)]
+        if card_division == "verse":
+            verse_refs = get_verses_starting_on_amud(amud_num, self._cache)
+            fields_list = build_amud_verse_cards(book, amud_num, self._cache, title=title)
+        else:
+            verse_refs = None
+            fields_list = build_lpcg_fields(
+                get_amud_lines(amud_num, self._cache), title=title, context_lines=context_lines,
+                recite_lines=recite_lines, group_size=group_size,
+            )
+        context = qeriya_context({book}, self._cache)
+        return self._tiqqun_notes(book, fields_list, verse_refs, tags, context), book
+
+    def export_aliyot_to_anki(
+        self,
+        book: str,
+        start_parasha: str,
+        start_aliyah: int,
+        end_parasha: str,
+        end_aliyah: int,
+        deck_name: str,
+        card_division: str = "verse",
+        context_lines: int = 2,
+        recite_lines: int = 1,
+        group_size: int = 1,
+    ) -> dict:
+        """Send the tiqqun cards for a range of 'aliyyot to ``deck_name``
+        through AnkiConnect (see _push_lpcg_notes for duplicates and the
+        deck).
+
+        ``card_division`` picks how each 'aliyya's lines become cards:
+
+        - "verse" (default, recommended): one card per pasuq, word-precise
+          at any line it shares with the pasuq just before/after (see
+          :mod:`ankipasuk.verse_cards`) -- only that pasuq's own words are
+          tested; a neighbour's words on the same line show as plain
+          context. Exactly one extra line before as context.
+          ``context_lines``/``recite_lines``/``group_size`` are ignored.
+        - "row": the AnkiLPCG-style sliding window over the sefer's lines,
+          tuned by ``context_lines``/``recite_lines``/``group_size`` (see
+          :func:`ankipasuk.lpcg.build_lpcg_fields`).
+
+        Either way each card's text is laid out as in a sefer (see
+        :mod:`ankipasuk.tikkun`), in the STAM-style font tikkun.io uses,
+        which is put into Anki as a media file on first use. The note type
+        (:data:`ankipasuk.lpcg.MODEL_NAME`) is created if missing.
+        """
+        try:
+            notes, n_aliyot = self._tiqqun_aliyot_notes(
+                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
+                card_division, context_lines, recite_lines, group_size,
+            )
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        result = self._push_lpcg_notes(notes, deck_name)
         if result["ok"]:
-            result["aliyot"] = len(aliyot)
+            result["aliyot"] = n_aliyot
         elif result["error"] == "No text was found to export.":
             result["error"] = "No 'aliyyot with text were found in that range."
         return result
+
+    def export_aliyot_csv(
+        self, book: str, start_parasha: str, start_aliyah: int, end_parasha: str, end_aliyah: int,
+        deck_name: str, card_division: str = "verse", context_lines: int = 2,
+        recite_lines: int = 1, group_size: int = 1,
+    ) -> dict:
+        """Like export_aliyot_to_anki, but saved as a CSV to import."""
+        try:
+            notes, _n = self._tiqqun_aliyot_notes(
+                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
+                card_division, context_lines, recite_lines, group_size,
+            )
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        return self._write_tiqqun_csv(notes, deck_name, "tiqqun_aliyyot.csv")
 
     def export_amud_to_anki(
         self,
@@ -727,52 +812,40 @@ class Api:
         recite_lines: int = 1,
         group_size: int = 1,
     ) -> dict:
-        """Push one Anki note per tiqqun card for the single 'ammud
-        (sefer column) ``amud_num`` (1-245, see
-        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name`` via
-        AnkiConnect.
-
-        ``card_division`` (see export_aliyot_to_anki for the full
-        explanation) picks "verse" (default -- one card per verse that
-        starts on this 'ammud, via
-        :func:`ankipasuk.verse_cards.build_amud_verse_cards`) or "row"
-        (the whole 'ammud as one continuous AnkiLPCG-style sliding-context
-        window, tuned by ``context_lines``/``recite_lines``/``group_size``).
-
-        A sefer always starts each of its 5 books at the top
-        of a fresh column, so an 'ammud is always entirely within one book
-        (see :func:`ankipasuk.tikkun.get_book_for_page`) -- no book-
-        boundary handling is needed beyond looking up which book this
-        'ammud belongs to, for the card title.
-
-        See export_aliyot_to_anki for what the card content/styling looks
-        like and what must be running (Anki + AnkiConnect) -- identical
-        here, just for a single 'ammud instead of an 'aliyya range.
+        """Send the tiqqun cards for 'ammud ``amud_num`` (1-245, see
+        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name``: in pasuq
+        mode one card per pasuq starting on it (via
+        :func:`ankipasuk.verse_cards.build_amud_verse_cards`), in row mode
+        the whole 'ammud as one sliding window. See export_aliyot_to_anki.
         """
         try:
-            book = get_book_for_page(amud_num, self._cache)
-            hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-            title = f"{hebrew_book} 'Ammud {amud_num}"
-            if card_division == "verse":
-                fields_list = build_amud_verse_cards(book, amud_num, self._cache, title=title)
-            else:
-                lines = get_amud_lines(amud_num, self._cache)
-                fields_list = build_lpcg_fields(
-                    lines, title=title, context_lines=context_lines,
-                    recite_lines=recite_lines, group_size=group_size,
-                )
+            notes, book = self._tiqqun_amud_notes(
+                amud_num, card_division, context_lines, recite_lines, group_size,
+            )
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-
-        tags = [tiqqun_ammud_tag(amud_num)]
-        result = self._push_lpcg_notes([(fields_list, tags)], deck_name)
+        result = self._push_lpcg_notes(notes, deck_name)
         if result["ok"]:
             result["amud"] = amud_num
             result["book"] = book
         elif result["error"] == "No text was found to export.":
             result["error"] = f"'Ammud {amud_num} has no text."
         return result
+
+    def export_amud_csv(
+        self, amud_num: int, deck_name: str, card_division: str = "verse", context_lines: int = 2,
+        recite_lines: int = 1, group_size: int = 1,
+    ) -> dict:
+        """Like export_amud_to_anki, but saved as a CSV to import."""
+        try:
+            notes, _book = self._tiqqun_amud_notes(
+                amud_num, card_division, context_lines, recite_lines, group_size,
+            )
+        except (RuntimeError, ValueError) as e:
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        return self._write_tiqqun_csv(notes, deck_name, f"tiqqun_ammud_{amud_num:03d}.csv")
 
     # =============================================================
     #  Secondary windows

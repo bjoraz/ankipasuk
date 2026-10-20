@@ -32,3 +32,23 @@ def fake_anki(monkeypatch):
     monkeypatch.setattr(anki_connect_api_module, "invoke", fake_invoke)
 
     return backend
+
+
+@pytest.fixture(autouse=True)
+def offline_chapter_lengths(monkeypatch):
+    """The exports compute each note's qeriya tags, which needs the length
+    of every chapter in the book; tests seed only the chapters they use,
+    so the rest come from the static table instead of the network."""
+    import ankipasuk.cloze_export as cloze_export_module
+    import ankipasuk.tiqqun_export as tiqqun_export_module
+    from ankipasuk.config import POINTED_VERSION, TORAH_VERSE_COUNTS
+
+    def chapter_lengths(book, cache, version_param=POINTED_VERSION):
+        lengths = []
+        for ch, static_n in enumerate(TORAH_VERSE_COUNTS[book], start=1):
+            text = cache.get_text(f"{book} {ch}", version_param)
+            lengths.append(len(text) if text is not None else static_n)
+        return lengths
+
+    monkeypatch.setattr(cloze_export_module, "get_chapter_lengths", chapter_lengths)
+    monkeypatch.setattr(tiqqun_export_module, "get_chapter_lengths", chapter_lengths)
