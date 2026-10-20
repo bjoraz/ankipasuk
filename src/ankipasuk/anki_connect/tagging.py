@@ -1,4 +1,4 @@
-"""Automatic parasha/'aliyya/maftir/holiday tagging.
+"""Automatic parasha/'aliyya/maftir/holiday/haftara tagging.
 
 Reads each note's "Source" field (e.g. ``"Bereshit 1:1"``, as produced by
 the CSV export), computes the tags that verse should have (see
@@ -6,11 +6,11 @@ the CSV export), computes the tags that verse should have (see
 
 Existing tags are **never removed or overwritten**. If a note already has
 a tag that looks like one this tool would generate (``aliyya::...``,
-``holiday::...``, or the old ``aliyah::...``) but it doesn't match what
-was just computed, that's
-reported as a conflict for you to review by hand -- it is not silently
-changed. This makes the tool safe to run repeatedly and safe to run on a
-deck (like this one) that already has some tags applied by hand.
+``holiday::...``, ``haftara::...``, or the old ``aliyah::...``) but
+it doesn't match what was just computed, that's reported as a conflict
+for you to review by hand -- it is not silently changed. This makes the
+tool safe to run repeatedly and safe to run on a deck (like this one)
+that already has some tags applied by hand.
 """
 
 from __future__ import annotations
@@ -23,10 +23,12 @@ from ..cache import SefariaCache
 from ..config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
 from ..qeriya import (
     ALIYYA_TAG_NAMESPACE,
+    HAFTARA_TAG_NAMESPACE,
     HOLIDAY_TAG_NAMESPACE,
     LEGACY_ALIYAH_TAG_NAMESPACE,
     build_holiday_intervals,
     build_parasha_intervals,
+    haftara_tags_for_verse,
     legacy_tag_renames,
     tags_for_verse,
 )
@@ -47,13 +49,15 @@ _SOURCE_RE = re.compile(r"^(?P<book>.+?)\s+(?P<ch>\d+):(?P<vs>\d+)$")
 # we'd compute, rather than just leaving it alone as an unrelated tag.
 # The old "aliyah::" namespace counts too, so a note still carrying old tags
 # shows up as a conflict instead of silently getting a second set.
-_OWNED_PREFIXES = (ALIYYA_TAG_NAMESPACE, HOLIDAY_TAG_NAMESPACE, LEGACY_ALIYAH_TAG_NAMESPACE)
+_OWNED_PREFIXES = (
+    ALIYYA_TAG_NAMESPACE, HOLIDAY_TAG_NAMESPACE, HAFTARA_TAG_NAMESPACE, LEGACY_ALIYAH_TAG_NAMESPACE,
+)
 
 
 def parse_source_field(source: str):
     """Parse a "Source" field like "Bereshit 1:1" into (book, ch, vs), using
     English book names. Returns None if it doesn't look like a Tora verse
-    reference (e.g. blank, or a book outside the Tora)."""
+    reference (e.g. blank, or a book AnkiPasuk doesn't know)."""
     m = _SOURCE_RE.match(source.strip())
     if not m:
         return None
@@ -122,7 +126,9 @@ def compute_tagging_plan(deck: str, *, url: str, cache: SefariaCache, log=lambda
         book, ch, vs = parsed_ref
         parsed.append((info["noteId"], source_field, book, ch, vs, info.get("tags", [])))
 
-    books_needed = {book for _nid, _src, book, _ch, _vs, _tags in parsed}
+    # Qeriya tags exist for the Tora only; a pasuq from the Nevi'im (a
+    # haftara note) gets just its haftara tags.
+    books_needed = {book for _nid, _src, book, _ch, _vs, _tags in parsed} & set(TORAH_VERSE_COUNTS)
     parasha_intervals_by_book = {}
     chapter_counts_by_book = {}
     for book in books_needed:
@@ -139,7 +145,8 @@ def compute_tagging_plan(deck: str, *, url: str, cache: SefariaCache, log=lambda
         computed = tags_for_verse(
             book, ch, vs, parasha_intervals_by_book[book], holiday_intervals,
             chapter_counts_by_book[book],
-        )
+        ) if book in books_needed else []
+        computed += [t for t in haftara_tags_for_verse(book, ch, vs) if t not in computed]
         existing_set = set(existing_tags)
         missing = [t for t in computed if t not in existing_set]
 

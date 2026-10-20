@@ -87,9 +87,11 @@ body.main-window {
    ties with (and, being defined later, beats) the browser's default
    [hidden] { display: none } rule -- without this, elements using both
    the hidden attribute and this class never actually hide. .row has the
-   same problem (e.g. the row-mode export settings, hidden in verse mode). */
+   same problem (e.g. the row-mode export settings, hidden in verse mode),
+   and so does label (the book picker, hidden in haftara mode). */
 .inline-group[hidden],
-.row[hidden] {
+.row[hidden],
+label[hidden] {
     display: none;
 }
 

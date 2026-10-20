@@ -65,11 +65,16 @@ const RANGE_ROW_TEMPLATE = `
       <select class="range-mode">
         <option value="cv">Chapter / Verse</option>
         <option value="pa">Parasha / 'Aliyya</option>
+        <option value="hf">Haftara</option>
       </select>
     </label>
-    <label>Book:
+    <label class="range-book-label">Book:
       <select class="range-book"></select>
     </label>
+
+    <span class="range-hf-controls inline-group" hidden>
+      <label>Haftara: <select class="range-haftara"></select></label>
+    </span>
 
     <span class="range-cv-controls inline-group">
       <label>Start chapter: <select class="range-start-ch"></select></label>
@@ -88,9 +93,17 @@ const RANGE_ROW_TEMPLATE = `
 `;
 
 async function onRangeModeChange(row) {
-    const isCV = row.querySelector(".range-mode").value === "cv";
+    const mode = row.querySelector(".range-mode").value;
+    const isCV = mode === "cv";
     row.querySelector(".range-cv-controls").hidden = !isCV;
-    row.querySelector(".range-pa-controls").hidden = isCV;
+    row.querySelector(".range-pa-controls").hidden = mode !== "pa";
+    row.querySelector(".range-hf-controls").hidden = mode !== "hf";
+    // A haftara names its own books, so the book picker has nothing to do.
+    row.querySelector(".range-book-label").hidden = mode === "hf";
+    if (mode === "hf") {
+        fillHaftaraOptions(row.querySelector(".range-haftara"));
+        return;
+    }
 
     // Parasha/'aliyya mode only exists for the Tora -- restrict the book list
     // to the Tora so an invalid (book, mode) combination can't be selected at
@@ -99,6 +112,28 @@ async function onRangeModeChange(row) {
     setBookOptions(row.querySelector(".range-book"), books, true, cachedBookLabels);
 
     await onRangeBookChange(row);
+}
+
+// The haftarot, grouped as get_haftarot returns them (each parasha's, then
+// the special Shabbatot). Loaded once, the first time it's needed.
+let cachedHaftarot = null;
+
+async function fillHaftaraOptions(select) {
+    if (!cachedHaftarot) cachedHaftarot = (await api().get_haftarot()).groups;
+    const prev = select.value;
+    select.innerHTML = "";
+    for (const group of cachedHaftarot) {
+        const optgroup = document.createElement("optgroup");
+        optgroup.label = group.label;
+        for (const item of group.items) {
+            const opt = document.createElement("option");
+            opt.value = item.slug;
+            opt.textContent = item.label;
+            optgroup.appendChild(opt);
+        }
+        select.appendChild(optgroup);
+    }
+    if (prev) select.value = prev;
 }
 
 async function onRangeBookChange(row) {
@@ -246,6 +281,8 @@ async function doFetchAll() {
                 if (result.ok) {
                     tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
                 }
+            } else if (mode === "hf") {
+                result = await api().fetch_haftara(row.querySelector(".range-haftara").value);
             } else {
                 const parasha = row.querySelector(".range-parasha").value;
                 const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
@@ -271,6 +308,7 @@ async function doFetchAll() {
             renderVerseBoxes();
             document.getElementById("cache-status").textContent = result.cache_status;
         }
+        document.getElementById("cloze-deck").value = await api().suggest_cloze_deck();
     } finally {
         btn.disabled = false;
         btn.textContent = "Fetch all ranges";
@@ -317,6 +355,49 @@ function wireAnalysisToggle() {
     };
     box.addEventListener("change", apply);
     apply();
+}
+
+async function refreshNoteTypes(quiet) {
+    const select = document.getElementById("cloze-note-type");
+    const result = await api().get_cloze_note_types();
+    if (!result.ok) {
+        if (!quiet) showToast("Could not reach Anki: " + result.error, true);
+        return false;
+    }
+    if (!result.names.length) {
+        select.innerHTML = '<option value="">(no suitable note type)</option>';
+        if (!quiet) showToast("No note type in Anki has the cloze fields. Import one CSV first.", true);
+        return false;
+    }
+    setOptions(select, result.names, false);
+    select.value = result.selected;
+    return true;
+}
+
+async function doExportClozeToAnki() {
+    const btn = document.getElementById("btn-export-cloze-anki");
+    if (!document.getElementById("cloze-note-type").value && !(await refreshNoteTypes(false))) return;
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+    try {
+        const result = await api().export_cloze_to_anki(
+            parseInt(document.getElementById("max-leaf-disj").value, 10) || 2,
+            document.getElementById("reset-per-line").checked,
+            document.getElementById("cloze-deck").value,
+            document.getElementById("cloze-note-type").value,
+        );
+        if (!result.ok) {
+            showToast(result.error, true);
+            return;
+        }
+        let msg = `Added ${result.notes_added} note(s) to ${result.deck}`;
+        if (result.already_in_anki) msg += `; ${result.already_in_anki} already in Anki, left as they are`;
+        if (result.failed) msg += `; ${result.failed} rejected by Anki`;
+        showToast(msg, result.failed > 0);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Send to Anki";
+    }
 }
 
 async function doExportCsv() {
@@ -544,6 +625,10 @@ window.addEventListener("pywebviewready", async () => {
 
     document.getElementById("btn-generate").addEventListener("click", doGenerate);
     document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
+    document.getElementById("btn-export-cloze-anki").addEventListener("click", doExportClozeToAnki);
+    document.getElementById("btn-refresh-note-types").addEventListener("click", () => refreshNoteTypes(false));
+    document.getElementById("cloze-deck").value = await api().suggest_cloze_deck();
+    refreshNoteTypes(true); // Anki may not be open yet: stay quiet, retried on send
 
     document.getElementById("btn-clear-cache").addEventListener("click", async () => {
         if (!confirm("Clear the local Sefaria cache? Future fetches will re-download from the network.")) return;

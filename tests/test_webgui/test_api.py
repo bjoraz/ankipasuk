@@ -271,7 +271,10 @@ def test_export_csv_uses_each_verses_own_book_for_the_label(genesis_1_1, tmp_pat
     row with ITS OWN book, not one book for the whole export -- this is
     the specific regression the removal of a single Api-wide
     _current_book was meant to fix."""
+    from tests.test_anki_connect.test_tagging import _cache_with_genesis
+
     api = Api()
+    api._cache = _cache_with_genesis(tmp_path)  # the export computes tags: no network
     api._current_verse_data = [
         {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
         {"book": "Isaiah", "ch": 6, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
@@ -662,3 +665,125 @@ def test_cache_status_text_reflects_stats():
     assert "ref(s)" in status
     assert "book structure(s)" in status
 
+
+
+# =============================================================
+#  Haftarot
+# =============================================================
+def test_get_haftarot_lists_parashiyyot_then_special_shabbatot():
+    groups = Api().get_haftarot()["groups"]
+    assert [g["label"] for g in groups] == ["Parashiyyot", "Special Shabbatot"]
+    assert len(groups[0]["items"]) == 54
+    assert groups[0]["items"][0] == {"slug": "bereshit", "label": "Bereshit — Yesha'yahu 42:5–21"}
+
+
+def test_fetch_haftara_fetches_every_part_in_order_and_marks_each_pasuq(monkeypatch):
+    import ankipasuk.webgui.api as api_module
+
+    calls = []
+
+    def fake_range(book, c1, v1, c2, v2, cache, version):
+        calls.append((book, c1, v1, c2, v2))
+        return [{"book": book, "ch": c1, "vs": v1, "pointed": "x", "plain": "x"}]
+
+    monkeypatch.setattr(api_module, "fetch_verse_range", fake_range)
+    api = Api()
+    result = api.fetch_haftara("mishpatim")
+    assert result["ok"] is True
+    assert calls == [("Jeremiah", 34, 8, 34, 22), ("Jeremiah", 33, 25, 33, 26)]
+    marks = [(v["haftara"], v["haftara_pos"]) for v in result["verses"]]
+    assert marks == [("mishpatim", 1), ("mishpatim", 2)]
+
+
+def test_fetch_haftara_rejects_an_unknown_slug():
+    assert Api().fetch_haftara("no_such")["ok"] is False
+
+
+def test_suggest_cloze_deck_follows_what_was_fetched():
+    api = Api()
+    api._current_verse_data = [{"book": "Leviticus", "ch": 1, "vs": 1}]
+    assert api.suggest_cloze_deck() == "Qeriya::3-Vayyiqra"
+    api._current_verse_data = [{"book": "Isaiah", "ch": 42, "vs": 5, "haftara": "bereshit"}]
+    assert api.suggest_cloze_deck() == "Qeriya::Haftarot"
+
+
+# =============================================================
+#  Cloze export straight to Anki
+# =============================================================
+CLOZE_FIELDS = ["Number", "Source", "Text", "Verse", "Previous", "Next", "Back Extra", "Opts", "Sound"]
+
+
+def _api_with_haftara(tmp_path, genesis_1_1):
+    from ankipasuk.cache import SefariaCache
+
+    api = Api()
+    api._cache = SefariaCache(cache_dir=tmp_path)
+    api._current_verse_data = [
+        {"book": "Isaiah", "ch": 42, "vs": vs, "pointed": genesis_1_1,
+         "plain": f"p{vs}", "haftara": "bereshit", "haftara_pos": vs - 4}
+        for vs in (5, 6, 7)
+    ]
+    return api
+
+
+def test_export_cloze_to_anki_adds_tagged_notes(tmp_path, genesis_1_1, fake_anki):
+    fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
+    api = _api_with_haftara(tmp_path, genesis_1_1)
+
+    result = api.export_cloze_to_anki(2, True, "Qeriya::Haftarot", "Leyning (by pasuk)")
+    assert result == {
+        "ok": True, "notes_added": 3, "already_in_anki": 0, "failed": 0, "deck": "Qeriya::Haftarot",
+    }
+    added = list(fake_anki.notes.values())
+    assert [n["fields"]["Source"] for n in added] == ["Yesha'yahu 42:5", "Yesha'yahu 42:6", "Yesha'yahu 42:7"]
+    assert all(n["tags"] == ["haftara::bereshit"] and n["deck"] == "Qeriya::Haftarot" for n in added)
+    assert all("Sound" not in n["fields"] for n in added)
+
+
+def test_export_cloze_to_anki_never_touches_existing_notes(tmp_path, genesis_1_1, fake_anki):
+    # 42:6 already has a note, with a recording: it must be skipped, not
+    # duplicated or overwritten; the other two are added.
+    fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
+    existing = {"Number": "2", "Source": "Yesha'yahu 42:6", "Text": "mine", "Sound": "[sound:me.mp3]"}
+    before = {"deck": "Elsewhere", "model": "Leyning (by pasuk)", "tags": ["x"], "fields": dict(existing)}
+    fake_anki.notes[99] = {**before, "fields": dict(existing)}
+    api = _api_with_haftara(tmp_path, genesis_1_1)
+
+    result = api.export_cloze_to_anki(2, True, "Qeriya::Haftarot", "Leyning (by pasuk)")
+    assert (result["notes_added"], result["already_in_anki"]) == (2, 1)
+    assert fake_anki.notes[99] == before
+    assert not any(action in ("updateNoteFields", "addTags", "removeTags") for action, _ in fake_anki.calls)
+
+    # Running it again adds nothing.
+    again = api.export_cloze_to_anki(2, True, "Qeriya::Haftarot", "Leyning (by pasuk)")
+    assert (again["notes_added"], again["already_in_anki"]) == (0, 3)
+
+
+def test_export_cloze_to_anki_rejects_an_unsuitable_note_type(tmp_path, genesis_1_1, fake_anki):
+    fake_anki.models["Basic"] = {"fields": ["Front", "Back"], "css": "", "cardTemplates": []}
+    result = _api_with_haftara(tmp_path, genesis_1_1).export_cloze_to_anki(2, True, "D", "Basic")
+    assert result["ok"] is False and "Number, Source" in result["error"]
+
+
+def test_get_cloze_note_types_lists_only_suitable_ones(fake_anki):
+    fake_anki.models["Basic"] = {"fields": ["Front", "Back"], "css": "", "cardTemplates": []}
+    fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
+    result = Api().get_cloze_note_types()
+    assert result["names"] == ["Leyning (by pasuk)"]
+    assert result["selected"] == "Leyning (by pasuk)"
+
+
+def test_export_csv_has_the_anki_header_and_a_tags_column(tmp_path, genesis_1_1):
+    api = _api_with_haftara(tmp_path, genesis_1_1)
+    out_path = tmp_path / "haftara.csv"
+
+    class FakeWindow:
+        def create_file_dialog(self, *a, **kw):
+            return str(out_path)
+
+    api._window = FakeWindow()
+    assert api.export_csv(2, True)["ok"] is True
+    lines = out_path.read_text(encoding="utf-8-sig").splitlines()
+    assert lines[:2] == ["#separator:tab", "#tags column:9"]
+    first = lines[2].split("\t")
+    assert first[:2] == ["1", "Yesha'yahu 42:5"] and first[-1] == "haftara::bereshit"

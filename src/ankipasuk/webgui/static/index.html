@@ -78,6 +78,15 @@
     <button id="btn-export-csv">Export to CSV</button>
   </span>
 </div>
+<div class="row space-between">
+  <span class="muted">Or add them to Anki directly (needs Anki open with AnkiConnect). Pesuqim already in Anki are skipped, never changed.</span>
+  <span class="inline-group">
+    <label>Deck: <input type="text" id="cloze-deck" style="width:14em"></label>
+    <label>Note type: <select id="cloze-note-type"><option value="">(open Anki, then refresh)</option></select></label>
+    <button id="btn-refresh-note-types" type="button" title="Reload the note types from Anki">Refresh</button>
+    <button id="btn-export-cloze-anki">Send to Anki</button>
+  </span>
+</div>
 
 <div class="two-col">
   <div class="col" style="flex:3">

@@ -39,9 +39,11 @@ class FakeBook:
 
             def raise_for_status(self):
                 if self._ch is None or self._ch > len(self._chapter_lengths) or self._ch < 1:
+                    import types
+
                     import requests
 
-                    raise requests.HTTPError("404")
+                    raise requests.HTTPError("404", response=types.SimpleNamespace(status_code=404))
 
             def json(self):
                 n = self._chapter_lengths[self._ch - 1]
@@ -51,42 +53,41 @@ class FakeBook:
 
 
 @pytest.fixture
-def fake_isaiah(monkeypatch):
-    """A fake 3-chapter "Isaiah" with lengths [26, 22, 26] -- small
-    enough to probe quickly in tests, standing in for the real (66
-    chapter) book."""
-    book = FakeBook([26, 22, 26])
+def fake_malachi(monkeypatch):
+    """A fake 3-chapter "Malachi" with lengths [14, 17, 24] -- small
+    enough to probe quickly in tests, standing in for the real book's real verse counts."""
+    book = FakeBook([14, 17, 24])
     monkeypatch.setattr(sefaria_module.requests, "get", book.fake_get)
     return book
 
 
-def test_discover_book_structure_probes_until_failure(tmp_path, fake_isaiah):
+def test_discover_book_structure_probes_until_failure(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
-    lengths = sefaria_module.discover_book_structure("Isaiah", cache)
-    assert lengths == [26, 22, 26]
+    lengths = sefaria_module.discover_book_structure("Malachi", cache)
+    assert lengths == [14, 17, 24]
 
 
-def test_discover_book_structure_is_cached_after_first_call(tmp_path, fake_isaiah):
+def test_discover_book_structure_is_cached_after_first_call(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
-    sefaria_module.discover_book_structure("Isaiah", cache)
-    calls_after_first = fake_isaiah.call_count
+    sefaria_module.discover_book_structure("Malachi", cache)
+    calls_after_first = fake_malachi.call_count
 
     # A second call (even chapter 4, the one-past-the-end probe) should
     # not hit the network again -- it's served entirely from cache.
-    lengths = sefaria_module.discover_book_structure("Isaiah", cache)
-    assert lengths == [26, 22, 26]
-    assert fake_isaiah.call_count == calls_after_first
+    lengths = sefaria_module.discover_book_structure("Malachi", cache)
+    assert lengths == [14, 17, 24]
+    assert fake_malachi.call_count == calls_after_first
 
 
-def test_discover_book_structure_persists_across_cache_instances(tmp_path, fake_isaiah):
+def test_discover_book_structure_persists_across_cache_instances(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
-    sefaria_module.discover_book_structure("Isaiah", cache)
-    calls_after_first = fake_isaiah.call_count
+    sefaria_module.discover_book_structure("Malachi", cache)
+    calls_after_first = fake_malachi.call_count
 
     fresh_cache = SefariaCache(cache_dir=tmp_path)
-    lengths = sefaria_module.discover_book_structure("Isaiah", fresh_cache)
-    assert lengths == [26, 22, 26]
-    assert fake_isaiah.call_count == calls_after_first  # no new network calls
+    lengths = sefaria_module.discover_book_structure("Malachi", fresh_cache)
+    assert lengths == [14, 17, 24]
+    assert fake_malachi.call_count == calls_after_first  # no new network calls
 
 
 def test_get_book_structure_uses_static_table_for_torah(tmp_path):
@@ -107,10 +108,10 @@ def test_get_book_structure_uses_static_table_for_torah(tmp_path):
     assert lengths[0] == 31  # Genesis 1 has 31 verses
 
 
-def test_get_book_structure_discovers_live_for_non_torah(tmp_path, fake_isaiah):
+def test_get_book_structure_discovers_live_for_non_torah(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
-    lengths = sefaria_module.get_book_structure("Isaiah", cache)
-    assert lengths == [26, 22, 26]
+    lengths = sefaria_module.get_book_structure("Malachi", cache)
+    assert lengths == [14, 17, 24]
 
 
 def test_get_book_structure_rejects_unknown_book(tmp_path):
@@ -119,10 +120,10 @@ def test_get_book_structure_rejects_unknown_book(tmp_path):
         sefaria_module.get_book_structure("Not A Real Book", cache)
 
 
-def test_fetch_verse_range_stamps_each_verse_with_its_book(tmp_path, fake_isaiah):
+def test_fetch_verse_range_stamps_each_verse_with_its_book(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
-    data = sefaria_module.fetch_verse_range("Isaiah", 1, 1, 1, 3, cache, "source")
-    assert all(item["book"] == "Isaiah" for item in data)
+    data = sefaria_module.fetch_verse_range("Malachi", 1, 1, 1, 3, cache, "source")
+    assert all(item["book"] == "Malachi" for item in data)
     assert [item["vs"] for item in data] == [1, 2, 3]
 
 
@@ -149,13 +150,50 @@ def test_fetch_verse_range_works_for_torah_too(tmp_path):
     assert [item["book"] for item in data] == ["Genesis", "Genesis"]
 
 
-def test_fetch_verse_range_rejects_chapter_out_of_range(tmp_path, fake_isaiah):
+def test_fetch_verse_range_rejects_chapter_out_of_range(tmp_path, fake_malachi):
     cache = SefariaCache(cache_dir=tmp_path)
     with pytest.raises(ValueError, match="out of range"):
-        sefaria_module.fetch_verse_range("Isaiah", 1, 1, 10, 1, cache, "source")
+        sefaria_module.fetch_verse_range("Malachi", 1, 1, 10, 1, cache, "source")
 
 
 def test_fetch_verse_range_rejects_unknown_book(tmp_path):
     cache = SefariaCache(cache_dir=tmp_path)
     with pytest.raises(ValueError, match="Unknown book"):
         sefaria_module.fetch_verse_range("Not A Real Book", 1, 1, 1, 1, cache, "source")
+
+
+def test_a_network_error_does_not_truncate_a_book(tmp_path, monkeypatch):
+    # The bug that left Ezekiel at 42 chapters: a failed request mid-way
+    # was taken for "no more chapters", and the short book was cached.
+    import requests
+
+    book = FakeBook([14, 17, 24])
+    real_get = book.fake_get
+
+    def flaky_get(url, params=None, timeout=None):
+        if url.endswith("%203"):
+            raise requests.ConnectionError("connection reset")
+        return real_get(url, params=params, timeout=timeout)
+
+    monkeypatch.setattr(sefaria_module.requests, "get", flaky_get)
+    cache = SefariaCache(cache_dir=tmp_path)
+    with pytest.raises(RuntimeError):
+        sefaria_module.discover_book_structure("Malachi", cache)
+    assert cache.get_book_structure("Malachi") is None  # nothing cached
+
+    monkeypatch.setattr(sefaria_module.requests, "get", real_get)
+    assert sefaria_module.discover_book_structure("Malachi", cache) == [14, 17, 24]
+
+
+def test_a_truncated_cached_book_is_rediscovered(tmp_path, monkeypatch):
+    book = FakeBook([14, 17, 24])
+    monkeypatch.setattr(sefaria_module.requests, "get", book.fake_get)
+    cache = SefariaCache(cache_dir=tmp_path)
+    cache.set_book_structure("Malachi", [14, 17])  # cut short by an old failure
+    assert sefaria_module.discover_book_structure("Malachi", cache) == [14, 17, 24]
+
+
+def test_every_listed_book_has_a_chapter_count():
+    from ankipasuk.config import MEGILLOT_BOOKS, NEVIIM_BOOKS, NON_TORAH_CHAPTER_COUNTS
+
+    assert set(NON_TORAH_CHAPTER_COUNTS) == set(NEVIIM_BOOKS) | set(MEGILLOT_BOOKS)

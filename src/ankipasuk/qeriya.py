@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import json
 import re
-from functools import lru_cache
+from functools import cache
 from importlib import resources
 
 from .config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
@@ -39,7 +39,7 @@ from .config import BOOK_HEBREW_NAMES, LEGACY_BOOK_HEBREW_NAMES, TORAH_VERSE_COU
 _DATA_PACKAGE = "ankipasuk.data"
 
 
-@lru_cache(maxsize=1)
+@cache
 def _load_json(filename: str):
     with resources.files(_DATA_PACKAGE).joinpath(filename).open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -328,4 +328,61 @@ def tags_for_verse(
     idx = verse_index(book, ch, vs, chapter_counts)
     tags = [tag for start, end, tag in parasha_intervals if start <= idx <= end]
     tags += [tag for b, start, end, tag in holiday_intervals if b == book and start <= idx <= end]
+    return tags
+
+
+# =============================================================
+#  HAFTAROT
+# =============================================================
+# The bundled table (data/haftarot.json) is the Spanish and Portuguese
+# list: each parasha's haftara, then the special and intermediate
+# Shabbatot. A haftara can be more than one range ("refs"), read in
+# order, possibly from two books (Shabbat Shuva: Hosea, then Micah).
+HAFTARA_TAG_NAMESPACE = "haftara::"
+
+_RANGE_REF_RE = re.compile(r"^(?P<book>.+?) (?P<c1>\d+):(?P<v1>\d+)-(?:(?P<c2>\d+):)?(?P<v2>\d+)$")
+
+
+def haftara_table() -> list[dict]:
+    """Every haftara: slug, name, kind ("parasha" or "special"), refs, and
+    for a parasha's haftara the Tora book of that parasha."""
+    return _load_json("haftarot.json")["haftarot"]
+
+
+def haftara_tag(slug: str) -> str:
+    return f"{HAFTARA_TAG_NAMESPACE}{slug}"
+
+
+def parse_range_ref(ref: str) -> tuple[str, tuple[int, int], tuple[int, int]]:
+    """``"Jeremiah 7:21-8:3"`` -> ``("Jeremiah", (7, 21), (8, 3))``; the
+    end chapter may be left out (``"Isaiah 42:5-21"``)."""
+    m = _RANGE_REF_RE.match(ref.strip())
+    if not m:
+        raise ValueError(f"Not a range reference: {ref!r}")
+    c1, v1, v2 = int(m["c1"]), int(m["v1"]), int(m["v2"])
+    c2 = int(m["c2"]) if m["c2"] else c1
+    return m["book"], (c1, v1), (c2, v2)
+
+
+def haftara_label(entry: dict) -> str:
+    """How a haftara is shown in the app, e.g. "Bereshit -- Yesha'yahu 42:5-21"."""
+    parts = []
+    for ref in entry["refs"]:
+        book, (c1, v1), (c2, v2) = parse_range_ref(ref)
+        end = f"{v2}" if c2 == c1 else f"{c2}:{v2}"
+        parts.append(f"{BOOK_HEBREW_NAMES.get(book, book)} {c1}:{v1}–{end}")
+    return f"{entry['name']} — {'; '.join(parts)}"
+
+
+def haftara_tags_for_verse(book: str, ch: int, vs: int) -> list[str]:
+    """A ``haftara::<slug>`` tag for every haftara that includes the pasuq.
+    A pasuq can be in several: Shemot's haftara is also Mattot's, and
+    Noaḥ's also Ki Tetse's."""
+    tags = []
+    for entry in haftara_table():
+        for ref in entry["refs"]:
+            b, start, end = parse_range_ref(ref)
+            if b == book and start <= (ch, vs) <= end:
+                tags.append(haftara_tag(entry["slug"]))
+                break
     return tags

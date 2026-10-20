@@ -2,13 +2,15 @@
 
 This tool tags every note in a deck with where its pasuq falls in the
 yearly qeriya cycle: its parasha and 'aliyya (1 to 7), whether it's part of
-that week's maftir, and any holiday or fast-day reading it belongs to.
+that week's maftir, and any holiday or fast-day reading it belongs to. A
+pasuq from the Nevi'im is tagged with the haftarot it's read in.
 
 ## The tags
 
 ```
 aliyya::<book>::<NN-parasha>::<1-7|maftir>
 holiday::<occasion>::<1-N|maftir>
+haftara::<parasha or occasion>
 ```
 
 For example `aliyya::bereshit::01-bereshit::1`,
@@ -16,7 +18,9 @@ For example `aliyya::bereshit::01-bereshit::1`,
 number before the parasha is its position within its book. A pasuq can
 have more than one tag: Bereshit 22:1 gets `aliyya::bereshit::04-vayyera::7`
 from the weekly reading and `holiday::rosh_hashana_ii::1` because it's
-also read on the second day of Rosh haShana.
+also read on the second day of Rosh haShana. Yirmeyahu 1:5 gets both
+`haftara::shemot` and `haftara::mattot`; the haftarot follow the Spanish
+and Portuguese custom (`src/ankipasuk/data/haftarot.json`).
 
 Book, parasha and occasion names are written the ASCII way described in
 [`transliteration.md`](transliteration.md), which also lists every one of

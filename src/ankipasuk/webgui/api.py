@@ -21,22 +21,48 @@ from pathlib import Path
 import webview
 
 from ..analysis import cloze_breakdown
+from ..anki_connect import client as anki_client
 from ..anki_connect.client import DEFAULT_URL, AnkiConnectError
 from ..anki_connect.operations import add_notes as anki_add_notes
 from ..anki_connect.operations import ensure_media_file as anki_ensure_media_file
 from ..anki_connect.operations import ensure_model as anki_ensure_model
 from ..anki_connect.operations import ensure_model_fields as anki_ensure_model_fields
+from ..anki_connect.operations import find_notes as anki_find_notes
+from ..anki_connect.operations import notes_info as anki_notes_info
 from ..anki_connect.operations import sync_model_css as anki_sync_model_css
 from ..anki_connect.operations import sync_model_templates as anki_sync_model_templates
+from ..anki_connect.tagging import parse_source_field
 from ..cache import SefariaCache
 from ..cloze import verse_to_nested_cloze
-from ..config import BOOK_CATEGORIES, BOOK_HEBREW_NAMES, BOOK_HEBREW_SCRIPT_NAMES, CSV_FLAGS, POINTED_VERSION
+from ..cloze_export import (
+    CSV_HEADER,
+    anki_fields,
+    build_cloze_notes,
+    check_note_type_fields,
+    csv_rows,
+)
+from ..config import (
+    BOOK_CATEGORIES,
+    BOOK_HEBREW_NAMES,
+    BOOK_HEBREW_SCRIPT_NAMES,
+    POINTED_VERSION,
+    QERIYA_DECK_NAMES,
+)
 from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
-from ..qeriya import TIQQUN_ALIYYA_TAG, parasha_names, tiqqun_ammud_tag, tiqqun_parasha_tag, to_slug
+from ..qeriya import (
+    TIQQUN_ALIYYA_TAG,
+    haftara_label,
+    haftara_table,
+    parasha_names,
+    parse_range_ref,
+    tiqqun_ammud_tag,
+    tiqqun_parasha_tag,
+    to_slug,
+)
 from ..sefaria import (
     fetch_aliyot_in_range,
     fetch_verse_range,
@@ -195,6 +221,39 @@ class Api:
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
+        self._current_verse_data.extend(new_verses)
+        return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
+
+    def get_haftarot(self) -> dict:
+        """The haftarot for the picker, grouped: each parasha's, then the
+        special and intermediate Shabbatot (see data/haftarot.json)."""
+        groups = {"parasha": [], "special": []}
+        for entry in haftara_table():
+            groups[entry["kind"]].append({"slug": entry["slug"], "label": haftara_label(entry)})
+        return {"ok": True, "groups": [
+            {"label": "Parashiyyot", "items": groups["parasha"]},
+            {"label": "Special Shabbatot", "items": groups["special"]},
+        ]}
+
+    def fetch_haftara(self, slug: str) -> dict:
+        """Fetch every range of one haftara, in order, and append it like
+        fetch_chapter_verse does. Each pasuq is marked with the haftara and
+        its position in it, which the exports use (see
+        ankipasuk.cloze_export.build_cloze_notes)."""
+        entry = next((e for e in haftara_table() if e["slug"] == slug), None)
+        if entry is None:
+            return {"ok": False, "error": f"Unknown haftara: {slug}"}
+        try:
+            new_verses = []
+            for ref in entry["refs"]:
+                book, (c1, v1), (c2, v2) = parse_range_ref(ref)
+                new_verses += fetch_verse_range(book, c1, v1, c2, v2, self._cache, POINTED_VERSION)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        for pos, verse in enumerate(new_verses, 1):
+            verse["haftara"] = slug
+            verse["haftara_pos"] = pos
         self._current_verse_data.extend(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
@@ -376,28 +435,12 @@ class Api:
     def export_csv(self, max_leaf_disj: int, reset_per_line: bool) -> dict:
         if not self._current_verse_data:
             return {"ok": False, "error": "Fetch a range of verses first."}
-
-        max_leaf_disj = max(1, max_leaf_disj)
-        rows = []
-        next_start = 1
-        total = len(self._current_verse_data)
-
-        for i, item in enumerate(self._current_verse_data):
-            pointed = item["pointed"].strip()
-            start_counter = 1 if reset_per_line else next_start
-            cl, last, _tree, _tok, _units = verse_to_nested_cloze(
-                pointed, start_counter=start_counter, max_leaf_disj=max_leaf_disj
-            )
-            if not reset_per_line:
-                next_start = last + 1
-
-            plain = item["plain"]
-            prev_plain = self._current_verse_data[i - 1]["plain"] if i > 0 else ""
-            next_plain = self._current_verse_data[i + 1]["plain"] if i + 1 < total else ""
-            hebrew_book = BOOK_HEBREW_NAMES.get(item["book"], item["book"])
-            verse_label = f"{hebrew_book} {item['ch']}:{item['vs']}"
-
-            rows.append([str(i + 1), verse_label, cl, plain, prev_plain, next_plain, "", CSV_FLAGS])
+        try:
+            notes = build_cloze_notes(self._current_verse_data, max_leaf_disj, reset_per_line, self._cache)
+        except Exception as e:  # noqa: BLE001 - e.g. Sefaria unreachable for the tags
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        rows = csv_rows(notes)
 
         if not rows:
             return {"ok": False, "error": "No verse lines were found to export."}
@@ -416,6 +459,7 @@ class Api:
         target = path if isinstance(path, str) else path[0]
         try:
             buf = io.StringIO()
+            buf.write(CSV_HEADER)  # tells Anki the separator and which column holds the tags
             writer = csv.writer(buf, delimiter="\t", quoting=csv.QUOTE_NONE, escapechar="\\")
             writer.writerows(rows)
             with open(target, "w", encoding="utf-8-sig", newline="") as f:
@@ -430,6 +474,91 @@ class Api:
     #  directly to Anki via AnkiConnect)
     # =============================================================
     DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyyot"
+
+    # =============================================================
+    #  Cloze export straight to Anki (AnkiConnect)
+    # =============================================================
+    def suggest_cloze_deck(self) -> str:
+        """A deck for the fetched pesuqim: the book's Qeriya deck for the
+        Tora, Qeriya::Haftarot for a haftara, else the last one used."""
+        first = self._current_verse_data[0] if self._current_verse_data else None
+        if first and "haftara" in first:
+            return "Qeriya::Haftarot"
+        if first and first["book"] in QERIYA_DECK_NAMES:
+            return QERIYA_DECK_NAMES[first["book"]]
+        return self._settings.get("cloze_deck_name", "Qeriya")
+
+    def get_cloze_note_types(self) -> dict:
+        """Note types in Anki that can take cloze notes (see
+        cloze_export.check_note_type_fields), and the one to preselect:
+        the last used, if it's still there."""
+        try:
+            names = anki_client.invoke("modelNames", url=DEFAULT_URL)
+            usable = [n for n in names if check_note_type_fields(self._note_type_fields(n)) is None]
+        except AnkiConnectError as e:
+            return {"ok": False, "error": str(e)}
+        last = self._settings.get("cloze_note_type")
+        selected = last if last in usable else (usable[0] if usable else None)
+        return {"ok": True, "names": usable, "selected": selected}
+
+    @staticmethod
+    def _note_type_fields(note_type: str) -> list[str]:
+        return anki_client.invoke("modelFieldNames", url=DEFAULT_URL, modelName=note_type)
+
+    def export_cloze_to_anki(
+        self, max_leaf_disj: int, reset_per_line: bool, deck_name: str, note_type: str,
+    ) -> dict:
+        """Add the fetched pesuqim to Anki as cloze notes, with the same
+        fields and tags as the CSV export.
+
+        Only pesuqim with no note yet (of this note type, anywhere in the
+        collection, matched on Source) are added. Existing notes are never
+        changed, so their scheduling and anything added to them by hand --
+        a recording in a Sound field, say -- are safe. Re-running an export
+        only fills in what's missing."""
+        if not self._current_verse_data:
+            return {"ok": False, "error": "Fetch a range of verses first."}
+        deck_name = deck_name.strip()
+        if not deck_name or not note_type:
+            return {"ok": False, "error": "Choose a deck and a note type first."}
+        try:
+            notes = build_cloze_notes(self._current_verse_data, max_leaf_disj, reset_per_line, self._cache)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        if not notes:
+            return {"ok": False, "error": "No verse lines were found to export."}
+
+        try:
+            field_names = self._note_type_fields(note_type)
+            problem = check_note_type_fields(field_names)
+            if problem:
+                return {"ok": False, "error": problem}
+            existing_ids = anki_find_notes(f'"note:{note_type}"', url=DEFAULT_URL)
+            existing = {
+                parse_source_field(n["fields"].get("Source", {}).get("value", ""))
+                for n in anki_notes_info(existing_ids, url=DEFAULT_URL)
+            }
+            new = [n for n in notes if n["key"] not in existing]
+            payload = [{
+                "deckName": deck_name, "modelName": note_type,
+                "fields": anki_fields(n, field_names), "tags": n["tags"],
+                # Our own Source check above is the duplicate check; Anki's
+                # (on the first field, Number) would wrongly match pesuqim
+                # with the same number in different books.
+                "options": {"allowDuplicate": True},
+            } for n in new]
+            result_ids = anki_add_notes(payload, url=DEFAULT_URL, dry_run=False) if payload else []
+        except AnkiConnectError as e:
+            return {"ok": False, "error": str(e)}
+
+        self._settings.set("cloze_deck_name", deck_name)
+        self._settings.set("cloze_note_type", note_type)
+        added = sum(1 for r in result_ids if r is not None)
+        return {
+            "ok": True, "notes_added": added, "already_in_anki": len(notes) - len(new),
+            "failed": len(result_ids) - added, "deck": deck_name,
+        }
 
     def get_lpcg_deck_name(self) -> str:
         """The deck name to prefill the export form with: whatever was

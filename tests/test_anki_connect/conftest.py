@@ -105,7 +105,11 @@ class FakeAnki:
         return [True for _ in answers]
 
     def _do_findNotes(self, query: str):
-        # Only "deck:X" is needed for the tagging tool.
+        # "deck:X" (the tagging tool) and '"note:X"' (cloze export: notes of
+        # one note type) are all this project emits.
+        if query.startswith('"note:'):
+            model = query[len('"note:'):-1]
+            return [nid for nid, n in self.notes.items() if n.get("model") == model]
         assert query.startswith("deck:"), f"FakeAnki findNotes: unsupported query {query!r}"
         deck = query[len("deck:"):]
         return [nid for nid, n in self.notes.items() if n["deck"] == deck]
@@ -119,7 +123,7 @@ class FakeAnki:
                 for i, (name, value) in enumerate(n["fields"].items())
             }
             out.append({
-                "noteId": nid, "modelName": "Qeriya (by pasuk)",
+                "noteId": nid, "modelName": n.get("model", "Qeriya (by pasuk)"),
                 "tags": list(n["tags"]), "fields": fields,
             })
         return out

@@ -80,6 +80,19 @@ MEGILLOT_BOOKS = [
     "Song of Songs", "Ruth", "Lamentations", "Ecclesiastes", "Esther",
 ]
 
+# Chapters per book (Hebrew chapter numbering, as on Sefaria). Live
+# discovery only finds where a book ends by probing for the chapter after
+# it, so this guards against a book being cut short by a failed request:
+# a discovered or cached structure with a different chapter count is not
+# trusted. Verse counts per chapter still come from Sefaria.
+NON_TORAH_CHAPTER_COUNTS = {
+    "Joshua": 24, "Judges": 21, "I Samuel": 31, "II Samuel": 24, "I Kings": 22, "II Kings": 25,
+    "Isaiah": 66, "Jeremiah": 52, "Ezekiel": 48,
+    "Hosea": 14, "Joel": 4, "Amos": 9, "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3,
+    "Habakkuk": 3, "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 3,
+    "Song of Songs": 8, "Ruth": 4, "Lamentations": 5, "Ecclesiastes": 12, "Esther": 10,
+}
+
 # Category -> ordered book list, the single source of truth the frontend
 # uses to build a grouped book picker (Tora / Nevi'im / Megillot
 # optgroups) and that ALL_BOOKS is derived from.

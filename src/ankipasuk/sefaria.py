@@ -15,6 +15,7 @@ import requests
 from .cache import SefariaCache
 from .config import (
     ALL_BOOKS,
+    NON_TORAH_CHAPTER_COUNTS,
     POINTED_VERSION,
     REQUEST_TIMEOUT,
     SEFARIA_API_BASE,
@@ -63,6 +64,13 @@ def flatten_and_clean_text(raw_text):
 # =============================================================
 #  API CALLS
 # =============================================================
+class RefNotFoundError(RuntimeError):
+    """Sefaria answered 404: the ref names a chapter or verse that doesn't
+    exist (e.g. "Ezekiel 49" -- "Ezekiel ends at Chapter 48."). Kept
+    apart from network and server errors, which say nothing about where
+    a book ends."""
+
+
 def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
     """Return the cleaned verse list for ``ref_str``, using the on-disk
     cache when available and only hitting the network on a miss."""
@@ -80,6 +88,10 @@ def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
+    except requests.HTTPError as e:
+        if getattr(e.response, "status_code", None) == 404:
+            raise RefNotFoundError(f"Sefaria has no {ref_str}.") from e
+        raise RuntimeError(f"Network/API error while fetching {ref_str}: {e}") from e
     except requests.RequestException as e:
         raise RuntimeError(f"Network/API error while fetching {ref_str}: {e}") from e
     except ValueError as e:
@@ -154,17 +166,22 @@ def discover_book_structure(
     :meth:`SefariaCache.set_book_structure`, so this probing cost is paid
     at most once per book ever, even across app restarts.
     """
+    expected = NON_TORAH_CHAPTER_COUNTS.get(book)
     cached = cache.get_book_structure(book)
-    if cached is not None:
+    if cached is not None and (expected is None or len(cached) == expected):
         return cached
 
     lengths = []
     ch = 1
     with cache.defer_saves():
         while True:
+            # Only "no such chapter" ends the book. Any other failure
+            # (timeout, server error) propagates, so a hiccup can't leave
+            # a truncated book in the cache for good -- which is how
+            # Ezekiel once ended up with 42 chapters.
             try:
                 chapter_text = get_text_for_ref(f"{book} {ch}", version_param, cache)
-            except RuntimeError:
+            except RefNotFoundError:
                 break
             if not chapter_text:
                 break
@@ -173,6 +190,10 @@ def discover_book_structure(
 
     if not lengths:
         raise RuntimeError(f"Could not find any chapters for {book}.")
+    if expected is not None and len(lengths) != expected:
+        raise RuntimeError(
+            f"Sefaria returned {len(lengths)} chapters for {book}, expected {expected}; not caching that."
+        )
 
     cache.set_book_structure(book, lengths)
     return lengths

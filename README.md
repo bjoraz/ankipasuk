@@ -233,6 +233,20 @@ The same layout is in the main window too: tick **Tikkun.io scroll layout**
 to see the range you fetched as it appears in the sefer, with or without
 niqqud.
 
+## Haftarot
+
+Choose **Haftara** as a range's mode to load a parasha's haftara, or that
+of a special Shabbat (the four parashiyyot, Shabbat haGadol, and Ḥol
+haMo'ed Sukkot and Pesaḥ). The list follows the Spanish and Portuguese
+custom, from the S&P London list of readings; it's in
+`src/ankipasuk/data/haftarot.json`, with the few corrections to the
+printed list noted there. A haftara in two parts (Mishpatim, Tsav, Mase,
+Shabbat Shuva) loads in reading order.
+
+A pasuq read in more than one haftara gets every one's tag: Yirmeyahu 1
+is read for Shemot and for Mattot, Yesha'yahu 54:1–10 for Noaḥ and for Ki
+Tetse.
+
 ## Statistics
 
 **Corpus statistics** opens a window on whatever is loaded: words per
@@ -260,7 +274,7 @@ scripts in `scripts/`.
 - **Tag notes by where they're read.** Each note is tagged with its parasha
   and 'aliyya, whether it's in the maftir, and any holiday or fast-day
   reading it belongs to, for example `aliyya::bereshit::04-vayyera::7` and
-  `holiday::rosh_hashana_ii::1`. It only ever adds tags. If an existing tag
+  `holiday::rosh_hashana_ii::1`; a haftara pasuq gets `haftara::<parasha>`. It only ever adds tags. If an existing tag
   disagrees with what it worked out, that's reported and left alone.
   Details in [`docs/anki-tagging.md`](docs/anki-tagging.md).
 - **Move old tags to the new spelling.** Decks tagged by earlier versions
@@ -326,21 +340,32 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
 
 ## Using the app
 
-1. Add one or more ranges, by chapter and verse or by parasha and 'aliyya,
-   from the Tora, Nevi'im or the five Megillot, then click **Fetch all
-   ranges**. Ranges are joined in the order you add them, so you can run
+1. Add one or more ranges, by chapter and verse, by parasha and 'aliyya,
+   or by haftara, from the Tora, Nevi'im or the five Megillot, then click
+   **Fetch all ranges**. Ranges are joined in the order you add them, so you can run
    the end of one book into the start of the next.
 2. Set **Max disjunctive groups per leaf** and click **Generate cloze
    cards**. You'll see the cloze markup, the groups for each pasuq, and
    each pasuq's tree drawn as indented, colored rows. Tick **Show
    analysis** to label each row with its cloze number and closing ta'am,
    and to get a table of every cloze and the mafsiq behind it.
-3. Click **Export to CSV** and import the file into Anki. It's
-   tab-separated with one row per pasuq: a running number, the reference
-   (e.g. `Bereshit 1:1`), the cloze text, the unpointed pasuq, the
-   unpointed pesuqim before and after it, then an empty column and a fixed
-   settings string. The tagging tool looks for the reference in a field
-   called `Source`.
+3. Export the notes, one per pasuq, in either of two ways:
+   - **Export to CSV**, then import the file into Anki. It's tab-separated:
+     the pasuq's number (its place in the book, or in the haftara), the
+     reference (e.g. `Bereshit 1:1`), the cloze text, the unpointed pasuq,
+     the unpointed pesuqim before and after it, an empty column, a fixed
+     settings string, and the tags. A header line tells Anki which column
+     holds the tags.
+   - **Send to Anki**, with Anki open and AnkiConnect installed. Pick a deck
+     and a note type whose fields start with Number, Source, Text, Verse,
+     Previous, Next, Back Extra and a settings field (the CSV's layout).
+     Only pesuqim that don't have a note yet are added. Existing notes,
+     with their scheduling and anything you added to them (a recording,
+     say), are never changed.
+
+   Either way each note gets its tags: the parasha, 'aliyya and holiday
+   tags for the Tora, and `haftara::<parasha>` for a haftara. The tagging
+   tool looks for the reference in a field called `Source`.
 4. For tiqqun cards, use the panel at the bottom: book, first and last
    parasha and 'aliyya (or an 'ammud number), deck name, and how to divide
    the cards.
@@ -372,14 +397,15 @@ src/ankipasuk/
 ├── structure.py         grouping pesuqim by structure
 ├── analysis.py          each cloze's words and the mafsiq behind it
 ├── stats.py             statistics for a loaded range
-├── qeriya.py            parasha / 'aliyya / maftir / holiday tag logic
+├── qeriya.py            parasha / 'aliyya / maftir / holiday / haftara tag logic
+├── cloze_export.py      the cloze notes both exports (CSV, AnkiConnect) build
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both
 ├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
-├── data/                bundled maftir lengths and holiday readings
+├── data/                bundled maftir lengths, holiday readings and haftarot
 ├── webgui/              the app (pywebview + HTML/JS)
 └── gui/                 the old tkinter app, no longer maintained
 scripts/                 double-clickable wrappers for the Anki tools
