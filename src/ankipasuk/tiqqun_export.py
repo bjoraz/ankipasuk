@@ -24,7 +24,7 @@ import re
 
 from .anki_connect.tagging import HEBREW_TO_BOOK
 from .cache import SefariaCache
-from .config import TORAH_VERSE_COUNTS
+from .config import BOOK_HEBREW_NAMES, TORAH_VERSE_COUNTS
 from .lpcg import FIELD_NAMES, MODEL_NAME
 from .qeriya import parse_range_ref
 from .sefaria import get_chapter_lengths
@@ -106,6 +106,33 @@ def existing_keys(notes_info: list[dict], cache: SefariaCache) -> set[str]:
             keys.add(key)
         keys.add(content_key(fields))
     return keys
+
+
+def pasuq_label(key: str) -> str | None:
+    """A pasuq key as the card shows it: "pasuq:Genesis 1:3" -> "Bereshit
+    1:3". ``None`` for any other key (a line-mode card's)."""
+    if not key.startswith("pasuq:"):
+        return None
+    book, _space, ref = key[len("pasuq:"):].rpartition(" ")
+    return f"{BOOK_HEBREW_NAMES.get(book, book)} {ref}"
+
+
+def missing_pasuq_fields(notes_info: list[dict], cache: SefariaCache) -> list[tuple[int, str]]:
+    """``(note id, "Bereshit 1:3")`` for each pasuq-mode tiqqun note in
+    ``notes_info`` (AnkiConnect's ``notesInfo``) whose "Pasuq" field is
+    empty -- notes made before the field existed -- with the pasuq worked
+    out as for the duplicate check (see :func:`existing_note_key`). Notes
+    whose pasuq can't be recovered, and line-mode notes, are left out."""
+    found = []
+    for note in notes_info:
+        fields = {name: f["value"] for name, f in note["fields"].items()}
+        if fields.get("Pasuq", "").strip():
+            continue
+        key = existing_note_key(fields, note.get("tags", []), cache)
+        label = pasuq_label(key) if key else None
+        if label:
+            found.append((note["noteId"], label))
+    return found
 
 
 def is_duplicate(note: dict, keys: set[str]) -> bool:

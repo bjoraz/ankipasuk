@@ -51,6 +51,10 @@ FIELD_NAMES = [
     # field both shapes always populate.
     "Title", "Line", "Context", "Prompt", "FrontRows", "BackRows",
     "Author", "Sequence", "BoxWidth",
+    # The pasuq a pasuq-mode card is for, e.g. "Bereshit 1:3" (empty on
+    # line-mode cards, which are lines, not pesuqim). Added last, so the
+    # older fields keep their places in an existing note type and the CSV.
+    "Pasuq",
 ]
 BEGINNING_MARKER = "[Beginning]"
 
@@ -151,6 +155,7 @@ _FRONT_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
 
 <div class="title">{{{{Title}}}} {{{{Sequence}}}}</div>
+{{{{#Pasuq}}}}<div class="pasuq-ref">{{{{Pasuq}}}}</div>{{{{/Pasuq}}}}
 {{{{#Author}}}}<div class="author">{{{{Author}}}}</div>{{{{/Author}}}}
 
 <br>
@@ -172,6 +177,7 @@ _BACK_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
 
 <div class="title">{{{{Title}}}} {{{{Sequence}}}}</div>
+{{{{#Pasuq}}}}<div class="pasuq-ref">{{{{Pasuq}}}}</div>{{{{/Pasuq}}}}
 {{{{#Author}}}}<div class="author">{{{{Author}}}}</div>{{{{/Author}}}}
 
 <br>
@@ -396,10 +402,15 @@ CSS = f"""\
     filter: invert(85%);
 }}
 
-.title, .author {{
+.title, .author, .pasuq-ref {{
     text-align: center;
     font-size: small;
     direction: ltr;
+}}
+
+.pasuq-ref {{
+    font-weight: 600;
+    margin-top: 2px;
 }}
 
 /* Answer side: hovering (or tapping, on a phone) a word turns it, in

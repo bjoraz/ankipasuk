@@ -61,7 +61,7 @@ from html import escape
 from itertools import groupby
 
 from .cache import SefariaCache
-from .config import POINTED_VERSION
+from .config import BOOK_HEBREW_NAMES, POINTED_VERSION
 from .lpcg import BEGINNING_MARKER, box_width_from_char_counts
 from .sefaria import fetch_torah_range
 from .tikkun import (
@@ -306,6 +306,7 @@ def build_verse_cards_from_words(
     author: str = "",
     box_width: str,
     leading_extra_verses: int = 0,
+    book_label: str = "",
 ) -> list[dict[str, str]]:
     """Build one field-dict per verse in ``verse_refs`` -- pure (no cache
     access), given already-fetched/computed inputs, so directly testable.
@@ -325,6 +326,9 @@ def build_verse_cards_from_words(
     module docstring on why ``rows[0]`` isn't always exactly
     ``verse_refs[0]``'s own first word). Their own segmentation output is
     simply discarded here.
+
+    With ``book_label`` (the book as the app writes it, e.g. "Bereshit"),
+    each card's "Pasuq" field says which pasuq it is ("Bereshit 1:3").
 
     Every card's "one row before" context (see the module docstring)
     comes straight out of ``rows`` -- the row immediately before whichever
@@ -365,6 +369,7 @@ def build_verse_cards_from_words(
             "Author": author,
             "Sequence": str(i + 1),
             "BoxWidth": box_width,
+            "Pasuq": f"{book_label} {ch}:{vs}" if book_label else "",
         })
 
     return fields
@@ -419,7 +424,7 @@ def _build_from_verse_refs(
     return build_verse_cards_from_words(
         rows, verse_refs, verse_word_counts, preceding_row,
         title=title, author=author, box_width=box_width,
-        leading_extra_verses=len(leading_refs),
+        leading_extra_verses=len(leading_refs), book_label=BOOK_HEBREW_NAMES.get(book, book),
     )
 
 

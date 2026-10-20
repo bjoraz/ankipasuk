@@ -61,11 +61,31 @@ def test_an_unrecognisable_note_still_matches_identical_lines(tmp_path):
     assert te.is_duplicate(same, keys) and not te.is_duplicate(other, keys)
 
 
+def _note(note_id, fields, tags):
+    return {"noteId": note_id, "tags": tags,
+            "fields": {k: {"value": v, "order": 0} for k, v in fields.items()}}
+
+
+def test_older_notes_get_the_pasuq_they_are_for_and_others_are_left_out(tmp_path, monkeypatch):
+    monkeypatch.setattr(te, "get_book_verses_on_amud",
+                        lambda n, cache: [("Leviticus", 27, 34), ("Numbers", 1, 1)])
+    notes = [
+        _note(1, {"Sequence": "1", "Line": "", "Pasuq": ""}, ["ammud::148"]),
+        _note(2, {"Sequence": "2", "Line": ""}, ["ammud::148"]),  # from before the field existed
+        _note(3, {"Sequence": "2", "Line": "", "Pasuq": "Bemidbar 1:1"}, ["ammud::148"]),  # already has it
+        _note(4, {"Sequence": "1", "Line": "<div>a row</div>", "Pasuq": ""}, ["ammud::148"]),  # line mode
+        _note(5, {"Sequence": "9", "Line": ""}, ["ammud::148"]),  # no such card on the 'ammud
+    ]
+    assert te.missing_pasuq_fields(notes, SefariaCache(cache_dir=tmp_path)) == [
+        (1, "Vayyiqra 27:34"), (2, "Bemidbar 1:1"),
+    ]
+
+
 def test_csv_names_the_note_type_and_has_tags_and_deck_columns_and_quotes_multi_line_html():
     notes = [{"fields": {"Title": "T", "FrontRows": "<div>a</div>\n<div>b</div>"}, "tags": ["ammud::001"],
               "deck": "Ammudim::001"}]
-    header, body = te.csv_text(notes).split("#deck column:11\n")
-    assert "#notetype:Ankipasuk Aliyah" in header and "#tags column:10" in header
+    header, body = te.csv_text(notes).split("#deck column:12\n")
+    assert "#notetype:Ankipasuk Aliyah" in header and "#tags column:11" in header
     (row,) = list(csv.reader(io.StringIO(body), delimiter="\t"))
     assert row[0] == "T" and row[4] == "<div>a</div>\n<div>b</div>"
     assert row[-2:] == ["ammud::001", "Ammudim::001"]
