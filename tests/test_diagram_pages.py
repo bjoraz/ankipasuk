@@ -23,10 +23,32 @@ def test_the_page_has_the_diagrams_the_font_and_the_app_s_own_diagram_styles(cac
     assert "break-inside: avoid" in html  # a pasuq isn't split across pages
 
 
-def test_the_diagrams_are_drawn_at_the_page_s_width():
+def test_the_diagrams_are_drawn_at_the_width_between_the_margins():
     # A4 (210mm) less two 15mm margins, at 96px to the inch.
-    assert abs(dp.PAGE_WIDTH_PX - 180 / 25.4 * 96) < 1
-    assert "margin: 15mm" in dp._PAGE_CSS
+    assert dp.content_width_px() == 680
+    assert dp.content_width_px({"orientation": "landscape", "margin_mm": 10}) == int(277 / 25.4 * 96)
+    assert dp.content_width_px({"paper": "Letter", "margin_mm": 20}) == int(175.9 / 25.4 * 96)
+
+
+def test_page_options_keep_only_what_can_be_laid_out():
+    o = dp.page_options({"paper": "A3", "orientation": "sideways", "margin_mm": 500, "spacing_px": "x",
+                         "references": 0, "bw": 1})
+    assert (o["paper"], o["orientation"], o["margin_mm"], o["spacing_px"]) == ("A4", "portrait", 40, 8)
+    assert (o["references"], o["bw"], o["separators"]) == (False, True, True)
+
+
+def test_the_options_shape_the_page(cache):
+    plain = dp.diagrams_html(BODY, "t", "s", cache, {
+        "orientation": "landscape", "margin_mm": 10, "spacing_px": 20,
+        "references": False, "separators": False, "header": False,
+    })
+    assert "size: 297mm 210mm; margin: 10mm" in plain
+    assert "padding: 20px 0" in plain
+    assert ".dg-ref { display: none; }" in plain and ".dg-pasuq { border-bottom: none; }" in plain
+    assert "<h1>" not in plain
+    bw = dp.diagrams_html(BODY, "t", "s", cache, {"bw": True})
+    assert "a card's division" in bw and '<body class="dg-bw">' in bw
+    assert "not a card" not in dp.diagrams_html(BODY, "t", "s", cache, {"grey": False})
 
 
 def test_a_long_page_is_cut_between_pesuqim_never_inside_one():

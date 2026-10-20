@@ -70,11 +70,8 @@
       <div class="view" data-view="diagram">
         <div class="view-tools">
           <span class="muted">Grey brackets: divisions the cards don't make at this setting.</span>
-          <span class="inline-group">
-            <button id="btn-save-diagrams" type="button" class="link"
-                    title="All the diagrams as pages, to read from or print">Save diagrams as</button>
-            <select id="diagram-format"><option value="pdf">PDF</option><option value="html">HTML</option></select>
-          </span>
+          <button id="btn-save-diagrams" type="button" class="link"
+                  title="All the diagrams as pages, to read from or print, with a preview">Save as PDF / HTML…</button>
         </div>
         <div id="viz-box" class="pane"></div>
       </div>
@@ -176,6 +173,58 @@
   <span id="cache-status"></span>
   <button id="btn-clear-cache" class="link">Clear cache</button>
 </footer>
+
+<!-- ============ Saving the diagrams, with a preview ============ -->
+<div id="print-dialog" class="dialog-overlay" hidden>
+  <div class="dialog">
+    <aside class="dialog-options">
+      <h3>Save the diagrams</h3>
+      <label class="field stack">Title <input type="text" id="pd-title"></label>
+
+      <h4>Diagram</h4>
+      <label class="field opt">Text size <input type="range" data-opt="textSize" min="12" max="36" step="1" value="22"><output></output></label>
+      <label class="field opt">Bracket spacing <input type="range" data-opt="row" min="9" max="30" step="1" value="15"><output></output></label>
+      <label class="field opt">Labels
+        <select data-opt="labels">
+          <option value="full">Rank and name</option>
+          <option value="name">Name only</option>
+          <option value="rank">Rank only</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <label class="field opt">Label size <input type="range" data-opt="labelSize" min="8" max="15" step="0.5" value="10.5"><output></output></label>
+      <label class="field"><input type="checkbox" data-opt="grey" checked> Grey brackets (divisions the cards don't make)</label>
+      <label class="field"><input type="checkbox" data-opt="bw"> Black and white</label>
+
+      <h4>Page</h4>
+      <label class="field opt">Paper
+        <select data-opt="paper"><option value="A4">A4</option><option value="Letter">Letter</option></select>
+      </label>
+      <label class="field opt">Orientation
+        <select data-opt="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>
+      </label>
+      <label class="field opt">Margins <input type="range" data-opt="margin_mm" min="5" max="40" step="1" value="15"><output></output></label>
+      <label class="field opt">Space between pesuqim <input type="range" data-opt="spacing_px" min="0" max="40" step="1" value="8"><output></output></label>
+      <label class="field"><input type="checkbox" data-opt="references" checked> References (Bereshit 1:1)</label>
+      <label class="field"><input type="checkbox" data-opt="separators" checked> Lines between pesuqim</label>
+      <label class="field"><input type="checkbox" data-opt="header" checked> Title and legend</label>
+
+      <p class="muted" id="pd-note"></p>
+      <div class="dialog-actions">
+        <button id="pd-save-pdf" class="primary">Save as PDF</button>
+        <div class="secondary-actions">
+          <button id="pd-save-html" type="button" class="link">Save as HTML</button>
+          <button id="pd-reset" type="button" class="link">Reset</button>
+          <button id="pd-cancel" type="button" class="link">Cancel</button>
+        </div>
+      </div>
+    </aside>
+    <div class="dialog-preview">
+      <iframe id="pd-frame" title="Preview"></iframe>
+      <div id="pd-status" class="pd-status" hidden></div>
+    </div>
+  </div>
+</div>
 
 <div id="toast" class="toast" hidden></div>
 

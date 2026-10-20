@@ -55,7 +55,7 @@ from ..config import (
     QERIYA_DECK_NAMES,
 )
 from ..diagram import pasuq_diagram
-from ..diagram_pages import diagrams_html
+from ..diagram_pages import content_width_px, diagrams_html
 from ..diagram_pages import write_pdf as write_diagrams_pdf
 from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
@@ -781,10 +781,28 @@ class Api:
             f"tiqqun_ammudim_{unique[0]:03d}-{unique[-1]:03d}.csv")
         return self._write_tiqqun_csv(notes, name)
 
-    def export_diagrams(self, body_html: str, fmt: str, title: str, subtitle: str) -> dict:
+    def diagram_page_width(self, options: dict | None = None) -> int:
+        """The width, in px, to draw the diagrams at for a page laid out by
+        ``options`` (see ankipasuk.diagram_pages.page_options)."""
+        return content_width_px(options)
+
+    def preview_diagrams(
+        self, body_html: str, title: str, subtitle: str, options: dict | None = None,
+    ) -> dict:
+        """The page the diagram export would save, for the print preview."""
+        try:
+            return {"ok": True, "html": diagrams_html(body_html, title, subtitle, self._cache, options)}
+        except Exception as e:  # noqa: BLE001 -- the font may need the network
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+
+    def export_diagrams(
+        self, body_html: str, fmt: str, title: str, subtitle: str, options: dict | None = None,
+    ) -> dict:
         """Save the diagram view -- ``body_html``, the diagrams as the
         window drew them at page width (diagram.js, snapshotDiagrams) --
-        as ``fmt`` "html" or "pdf" (see ankipasuk.diagram_pages)."""
+        as ``fmt`` "html" or "pdf", laid out by ``options`` (see
+        ankipasuk.diagram_pages)."""
         if fmt not in ("html", "pdf"):
             return {"ok": False, "error": f"Unknown format: {fmt}"}
         if self._window is None:
@@ -799,9 +817,9 @@ class Api:
         target = path if isinstance(path, str) else path[0]
         try:
             if fmt == "pdf":
-                pages = write_diagrams_pdf(body_html, title, subtitle, self._cache, target)
+                pages = write_diagrams_pdf(body_html, title, subtitle, self._cache, target, options)
             else:
-                html = diagrams_html(body_html, title, subtitle, self._cache)
+                html = diagrams_html(body_html, title, subtitle, self._cache, options)
                 Path(target).write_text(html, encoding="utf-8")
                 pages = None
         except (RuntimeError, ValueError, OSError) as e:

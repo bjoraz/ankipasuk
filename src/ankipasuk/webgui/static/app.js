@@ -520,38 +520,226 @@ async function doExportClozeToAnki() {
     }
 }
 
-// The diagram view as pages: drawn here at the page's width
-// (snapshotDiagrams), then saved by ankipasuk.diagram_pages.
-const DIAGRAM_PAGE_WIDTH = 680; // diagram_pages.PAGE_WIDTH_PX
+// =============================================================
+//  Saving the diagrams: a dialog of options beside a live preview of
+//  the page. The diagrams are drawn here at the page's width
+//  (snapshotDiagrams) with the drawing options, then laid out by
+//  ankipasuk.diagram_pages with the page options -- the same both for
+//  the preview and for the file.
+// =============================================================
+const PREVIEW_PESUQIM = 12;  // the preview shows the first few
+const PRINT_OPTIONS_KEY = "ankipasuk_print_options";
+// Which options are the drawing's (diagram.js); the rest are the page's.
+const DRAW_OPTIONS = ["textSize", "row", "labels", "labelSize", "grey", "bw"];
 
-async function doSaveDiagrams() {
+function optionInputs() {
+    return [...document.querySelectorAll("#print-dialog [data-opt]")];
+}
+
+function readPrintOptions() {
+    const o = {};
+    for (const el of optionInputs()) {
+        o[el.dataset.opt] = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
+    }
+    const draw = Object.fromEntries(DRAW_OPTIONS.map((k) => [k, o[k]]));
+    // The page needs to know about black and white and the grey brackets
+    // too, for its legend and colours.
+    const page = Object.fromEntries(Object.entries(o).filter(([k]) => !DRAW_OPTIONS.includes(k) || k === "bw" || k === "grey"));
+    return { all: o, draw, page };
+}
+
+function showOptionValues() {
+    const units = { textSize: "px", row: "px", labelSize: "px", margin_mm: "mm", spacing_px: "px" };
+    for (const el of optionInputs()) {
+        if (el.type === "range") el.nextElementSibling.textContent = el.value + (units[el.dataset.opt] || "");
+    }
+    const labels = document.querySelector('[data-opt="labels"]').value !== "none";
+    document.querySelector('[data-opt="labelSize"]').disabled = !labels;
+}
+
+function restorePrintOptions() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(PRINT_OPTIONS_KEY) || "{}"); } catch (e) { /* none kept */ }
+    for (const el of optionInputs()) {
+        if (!(el.dataset.opt in saved)) continue;
+        if (el.type === "checkbox") el.checked = saved[el.dataset.opt];
+        else el.value = saved[el.dataset.opt];
+    }
+    showOptionValues();
+}
+
+function rememberPrintOptions() {
+    try { localStorage.setItem(PRINT_OPTIONS_KEY, JSON.stringify(readPrintOptions().all)); } catch (e) { /* not kept */ }
+}
+
+function printSubtitle() {
+    const n = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
+    return `${currentDiagrams.length} ${currentDiagrams.length === 1 ? "pasuq" : "pesuqim"} · groups per clause: ${n}`;
+}
+
+function setPrintStatus(text) {
+    const el = document.getElementById("pd-status");
+    el.textContent = text;
+    el.hidden = !text;
+}
+
+function openPrintDialog() {
     if (!currentDiagrams.length) return showToast("Nothing loaded yet.", true);
-    const btn = document.getElementById("btn-save-diagrams");
-    const status = document.getElementById("preview-status");
-    const fmt = document.getElementById("diagram-format").value;
-    btn.disabled = true;
+    const title = document.getElementById("pd-title");
+    title.value = [...document.querySelectorAll(".range-summary")].map((el) => el.textContent).join("; ");
+    const shown = Math.min(PREVIEW_PESUQIM, currentDiagrams.length);
+    document.getElementById("pd-note").textContent = currentDiagrams.length > shown
+        ? `The preview shows the first ${shown} of the ${currentDiagrams.length} pesuqim; the file has them all.`
+        : "";
+    document.getElementById("print-dialog").hidden = false;
+    renderPrintPreview();
+}
+
+function closePrintDialog() {
+    document.getElementById("print-dialog").hidden = true;
+    document.getElementById("pd-frame").srcdoc = "";
+}
+
+// The preview, redrawn a moment after the last change. Each run has its
+// token, so a slow one finishing late doesn't replace a newer one.
+let printPreviewTimer = null;
+let printPreviewToken = 0;
+function schedulePrintPreview() {
+    clearTimeout(printPreviewTimer);
+    printPreviewTimer = setTimeout(renderPrintPreview, 200);
+}
+
+async function renderPrintPreview() {
+    const token = ++printPreviewToken;
+    const { draw, page } = readPrintOptions();
+    setPrintStatus("Drawing…");
+    const width = await api().diagram_page_width(page);
+    const body = await snapshotDiagrams(currentDiagrams.slice(0, PREVIEW_PESUQIM), width, null, draw);
+    const result = await api().preview_diagrams(body, document.getElementById("pd-title").value, printSubtitle(), page);
+    if (token !== printPreviewToken) return;
+    setPrintStatus("");
+    if (!result.ok) return setPrintStatus("Could not show the preview: " + result.error);
+    const frame = document.getElementById("pd-frame");
+    const scroll = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+    // The frame is scaled from outside to fit the sheet's width in the
+    // dialog, so inside it the page keeps its true size and can be
+    // measured for its page breaks.
+    const [sheetW, sheetH] = sheetPx(page);
+    const holder = frame.parentElement;
+    const zoom = Math.min(1, (holder.clientWidth - 30) / (sheetW + 30));
+    Object.assign(frame.style, {
+        width: `${holder.clientWidth / zoom}px`, height: `${holder.clientHeight / zoom}px`,
+        transform: `scale(${zoom})`, transformOrigin: "0 0",
+    });
+    frame.onload = () => {
+        showPageBreaks(frame.contentDocument, sheetH, Number(page.margin_mm) * PX_PER_MM);
+        frame.contentWindow.scrollTo(0, scroll);
+    };
+    frame.srcdoc = result.html;
+}
+
+const PX_PER_MM = 96 / 25.4;
+
+// The sheet's width and height in px (diagram_pages.paper_mm).
+function sheetPx(page) {
+    const [w, h] = { A4: [210, 297], Letter: [215.9, 279.4] }[page.paper] || [210, 297];
+    return (page.orientation === "landscape" ? [h, w] : [w, h]).map((mm) => mm * PX_PER_MM);
+}
+
+// The preview's one long sheet cut into pages where the PDF's are: a
+// pasuq that doesn't fit what's left of a page starts the next (the PDF
+// keeps each pasuq whole). A gap the colour of the desk stands between
+// the sheets, with the page's number at the bottom of each.
+function showPageBreaks(doc, sheetH, margin) {
+    const body = doc.body;
+    const contentH = sheetH - 2 * margin;
+    const blocks = [...body.children];
+    const top = () => body.getBoundingClientRect().top + margin;
+    let pageStart = 0;
+    let pageNo = 1;
+    for (const el of blocks) {
+        const r = el.getBoundingClientRect();
+        const start = r.top - top();
+        const end = r.bottom - top();
+        if (end - pageStart <= contentH || start <= pageStart) continue;
+        const rest = pageStart + contentH - start;  // what's left of this page
+        const cut = doc.createElement("div");
+        cut.style.cssText = `height: ${rest + 2 * margin + 16}px; margin: 0 -${margin}px; position: relative;`
+            + ` background: linear-gradient(white 0 ${rest + margin}px, #8d8d8d ${rest + margin}px`
+            + ` ${rest + margin + 16}px, white ${rest + margin + 16}px);`;
+        cut.innerHTML = `<span style="position: absolute; left: 0; right: 0; top: ${rest + margin - 22}px;`
+            + ` text-align: center; font: 8pt sans-serif; color: #999;">${pageNo}</span>`;
+        el.before(cut);
+        pageNo += 1;
+        pageStart = el.getBoundingClientRect().top - top();
+    }
+    // The last sheet is a whole page long too, with its number.
+    const end = body.lastElementChild.getBoundingClientRect().bottom - top();
+    const pad = doc.createElement("div");
+    pad.style.cssText = `height: ${Math.max(0, pageStart + contentH - end)}px; position: relative;`;
+    pad.innerHTML = `<span style="position: absolute; left: 0; right: 0; bottom: -${margin - 22}px;`
+        + ` text-align: center; font: 8pt sans-serif; color: #999;">${pageNo}</span>`;
+    body.appendChild(pad);
+    body.style.minHeight = "0";
+}
+
+async function doSaveDiagrams(fmt) {
+    const { draw, page } = readPrintOptions();
+    const buttons = [document.getElementById("pd-save-pdf"), document.getElementById("pd-save-html")];
+    for (const b of buttons) b.disabled = true;
     try {
-        const body = await snapshotDiagrams(currentDiagrams, DIAGRAM_PAGE_WIDTH, (done, total) => {
-            status.textContent = `Drawing ${done} of ${total}…`;
-        });
+        const width = await api().diagram_page_width(page);
+        const body = await snapshotDiagrams(currentDiagrams, width, (done, total) => {
+            setPrintStatus(`Drawing ${done} of ${total}…`);
+        }, draw);
         // WeasyPrint takes about a second for each six pesuqim.
         const long = currentDiagrams.length > 300 ? ` (about ${Math.ceil(currentDiagrams.length / 360)} min)` : "";
-        status.textContent = fmt === "pdf" ? `Making the PDF…${long}` : "Saving…";
-        const n = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
-        const title = [...document.querySelectorAll(".range-summary")].map((el) => el.textContent).join("; ");
-        const subtitle = `${currentDiagrams.length} ${currentDiagrams.length === 1 ? "pasuq" : "pesuqim"}`
-            + ` · groups per clause: ${n}`;
-        const result = await api().export_diagrams(body, fmt, title, subtitle);
+        setPrintStatus(fmt === "pdf" ? `Making the PDF…${long}` : "Saving…");
+        const result = await api().export_diagrams(body, fmt, document.getElementById("pd-title").value,
+            printSubtitle(), page);
         if (!result.ok) {
             if (result.error) showToast("Could not save: " + result.error, true);
             return; // null error: the save dialog was cancelled
         }
         const pages = result.pages ? ` (${result.pages} page${result.pages === 1 ? "" : "s"})` : "";
         showToast(`Saved to ${result.path}${pages}`, false);
+        closePrintDialog();
     } finally {
-        btn.disabled = false;
-        status.textContent = "";
+        for (const b of buttons) b.disabled = false;
+        setPrintStatus("");
     }
+}
+
+function wirePrintDialog() {
+    restorePrintOptions();
+    for (const el of optionInputs()) {
+        el.addEventListener("input", () => {
+            showOptionValues();
+            rememberPrintOptions();
+            schedulePrintPreview();
+        });
+    }
+    document.getElementById("pd-title").addEventListener("input", schedulePrintPreview);
+    document.getElementById("btn-save-diagrams").addEventListener("click", openPrintDialog);
+    document.getElementById("pd-save-pdf").addEventListener("click", () => doSaveDiagrams("pdf"));
+    document.getElementById("pd-save-html").addEventListener("click", () => doSaveDiagrams("html"));
+    document.getElementById("pd-cancel").addEventListener("click", closePrintDialog);
+    document.getElementById("pd-reset").addEventListener("click", () => {
+        try { localStorage.removeItem(PRINT_OPTIONS_KEY); } catch (e) { /* nothing kept */ }
+        for (const el of optionInputs()) {
+            if (el.type === "checkbox") el.checked = el.defaultChecked;
+            else if (el.tagName === "SELECT") el.value = [...el.options].find((op) => op.defaultSelected)?.value || el.options[0].value;
+            else el.value = el.defaultValue;
+        }
+        showOptionValues();
+        renderPrintPreview();
+    });
+    document.getElementById("print-dialog").addEventListener("click", (e) => {
+        if (e.target.id === "print-dialog") closePrintDialog();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !document.getElementById("print-dialog").hidden) closePrintDialog();
+    });
 }
 
 async function doExportCsv() {
@@ -855,7 +1043,7 @@ window.addEventListener("pywebviewready", async () => {
     document.getElementById("tikkun-width-plus").addEventListener("click", () => tikkunWidthControl.adjust(1));
 
     document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
-    document.getElementById("btn-save-diagrams").addEventListener("click", doSaveDiagrams);
+    wirePrintDialog();
     document.getElementById("btn-export-cloze-anki").addEventListener("click", doExportClozeToAnki);
     checkAnki();
     setInterval(checkAnki, 8000);

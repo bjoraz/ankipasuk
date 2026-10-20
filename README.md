@@ -155,12 +155,23 @@ The preview has four views:
 A whole book loads quickly: pesuqim are drawn only as they scroll into
 view.
 
-**Save diagrams as** PDF or HTML, in the Diagram view, saves every loaded
-pasuq's diagram as A4 pages, to read from or print: a title, a legend of
-the rank colours, each pasuq kept whole on its page, and a half too wide
-for the page set in smaller text. The HTML carries the font inside it and
-needs no script, so it opens and prints anywhere. A PDF of a whole book
-takes a few minutes (Bereshit: 279 pages, about 4½ minutes).
+**Save as PDF / HTML…**, in the Diagram view, saves every loaded pasuq's
+diagram as pages, to read from or print. It opens a preview of the pages,
+redrawn as you change the options beside it:
+
+- **Diagram:** text size, bracket spacing, labels (rank and name, name
+  only, rank only, or none) and their size, whether to draw the grey
+  brackets, and black and white.
+- **Page:** A4 or Letter, portrait or landscape, margins, the space
+  between pesuqim, and whether to show the references, the lines between
+  pesuqim, and the title and legend.
+
+The preview shows the first dozen pesuqim, with the page breaks where the
+PDF will have them (a pasuq is never split across pages), and the app
+remembers your options. A half too wide for the page is set in smaller
+text. The HTML carries the font inside it and needs no script, so it
+opens and prints anywhere. A PDF of a whole book takes a few minutes
+(Bereshit at the default settings: 279 pages, about 4½ minutes).
 
 ### The Tiqqun cards tab
 

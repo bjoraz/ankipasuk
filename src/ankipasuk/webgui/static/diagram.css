@@ -32,3 +32,8 @@ svg.dg-brackets { position: absolute; left: 0; top: 0; overflow: visible; }
 .dg-grey .dg-line, .dg-grey .dg-label rect { stroke: #b8b8b8; fill: white; }
 .dg-grey .dg-line { fill: none; }
 .dg-grey .dg-label text { fill: #b8b8b8; }
+/* Black and white, for printing (the print preview's option): rank is
+   still in each label; the cards' divisions black, the rest grey. */
+.dg-bw .dg-line, .dg-bw .dg-label rect { stroke: #222; }
+.dg-bw .dg-label rect { fill: white; }
+.dg-bw .dg-grey .dg-line, .dg-bw .dg-grey .dg-label rect { stroke: #aaa; }

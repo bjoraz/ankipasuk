@@ -195,6 +195,29 @@ body.sidebar-collapsed .sidebar { display: none; }
              font-size: 12px; color: #666; border-top: 1px solid #d6d6d6; background: #e8e8e8; }
 .statusbar button.link { font-size: 12px; }
 
+/* The diagrams' save dialog: options on the left, the page on the right. */
+.dialog-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.45);
+                  display: flex; align-items: center; justify-content: center; }
+.dialog-overlay[hidden] { display: none; }
+.dialog { display: flex; width: calc(100vw - 40px); height: calc(100vh - 40px); background: white;
+          border-radius: 8px; overflow: hidden; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4); }
+.dialog-options { width: 300px; flex-shrink: 0; overflow-y: auto; padding: 14px 16px; border-right: 1px solid #ddd; }
+.dialog-options h3 { margin: 0 0 10px; font-size: 15px; }
+.dialog-options h4 { margin: 14px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+                     color: #607d8b; }
+.dialog-options label { white-space: normal; }
+.dialog-options .opt { justify-content: space-between; }
+.dialog-options .opt input[type="range"] { flex: 1; min-width: 0; margin-left: 8px; }
+.dialog-options .opt output { width: 2.6em; text-align: right; font-size: 12px; color: #555; }
+.dialog-options .opt select { margin-left: 8px; }
+.dialog-actions { margin-top: 10px; }
+.dialog-preview { flex: 1; min-width: 0; position: relative; background: #8d8d8d; }
+.dialog-preview { overflow: hidden; }
+.dialog-preview iframe { border: none; display: block; }
+.pd-status { position: absolute; top: 10px; right: 14px; background: rgba(38, 50, 56, 0.85); color: white;
+             font-size: 12px; padding: 4px 10px; border-radius: 4px; }
+.pd-status[hidden] { display: none; }
+
 .toast {
     position: fixed;
     bottom: 16px;

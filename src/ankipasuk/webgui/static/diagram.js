@@ -6,13 +6,24 @@
 //  ankipasuk.diagram.pasuq_diagram; this measures where each word
 //  landed and draws the brackets as SVG over the text.
 // =============================================================
-const DIAGRAM_ROW = 15;  // px per bracket row
+// How a diagram is drawn. The app uses these as they are; the print
+// preview (snapshotDiagrams) can change any of them.
+const DIAGRAM_DEFAULTS = {
+    row: 15,          // px per bracket row
+    labels: "full",   // "full" (1 אתנח), "name", "rank", or "none"
+    labelSize: 10.5,  // px
+    grey: true,       // draw the divisions the cards don't make
+};
 const DIAGRAM_PAD = 3;
-const LABEL_HEIGHT = 13;
 const SVG_NS = "http://www.w3.org/2000/svg";
 // How far ahead of the visible part to draw, so scrolling doesn't show
 // undrawn pesuqim.
 const DIAGRAM_AHEAD = "800px 0px";
+
+// A label's box height for a label text size (13px at the usual 10.5px).
+function labelHeightFor(o) {
+    return Math.round(o.labelSize * 1.24);
+}
 
 function diagramEscape(s) {
     const div = document.createElement("div");
@@ -52,12 +63,31 @@ function measureUnit(inner) {
     return { groups, width: text.offsetWidth };
 }
 
-function paintUnit(inner, m) {
-    const boxes = JSON.parse(inner.dataset.boxes);
+// The boxes to draw, each with its row: without the grey ones, the rows
+// close up so no row is left empty (the order of the rows is kept).
+function shownBoxes(boxes, o) {
+    if (o.grey) return boxes;
+    const kept = boxes.filter((b) => !b.grey);
+    const rows = [...new Set(kept.map((b) => b.h))].sort((x, y) => x - y);
+    return kept.map((b) => ({ ...b, h: rows.indexOf(b.h) + 1 }));
+}
+
+function labelText(b, o) {
+    if (o.labels === "name") return b.name;
+    if (o.labels === "rank") return String(b.rank);
+    return `${b.rank} ${b.name}`;
+}
+
+function paintUnit(inner, m, o) {
+    const boxes = shownBoxes(JSON.parse(inner.dataset.boxes), o);
     const text = inner.querySelector(".dg-text");
     const svg = inner.querySelector("svg");
     svg.innerHTML = "";
-    const height = Math.max(...boxes.map((b) => b.h)) * DIAGRAM_ROW + DIAGRAM_PAD;
+    const withLabels = o.labels !== "none";
+    const labelHeight = labelHeightFor(o);
+    // A bracket's top sits mid-label, or just under the row's top without one.
+    const top = withLabels ? labelHeight / 2 + 0.5 : 2;
+    const height = boxes.length ? Math.max(...boxes.map((b) => b.h)) * o.row + DIAGRAM_PAD : 0;
     text.style.marginTop = height + "px";
     svg.setAttribute("width", m.width);
     svg.setAttribute("height", height);
@@ -66,27 +96,30 @@ function paintUnit(inner, m) {
     for (const b of [...boxes].sort((a, c) => c.h - a.h)) {
         const right = m.groups[b.from].r - 1;
         const left = m.groups[b.to].l + 1;
-        const y = height - b.h * DIAGRAM_ROW + 7;
+        const y = height - b.h * o.row + top;
         const g = document.createElementNS(SVG_NS, "g");
         g.setAttribute("class", `dg-r${b.rank}` + (b.grey ? " dg-grey" : ""));
         const path = document.createElementNS(SVG_NS, "path");
         path.setAttribute("class", "dg-line");
         path.setAttribute("d", `M${left},${height} V${y} H${right} V${height}`);
         g.appendChild(path);
-        const label = document.createElementNS(SVG_NS, "g");
-        label.setAttribute("class", "dg-label");
-        const rect = document.createElementNS(SVG_NS, "rect");
-        const t = document.createElementNS(SVG_NS, "text");
-        t.textContent = `${b.rank} ${b.name}`;
-        const cx = (left + right) / 2;
-        t.setAttribute("x", cx);
-        t.setAttribute("y", y + 3.8);
-        t.setAttribute("text-anchor", "middle");
-        label.appendChild(rect);
-        label.appendChild(t);
-        g.appendChild(label);
+        if (withLabels) {
+            const label = document.createElementNS(SVG_NS, "g");
+            label.setAttribute("class", "dg-label");
+            const rect = document.createElementNS(SVG_NS, "rect");
+            const t = document.createElementNS(SVG_NS, "text");
+            t.textContent = labelText(b, o);
+            const cx = (left + right) / 2;
+            t.setAttribute("x", cx);
+            t.setAttribute("y", y + o.labelSize * 0.362);
+            t.setAttribute("text-anchor", "middle");
+            if (o.labelSize !== DIAGRAM_DEFAULTS.labelSize) t.style.fontSize = o.labelSize + "px";
+            label.appendChild(rect);
+            label.appendChild(t);
+            g.appendChild(label);
+            labels.push({ rect, t, cx, y });
+        }
         svg.appendChild(g);
-        labels.push({ rect, t, cx, y });
     }
     return labels;
 }
@@ -98,28 +131,31 @@ function paintUnit(inner, m) {
 // Label widths come from a canvas in the labels' font: much cheaper than
 // asking each SVG text for its length, which in WebKit is slow.
 let labelCanvas = null;
-function labelWidth(text) {
+let labelFamily = null;
+function labelWidth(text, size) {
     if (!labelCanvas) {
         labelCanvas = document.createElement("canvas").getContext("2d");
         const sample = document.createElementNS(SVG_NS, "svg");
         sample.innerHTML = '<g class="dg-label"><text>א</text></g>';
         document.body.appendChild(sample);
-        const style = getComputedStyle(sample.querySelector("text"));
-        labelCanvas.font = `${style.fontSize} ${style.fontFamily}`;
+        labelFamily = getComputedStyle(sample.querySelector("text")).fontFamily;
         sample.remove();
     }
+    labelCanvas.font = `${size}px ${labelFamily}`;
     return labelCanvas.measureText(text).width;
 }
 
-function drawUnits(inners) {
+function drawUnits(inners, options) {
+    const o = { ...DIAGRAM_DEFAULTS, ...options };
+    const labelHeight = labelHeightFor(o);
     const measured = inners.map(measureUnit);
-    const labels = inners.flatMap((inner, i) => paintUnit(inner, measured[i]));
-    const widths = labels.map((l) => labelWidth(l.t.textContent) + 6);
+    const labels = inners.flatMap((inner, i) => paintUnit(inner, measured[i], o));
+    const widths = labels.map((l) => labelWidth(l.t.textContent, o.labelSize) + 6);
     labels.forEach((l, i) => {
         l.rect.setAttribute("x", l.cx - widths[i] / 2);
-        l.rect.setAttribute("y", l.y - LABEL_HEIGHT / 2);
+        l.rect.setAttribute("y", l.y - labelHeight / 2);
         l.rect.setAttribute("width", widths[i]);
-        l.rect.setAttribute("height", LABEL_HEIGHT);
+        l.rect.setAttribute("height", labelHeight);
         l.rect.setAttribute("rx", 2);
     });
     // Which units overflow, all read before any is marked: marking one and
@@ -231,13 +267,16 @@ function renderDiagrams(container, items, scrollRoot) {
 // The diagrams as a finished page, for saving (ankipasuk.diagram_pages):
 // every pasuq drawn at ``width`` (the page's), off screen, a batch at a
 // time; a unit too wide for the page gets smaller text, drawn again.
-// Returns the drawn HTML, which needs no script to show or print. Each
-// batch is drawn on its own and taken out again as text, so the page
-// never holds more than one batch: a whole book in one place would make
-// every measurement lay all of it out again.
-async function snapshotDiagrams(items, width, onProgress) {
+// ``options`` are drawUnits's (DIAGRAM_DEFAULTS), plus ``textSize`` (px)
+// and ``bw`` (black and white). Returns the drawn HTML, which needs no
+// script to show or print. Each batch is drawn on its own and taken out
+// again as text, so the page never holds more than one batch: a whole
+// book in one place would make every measurement lay all of it out again.
+async function snapshotDiagrams(items, width, onProgress, options) {
+    const o = { ...DIAGRAM_DEFAULTS, textSize: 22, bw: false, ...options };
     await diagramFontReady();
     const box = document.createElement("div");
+    box.className = o.bw ? "dg-bw" : "";
     box.style.cssText = `position: absolute; left: -30000px; top: 0; width: ${width}px; background: white;`;
     document.body.appendChild(box);
     const BATCH = 50;
@@ -246,14 +285,15 @@ async function snapshotDiagrams(items, width, onProgress) {
         for (let i = 0; i < items.length; i += BATCH) {
             box.innerHTML = items.slice(i, i + BATCH).map((it) => diagramHtml(it.diagram, it.ref)).join("");
             const inners = [...box.querySelectorAll(".dg-inner")];
-            drawUnits(inners);
+            for (const inner of inners) inner.querySelector(".dg-text").style.fontSize = o.textSize + "px";
+            drawUnits(inners, o);
             const wide = inners.filter((inner) => inner.offsetWidth > width);
             for (const inner of wide) {
-                const size = Math.max(11, Math.floor((22 * (width - 4)) / inner.offsetWidth));
+                const size = Math.max(9, Math.floor((o.textSize * (width - 4)) / inner.offsetWidth));
                 inner.querySelector(".dg-text").style.fontSize = size + "px";
             }
-            if (wide.length) drawUnits(wide);
-            bakeForPrint(box);
+            if (wide.length) drawUnits(wide, o);
+            bakeForPrint(box, o);
             parts.push(box.innerHTML);
             if (onProgress) onProgress(Math.min(i + BATCH, items.length), items.length);
             await new Promise((resolve) => setTimeout(resolve, 0));
@@ -270,7 +310,8 @@ async function snapshotDiagrams(items, width, onProgress) {
 // over its box (SVG text there is laid out left to right, Hebrew
 // included), and the drawing's working data dropped. Every read comes
 // before any change, as in drawUnits.
-function bakeForPrint(box) {
+function bakeForPrint(box, o) {
+    const labelHeight = labelHeightFor(o);
     const shapes = [...box.querySelectorAll("svg path, svg rect")];
     const shapeValues = shapes.map((el) => {
         const cs = getComputedStyle(el);
@@ -279,7 +320,7 @@ function bakeForPrint(box) {
     const texts = [...box.querySelectorAll("svg text")];
     const textColours = texts.map((t) => getComputedStyle(t).fill);
     const first = texts.length ? getComputedStyle(texts[0]) : null;
-    const labelFont = first ? `font-family: ${first.fontFamily}; font-size: ${first.fontSize};` : "";
+    const labelFont = first ? `font-family: ${first.fontFamily}; font-size: ${o.labelSize}px;` : "";
     shapes.forEach((el, i) => {
         const [fill, stroke, strokeWidth] = shapeValues[i];
         el.setAttribute("fill", fill);
@@ -292,7 +333,7 @@ function bakeForPrint(box) {
         label.textContent = t.textContent;
         label.dir = "rtl";
         label.style.cssText = `position: absolute; left: ${rect.getAttribute("x")}px; top: ${rect.getAttribute("y")}px;`
-            + ` width: ${rect.getAttribute("width")}px; height: ${LABEL_HEIGHT}px; line-height: ${LABEL_HEIGHT}px;`
+            + ` width: ${rect.getAttribute("width")}px; height: ${labelHeight}px; line-height: ${labelHeight}px;`
             + ` text-align: center; white-space: nowrap; ${labelFont} color: ${textColours[i]};`;
         t.closest(".dg-inner").appendChild(label);
         t.remove();
