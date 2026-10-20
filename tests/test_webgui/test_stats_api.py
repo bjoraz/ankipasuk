@@ -70,39 +70,6 @@ def test_get_structure_summary_ranked_by_frequency(genesis_1_1, genesis_1_2):
     assert summary[0]["example"]["diagram"]["units"]
 
 
-def test_get_chapter_data_shape(genesis_1_1):
-    sapi = StatsApi(_verse_data([(1, 1, genesis_1_1)]), max_leaf_disj=2)
-    data = sapi.get_chapter_data()
-    assert data["chapters"][0]["book"] == "Genesis"
-    assert data["chapters"][0]["chapter"] == 1
-    assert data["chapters"][0]["avg_words"] == 7.0
-    assert data["chapters"][0]["label"] == "Bereshit 1"
-
-
-def test_get_chapter_data_does_not_merge_same_chapter_number_across_books(genesis_1_1, genesis_1_2):
-    """The actual regression this whole book/chapter-key change exists to
-    fix: before, chapter_bins was keyed by bare chapter number, so
-    "chapter 1" from two different books would silently combine into one
-    bucket -- a verse from Isaiah 1 would show up (and get averaged in)
-    under what looked like Genesis's chapter-1 bar, and vice versa."""
-    verse_data = [
-        {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
-        {"book": "Isaiah", "ch": 1, "vs": 1, "pointed": genesis_1_2, "plain": ""},
-    ]
-    sapi = StatsApi(verse_data, max_leaf_disj=2)
-    data = sapi.get_chapter_data()
-
-    assert len(data["chapters"]) == 2  # NOT merged into a single "chapter 1"
-    by_book = {c["book"]: c for c in data["chapters"]}
-    assert by_book["Genesis"]["chapter"] == 1
-    assert by_book["Genesis"]["verses"] == ["Genesis 1:1"]
-    assert by_book["Isaiah"]["chapter"] == 1
-    assert by_book["Isaiah"]["verses"] == ["Isaiah 1:1"]
-    # And each book's own average reflects only its own verse, not a
-    # blend of both -- genesis_1_1 and genesis_1_2 are different lengths.
-    assert by_book["Genesis"]["avg_words"] != by_book["Isaiah"]["avg_words"]
-
-
 def test_export_csv_without_window_reports_error(genesis_1_1):
     sapi = StatsApi(_verse_data([(1, 1, genesis_1_1)]), max_leaf_disj=2)
     sapi._window = None

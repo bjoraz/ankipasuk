@@ -98,24 +98,6 @@ class StatsApi:
             "max_leaf_disj": self.max_leaf_disj,
         }
 
-    def get_chapter_data(self) -> dict:
-        if self.stats is None:
-            return {"chapters": []}
-        s = self.stats
-        return {
-            "chapters": [
-                {
-                    "book": book,
-                    "chapter": ch,
-                    "label": f"{BOOK_HEBREW_NAMES.get(book, book)} {ch}",
-                    "avg_words": s["chapter_avg_words"][(book, ch)],
-                    "avg_disj": s["chapter_avg_disj"][(book, ch)],
-                    "verses": s["chapter_bins"][(book, ch)],
-                }
-                for (book, ch) in s["chapters"]
-            ]
-        }
-
     def get_trope_frequency(self) -> list:
         if self.stats is None:
             return []

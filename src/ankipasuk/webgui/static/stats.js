@@ -114,31 +114,6 @@ async function loadDistributions() {
 }
 
 // =============================================================
-//  By chapter
-// =============================================================
-async function loadChapterData() {
-    const data = await api().get_chapter_data();
-    const container = document.getElementById("chapter-content");
-    const maxWords = Math.max(...data.chapters.map((c) => c.avg_words), 1);
-    let html = "";
-    for (const c of data.chapters) {
-        const pct = (c.avg_words / maxWords) * 100;
-        html += `<div class="bar-row" data-verses='${JSON.stringify(c.verses)}' data-key="${escapeHtml(c.label)}">
-            <div class="bar-label wide">${escapeHtml(c.label)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-            <div class="bar-count">${c.avg_words.toFixed(1)}w / ${c.avg_disj.toFixed(1)}dg</div>
-        </div>`;
-    }
-    container.innerHTML = html;
-    for (const row of container.querySelectorAll(".bar-row")) {
-        row.addEventListener("click", () => {
-            const verses = JSON.parse(row.dataset.verses);
-            showVersePopup(row.dataset.key, verses);
-        });
-    }
-}
-
-// =============================================================
 //  Mafsiqim (how often each ta'am occurs)
 // =============================================================
 async function loadTropeFrequency() {
@@ -171,13 +146,13 @@ async function loadTropeFrequency() {
 // =============================================================
 //  Structure
 // =============================================================
-// Each structure is drawn as the diagram of its first pasuq, with how many
-// share it; click for them all. Lazily, as the page scrolls: there can be
+// Each structure: its signature and how many pesuqim share it on the left,
+// the diagram of its first pasuq on the right; click for them all. Lazily, as the page scrolls: there can be
 // hundreds.
 function structureHtml(s) {
     if (s.header) return `<div class="axis-header">${escapeHtml(s.header)}</div>`;
-    return `<div class="struct-entry" title="${escapeHtml(s.label)}">`
-        + `<div class="struct-count">&times;${s.count}</div>${diagramHtml(s.example.diagram, s.example.ref)}</div>`;
+    return `<div class="struct-entry"><div class="struct-sig"><span class="struct-count">&times;${s.count}</span> `
+        + `${escapeHtml(s.label)}</div>${diagramHtml(s.example.diagram, s.example.ref)}</div>`;
 }
 
 function renderStructures(container, items) {
@@ -241,7 +216,6 @@ window.addEventListener("pywebviewready", async () => {
     switchTab("summary");
 
     await loadDistributions();
-    await loadChapterData();
     await loadTropeFrequency();
     await loadStructure();
 
