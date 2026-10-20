@@ -2,137 +2,167 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Nested Anki Cloze Generator</title>
+<title>AnkiPasuk</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="main-window">
 
-<div class="toolbar">
-  <button id="btn-stats" class="link-btn">Corpus statistics</button>
-  <button id="btn-anki-tools" class="link-btn">AnkiConnect Tools</button>
-</div>
+<header class="appbar">
+  <span class="brand">AnkiPasuk</span>
+  <nav class="tabs" id="main-tabs">
+    <button class="tab active" data-tab="cloze">Cloze cards</button>
+    <button class="tab" data-tab="tiqqun">Tiqqun cards</button>
+  </nav>
+  <span class="spacer"></span>
+  <button id="btn-stats" class="ghost" title="Statistics on the loaded pesuqim, in a window of its own">Statistics</button>
+  <button id="btn-anki-tools" class="ghost" title="Tools that work on your Anki collection, in a window of its own">Anki tools</button>
+  <span id="anki-status" class="status-pill" title="AnkiConnect, for sending cards straight to Anki">Anki not running</span>
+</header>
 
-<fieldset class="panel">
-  <legend>Source (Sefaria: Tora, Nevi'im, Megillot)</legend>
+<!-- ============ Cloze cards ============ -->
+<main class="workspace" data-panel="cloze">
+  <aside class="sidebar">
+    <section class="step">
+      <h3><span class="step-n">1</span> Pesuqim</h3>
+      <div id="ranges-container"></div>
+      <button id="btn-add-range" type="button" class="link">+ Add range</button>
+    </section>
 
-  <div id="ranges-container"></div>
-
-  <div class="row">
-    <button id="btn-add-range" type="button">+ Add another range</button>
-    <button id="btn-fetch">Fetch all ranges</button>
-    <button id="btn-clear-ranges" type="button">Clear ranges</button>
-  </div>
-
-  <div class="row">
-    <span id="cache-status" class="muted"></span>
-    <button id="btn-clear-cache">Clear cache</button>
-  </div>
-</fieldset>
-
-<div class="row">
-  <label title="Renders the current range(s) laid out exactly as a real Sefer Tora column would break -- unvoweled/pointed block letters, justified, petuḥot/setumot shown as real gaps. Tora only; other books fall back to the plain display below.">
-    <input type="checkbox" id="tikkun-view-toggle"> Tikkun.io scroll layout (Tora only)
-  </label>
-  <span class="inline-group" id="tikkun-display-controls" hidden>
-    Text size:
-    <button type="button" id="tikkun-font-minus">A-</button>
-    <button type="button" id="tikkun-font-plus">A+</button>
-    Line spacing:
-    <button type="button" id="tikkun-line-height-minus">≡-</button>
-    <button type="button" id="tikkun-line-height-plus">≡+</button>
-    Width:
-    <button type="button" id="tikkun-width-minus">↔-</button>
-    <button type="button" id="tikkun-width-plus">↔+</button>
-  </span>
-</div>
-
-<div class="two-col">
-  <div class="col">
-    <div class="row space-between">
-      <label>Pointed text (display only):</label>
-      <button id="btn-copy-pointed">Copy pointed text</button>
-    </div>
-    <div id="pointed-box" class="text-box" dir="rtl"></div>
-  </div>
-  <div class="col">
-    <div class="row space-between">
-      <label>Text only (display only):</label>
-      <button id="btn-copy-plain">Copy text-only</button>
-    </div>
-    <div id="plain-box" class="text-box" dir="rtl"></div>
-  </div>
-</div>
-<div class="row space-between">
-  <span></span>
-  <span id="line-count" class="muted"></span>
-</div>
-
-<div class="row space-between">
-  <span class="inline-group">
-    <label>Max disjunctive groups per leaf: <input type="number" id="max-leaf-disj" value="2" min="1" style="width:4em"></label>
-    <label><input type="checkbox" id="reset-per-line" checked> Reset cloze numbering for each line</label>
-  </span>
-  <span class="inline-group">
-    <button id="btn-generate">Generate cloze cards</button>
-    <button id="btn-copy-cloze">Copy cloze output</button>
-    <button id="btn-export-csv">Export to CSV</button>
-  </span>
-</div>
-<div class="row space-between">
-  <span class="muted">Or add them to Anki directly (needs Anki open with AnkiConnect). Pesuqim already in Anki are skipped, never changed.</span>
-  <span class="inline-group">
-    <label>Deck: <input type="text" id="cloze-deck" style="width:14em"></label>
-    <label>Note type: <select id="cloze-note-type"><option value="">(open Anki, then refresh)</option></select></label>
-    <button id="btn-refresh-note-types" type="button" title="Reload the note types from Anki">Refresh</button>
-    <button id="btn-export-cloze-anki">Send to Anki</button>
-  </span>
-</div>
-
-<label>Output:</label>
-<div id="output-box" class="text-box mono"></div>
-
-<label>Visualization:</label>
-<div id="viz-box" class="text-box viz"></div>
-
-<fieldset class="panel">
-  <legend>Tiqqun cards: export 'ammudim to Anki</legend>
-
-  <div id="ammud-ranges"></div>
-  <div class="row space-between">
-    <button id="btn-add-ammud-range" type="button">+ Add another 'ammud range</button>
-    <span class="muted">Deck: <span id="lpcg-deck"></span></span>
-  </div>
-
-  <div class="row">
-    <label title="Verse: one card per verse, with exactly the one row before it as context. Row: the classic AnkiLPCG sliding window over physical scroll rows, tuned by the settings below.">
-      Card division:
-      <select id="lpcg-card-division">
-        <option value="verse" selected>Verse (recommended)</option>
-        <option value="row">Row (sliding window)</option>
-      </select>
-    </label>
-  </div>
-  <div class="row" id="lpcg-row-mode-settings">
-    <label>Context lines: <input type="number" id="lpcg-context-lines" value="2" min="0" style="width:4em"></label>
-    <label>Recite lines: <input type="number" id="lpcg-recite-lines" value="1" min="1" style="width:4em"></label>
-    <label>Group size: <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>
-  </div>
-  <div class="row">
-    <span class="muted">Font size and line spacing are adjustable directly on each card (small controls in its corner). Cards already in Anki are skipped, never changed; a missing deck is created.</span>
-  </div>
-
-  <div class="row space-between">
-    <span id="lpcg-status" class="muted"></span>
-    <span class="inline-group">
-      <label title="Each 'ammud as its sefer column, one per page, to read from or print">Export as:
-        <select id="page-format"><option value="html">HTML</option><option value="pdf">PDF</option></select>
+    <section class="step">
+      <h3><span class="step-n">2</span> Splitting</h3>
+      <label class="field" title="How many disjunctive groups a clause may keep before it's split further along its ta'amim. Lower: more, smaller clauses.">
+        Groups per clause <input type="number" id="max-leaf-disj" value="2" min="1" style="width:4em">
       </label>
-      <button id="btn-export-pages">Save page</button>
-      <button id="btn-export-amud-csv" title="Importing the CSV needs the tiqqun note type in Anki: any export to Anki creates it">Save as CSV</button>
-      <button id="btn-export-amud">Export 'ammud to Anki</button>
-    </span>
-  </div>
-</fieldset>
+      <label class="field" title="Each pasuq's clozes numbered from c1 (each pasuq its own set of cards). Unticked, the numbering runs on across the pesuqim.">
+        <input type="checkbox" id="reset-per-line" checked> Number clozes per pasuq
+      </label>
+    </section>
+
+    <section class="step">
+      <h3><span class="step-n">3</span> Export</h3>
+      <label class="field stack">Deck <input type="text" id="cloze-deck"></label>
+      <label class="field stack">Note type
+        <select id="cloze-note-type"><option value="">(open Anki to choose)</option></select>
+      </label>
+      <button id="btn-export-cloze-anki" class="primary" disabled
+              title="Needs Anki open with AnkiConnect. Pesuqim already in Anki are skipped, never changed; a missing deck is created.">Send to Anki</button>
+      <div class="secondary-actions">
+        <button id="btn-export-csv" type="button" class="link">Save as CSV</button>
+        <button id="btn-copy-cloze" type="button" class="link">Copy cloze markup</button>
+      </div>
+    </section>
+  </aside>
+
+  <section class="preview">
+    <div class="preview-bar">
+      <nav class="subtabs" id="preview-tabs">
+        <button class="subtab active" data-view="diagram">Diagram</button>
+        <button class="subtab" data-view="text">Text</button>
+        <button class="subtab" data-view="tikkun">Tikkun</button>
+        <button class="subtab" data-view="markup">Cloze markup</button>
+      </nav>
+      <span id="preview-status" class="muted"></span>
+    </div>
+
+    <div class="preview-body">
+      <div class="view" data-view="diagram"><div id="viz-box" class="pane"></div></div>
+
+      <div class="view" data-view="text" hidden>
+        <div class="view-tools">
+          <span class="seg" id="text-kind">
+            <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain">Letters only</button>
+          </span>
+          <button id="btn-copy-text" type="button" class="link">Copy</button>
+        </div>
+        <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
+      </div>
+
+      <div class="view" data-view="tikkun" hidden>
+        <div class="view-tools">
+          <span class="seg" id="tikkun-kind">
+            <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain">Letters only</button>
+          </span>
+          <span class="inline-group">
+            Size <button type="button" id="tikkun-font-minus">A−</button><button type="button" id="tikkun-font-plus">A+</button>
+            Spacing <button type="button" id="tikkun-line-height-minus">≡−</button><button type="button" id="tikkun-line-height-plus">≡+</button>
+            Width <button type="button" id="tikkun-width-minus">↔−</button><button type="button" id="tikkun-width-plus">↔+</button>
+          </span>
+        </div>
+        <div id="tikkun-box" class="pane" dir="rtl"></div>
+      </div>
+
+      <div class="view" data-view="markup" hidden><div id="output-box" class="pane mono"></div></div>
+
+      <div id="preview-empty" class="empty">Choose pesuqim on the left to see their cards here.</div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ Tiqqun cards ============ -->
+<main class="workspace" data-panel="tiqqun" hidden>
+  <aside class="sidebar">
+    <section class="step">
+      <h3><span class="step-n">1</span> 'Ammudim</h3>
+      <div id="ammud-ranges"></div>
+      <button id="btn-add-ammud-range" type="button" class="link">+ Add 'ammud range</button>
+    </section>
+
+    <section class="step">
+      <h3><span class="step-n">2</span> Cards</h3>
+      <label class="field stack" title="Verse: one card per verse, with exactly the one row before it as context. Row: the classic AnkiLPCG sliding window over physical scroll rows, tuned by the settings below.">
+        Card division
+        <select id="lpcg-card-division">
+          <option value="verse" selected>Verse (recommended)</option>
+          <option value="row">Row (sliding window)</option>
+        </select>
+      </label>
+      <div id="lpcg-row-mode-settings" class="field-grid">
+        <label>Context lines <input type="number" id="lpcg-context-lines" value="2" min="0" style="width:4em"></label>
+        <label>Recite lines <input type="number" id="lpcg-recite-lines" value="1" min="1" style="width:4em"></label>
+        <label>Group size <input type="number" id="lpcg-group-size" value="1" min="1" style="width:4em"></label>
+      </div>
+      <p class="muted">Font size and line spacing can be changed on each card itself (small controls in its corner).</p>
+    </section>
+
+    <section class="step">
+      <h3><span class="step-n">3</span> Export</h3>
+      <div class="field stack">Deck <span id="lpcg-deck" class="deck-name"></span></div>
+      <button id="btn-export-amud" class="primary"
+              title="Needs Anki open with AnkiConnect. Cards already in Anki are skipped, never changed; a missing deck is created.">Send to Anki</button>
+      <div class="secondary-actions">
+        <button id="btn-export-amud-csv" type="button" class="link"
+                title="Importing the CSV needs the tiqqun note type in Anki: any export to Anki creates it">Save as CSV</button>
+        <span class="inline-group">
+          <button id="btn-export-pages" type="button" class="link"
+                  title="Each 'ammud as its sefer column, one per page, to read from or print">Save pages as</button>
+          <select id="page-format"><option value="html">HTML</option><option value="pdf">PDF</option></select>
+        </span>
+      </div>
+      <p id="lpcg-status" class="muted"></p>
+    </section>
+  </aside>
+
+  <section class="preview">
+    <div class="preview-bar">
+      <span class="inline-group">
+        <button id="ammud-prev" type="button" title="Previous 'ammud">◀</button>
+        <span id="ammud-preview-label"></span>
+        <button id="ammud-next" type="button" title="Next 'ammud">▶</button>
+      </span>
+      <span class="muted">The 'ammud as its sefer column</span>
+    </div>
+    <div class="preview-body">
+      <iframe id="ammud-frame" class="pane ammud-frame" title="'Ammud preview"></iframe>
+    </div>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="line-count"></span>
+  <span class="spacer"></span>
+  <span id="cache-status"></span>
+  <button id="btn-clear-cache" class="link">Clear cache</button>
+</footer>
 
 <div id="toast" class="toast" hidden></div>
 

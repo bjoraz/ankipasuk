@@ -232,7 +232,7 @@ notes, plus `ammud::NNN`. Each card has small controls in the corner for text
 size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you set there
 applies to every card.
 
-**Export as** HTML or PDF saves the chosen 'ammudim as pages instead: each
+**Save pages as** HTML or PDF saves the chosen 'ammudim as pages instead: each
 'ammud as its column of the sefer, one to a page, in the same font, blank
 lines between books included, to read from or print. The HTML carries the
 font inside it and prints a page per 'ammud from a browser. PDF needs
@@ -240,9 +240,9 @@ WeasyPrint: `pip install -e ".[pdf]"`, or with pipx
 `pipx inject ankipasuk weasyprint`. It draws text with Pango, which Linux
 desktops have; on Windows it needs a GTK runtime.
 
-The same layout is in the main window too: tick **Tikkun.io scroll layout**
-to see the range you fetched as it appears in the sefer, with or without
-niqqud.
+The same layout is in the main window too: the **Tikkun** view shows the
+pesuqim you chose as they appear in the sefer, with or without niqqud, and
+the **Tiqqun cards** tab previews each chosen 'ammud as its page.
 
 ## Haftarot
 
@@ -274,13 +274,13 @@ still too wide for the window scrolls sideways, with the mouse wheel too.
 Pesuqim are drawn as they scroll into view, so a whole book opens quickly.
 
 It always shows the complete division. Brackets in grey are divisions the
-cloze cards don't make at the current **Max disjunctive groups per leaf**,
+cloze cards don't make at the current **Groups per clause**,
 so you can see where a card's clauses stop. Pasuq text everywhere in the
 app is in the same STAM font as the tiqqun.
 
 ## Statistics
 
-**Corpus statistics** opens a window on whatever is loaded: words per
+**Statistics** opens a window on whatever is loaded: words per
 pasuq, groups per pasuq, how many clauses and how deep the split goes at
 your current *N*, words per group, how often each mafsiq occurs, and the
 structure groupings described above, each shape written out with the
@@ -292,7 +292,7 @@ export.
 
 These need Anki open with the
 [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on. Open them
-from **AnkiConnect Tools** in the app, run them as commands
+from **Anki tools** in the app, run them as commands
 (`ankipasuk-check-connection`, `ankipasuk-init-stems`,
 `ankipasuk-sync-scheduling`, `ankipasuk-tag-deck`,
 `ankipasuk-migrate-tags`), or double-click the
@@ -373,37 +373,49 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
 
 ## Using the app
 
-1. Add one or more ranges, by chapter and verse, by parasha and 'aliyya,
-   or by haftara, from the Tora, Nevi'im or the five Megillot, then click
-   **Fetch all ranges**. A range's end can't come before its start: the end
-   pickers start where the start is. Ranges are joined in the order you
-   add them, so you can run the end of one book into the start of the next.
-2. Set **Max disjunctive groups per leaf** and click **Generate cloze
-   cards**. You'll see the cloze markup and each pasuq's diagram (see
-   below).
-3. Export the notes, one per pasuq, in either of two ways:
-   - **Export to CSV**, then import the file into Anki. It's tab-separated:
-     the pasuq's number (its place in the book, or in the haftara), the
-     reference (e.g. `Bereshit 1:1`), the cloze text, the unpointed pasuq,
-     the unpointed pesuqim before and after it, an empty column, a fixed
-     settings string, and the tags. A header line tells Anki which column
-     holds the tags.
+The window has a tab for each kind of card: **Cloze cards** and **Tiqqun
+cards**. Each has its settings on the left, in three steps, and a preview
+on the right that follows them as you go; there's nothing to fetch or
+generate by hand. The bar at the top also opens **Statistics** and **Anki
+tools**, and shows whether Anki is open (with AnkiConnect), which sending
+cards needs.
+
+1. **Pesuqim.** Add one or more ranges, by chapter and verse, by parasha
+   and 'aliyya, or by haftara, from the Tora, Nevi'im or the five
+   Megillot. Each range is one line (e.g. `Bereshit 1:1–2:3`); click it to
+   change it. A range's end can't come before its start: the end pickers
+   start where the start is. Ranges are joined in the order you add them,
+   so you can run the end of one book into the start of the next.
+2. **Splitting.** **Groups per clause** is how many disjunctive groups a
+   clause may keep before it's split again along its ta'amim. **Number
+   clozes per pasuq** is on by default, so each pasuq starts again at c1
+   and becomes its own note; turn it off to keep counting across the
+   whole range.
+3. **Export** the notes, one per pasuq:
    - **Send to Anki**, with Anki open and AnkiConnect installed. Pick a deck
      and a note type whose fields start with Number, Source, Text, Verse,
      Previous, Next, Back Extra and a settings field (the CSV's layout).
      The deck is created if it's missing. Only pesuqim that don't have a
      note yet are added. Existing notes, with their scheduling and anything
      you added to them (a recording, say), are never changed.
+   - **Save as CSV**, then import the file into Anki. It's tab-separated:
+     the pasuq's number (its place in the book, or in the haftara), the
+     reference (e.g. `Bereshit 1:1`), the cloze text, the unpointed pasuq,
+     the unpointed pesuqim before and after it, an empty column, a fixed
+     settings string, and the tags. A header line tells Anki which column
+     holds the tags.
 
    Either way each note gets its tags: the parasha, 'aliyya and holiday
    tags for the Tora, and `haftara::<parasha>` for a haftara. The tagging
    tool looks for the reference in a field called `Source`.
-4. For tiqqun cards, use the panel at the bottom: one or more ranges of
-   'ammudim, and how to divide their cards.
 
-**Reset cloze numbering for each line** is on by default, so each pasuq
-starts again at c1 and becomes its own note. Turn it off if you'd rather
-keep counting across the whole range.
+The preview shows each pasuq's **Diagram** (see below), its **Text**
+(pointed or letters only), the **Tikkun** scroll layout, and the **Cloze
+markup**, each with its own copy button where it makes sense.
+
+The **Tiqqun cards** tab works the same way: one or more ranges of
+'ammudim, how to divide their cards, and the export, with the chosen
+'ammudim previewed one at a time as their sefer column.
 
 ### Cache
 
@@ -414,7 +426,7 @@ tikkun.io's pages and font are all kept on disk:
 - Windows: `%APPDATA%\AnkiPasuk\`
 - Anywhere else, if you set `ANKIPASUK_CACHE_DIR`
 
-**Clear cache** in the main window empties it. Your own settings (the last
+**Clear cache**, at the bottom of the main window, empties it. Your own settings (the last
 deck and note type you sent cloze notes to, in `settings.json`, and the
 layout controls, in `webview_storage/`) live in the same folder and aren't touched by it.
 

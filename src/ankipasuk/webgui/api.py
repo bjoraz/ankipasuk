@@ -488,6 +488,15 @@ class Api:
             return QERIYA_DECK_NAMES[first["book"]]
         return self._settings.get("cloze_deck_name", "Qeriya")
 
+    def anki_status(self) -> dict:
+        """Whether Anki is open with AnkiConnect -- a cheap check the main
+        window repeats, to show it and to know when to load note types."""
+        try:
+            anki_client.invoke("version", url=DEFAULT_URL, timeout=3)
+        except AnkiConnectError as e:
+            return {"ok": False, "error": str(e)}
+        return {"ok": True}
+
     def get_cloze_note_types(self) -> dict:
         """Note types in Anki that can take cloze notes (see
         cloze_export.check_note_type_fields), and the one to preselect:
@@ -746,6 +755,15 @@ class Api:
         name = f"tiqqun_ammud_{unique[0]:03d}.csv" if len(unique) == 1 else (
             f"tiqqun_ammudim_{unique[0]:03d}-{unique[-1]:03d}.csv")
         return self._write_tiqqun_csv(notes, name)
+
+    def preview_ammud(self, ammud: int) -> dict:
+        """One 'ammud as the page export would save it (see
+        ankipasuk.ammud_pages), as HTML for the Tiqqun tab's preview."""
+        try:
+            return {"ok": True, "html": ammud_pages_html([int(ammud)], self._cache)}
+        except Exception as e:  # noqa: BLE001 -- a network failure is shown, not raised
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
 
     def export_ammud_pages(self, ammudim: list[int], fmt: str) -> dict:
         """Save the 'ammudim as pages -- each its sefer column, one per page

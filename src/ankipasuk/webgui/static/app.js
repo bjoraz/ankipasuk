@@ -61,37 +61,55 @@ function setBookOptions(select, booksByCategory, keepSelection, labels) {
 //  they're listed (see doFetchAll).
 // =============================================================
 const RANGE_ROW_TEMPLATE = `
-  <div class="row">
-    <label>Mode:
+  <div class="range-head">
+    <button class="range-summary" type="button" title="Change this range">…</button>
+    <button class="range-remove" type="button" title="Remove this range">✕</button>
+  </div>
+  <div class="range-editor">
+    <div class="field-row">
       <select class="range-mode">
-        <option value="cv">Chapter / Verse</option>
-        <option value="pa">Parasha / 'Aliyya</option>
+        <option value="cv">Chapter / verse</option>
+        <option value="pa">Parasha / 'aliyya</option>
         <option value="hf">Haftara</option>
       </select>
-    </label>
-    <label class="range-book-label">Book:
-      <select class="range-book"></select>
-    </label>
-
-    <span class="range-hf-controls inline-group" hidden>
-      <label>Haftara: <select class="range-haftara"></select></label>
-    </span>
-
-    <span class="range-cv-controls inline-group">
-      <label>Start chapter: <select class="range-start-ch"></select></label>
-      <label>Start verse: <select class="range-start-vs"></select></label>
-      <label>End chapter: <select class="range-end-ch"></select></label>
-      <label>End verse: <select class="range-end-vs"></select></label>
-    </span>
-
-    <span class="range-pa-controls inline-group" hidden>
-      <label>Parasha: <select class="range-parasha"></select></label>
-      <label>'Aliyya: <select class="range-aliyah"></select></label>
-    </span>
-
-    <button class="btn-remove-range" type="button" title="Remove this range">Remove</button>
+      <select class="range-book grow"></select>
+    </div>
+    <div class="field-row range-hf-controls" hidden><select class="range-haftara grow"></select></div>
+    <div class="field-row range-cv-controls">
+      From <select class="range-start-ch"></select>:<select class="range-start-vs"></select>
+      to <select class="range-end-ch"></select>:<select class="range-end-vs"></select>
+    </div>
+    <div class="field-row range-pa-controls" hidden>
+      <select class="range-parasha grow"></select>
+      'Aliyya <select class="range-aliyah"></select>
+    </div>
   </div>
 `;
+
+// The range in one line: "Bereshit 1:1–2:3", "Bereshit · Noaḥ · 'aliyya 2",
+// or the haftara's own label.
+function rangeSummary(row) {
+    const q = (cls) => row.querySelector("." + cls);
+    const mode = q("range-mode").value;
+    const optionText = (sel) => (sel.selectedOptions[0] || {}).textContent || "";
+    if (mode === "hf") return optionText(q("range-haftara")) || "Haftara";
+    const book = optionText(q("range-book")).split(" · ")[0];
+    if (mode === "pa") return `${book} · ${optionText(q("range-parasha"))} · 'aliyya ${q("range-aliyah").value}`;
+    const [sc, sv, ec, ev] = ["range-start-ch", "range-start-vs", "range-end-ch", "range-end-vs"].map((c) => q(c).value);
+    if (sc === ec) return sv === ev ? `${book} ${sc}:${sv}` : `${book} ${sc}:${sv}–${ev}`;
+    return `${book} ${sc}:${sv}–${ec}:${ev}`;
+}
+
+function setRangeOpen(row, open) {
+    row.classList.toggle("open", open);
+    row.querySelector(".range-editor").hidden = !open;
+}
+
+// After any change to a range: its summary, then the preview (debounced).
+function rangeChanged(row) {
+    row.querySelector(".range-summary").textContent = rangeSummary(row);
+    scheduleRefresh(true);
+}
 
 async function onRangeModeChange(row) {
     const mode = row.querySelector(".range-mode").value;
@@ -100,9 +118,9 @@ async function onRangeModeChange(row) {
     row.querySelector(".range-pa-controls").hidden = mode !== "pa";
     row.querySelector(".range-hf-controls").hidden = mode !== "hf";
     // A haftara names its own books, so the book picker has nothing to do.
-    row.querySelector(".range-book-label").hidden = mode === "hf";
+    row.querySelector(".range-book").hidden = mode === "hf";
     if (mode === "hf") {
-        fillHaftaraOptions(row.querySelector(".range-haftara"));
+        await fillHaftaraOptions(row.querySelector(".range-haftara"));
         return;
     }
 
@@ -213,137 +231,167 @@ async function refreshRangeAliyahDropdown(row) {
     setOptions(row.querySelector(".range-aliyah"), aliyot, true);
 }
 
-function addRangeRow() {
+async function addRangeRow() {
     const container = document.getElementById("ranges-container");
+    for (const other of container.querySelectorAll(".range-row")) setRangeOpen(other, false);
     const row = document.createElement("div");
-    row.className = "range-row";
+    row.className = "range-row range-card";
     row.innerHTML = RANGE_ROW_TEMPLATE;
     container.appendChild(row);
+    setRangeOpen(row, true);
 
-    row.querySelector(".range-mode").addEventListener("change", () => onRangeModeChange(row));
-    row.querySelector(".range-book").addEventListener("change", () => onRangeBookChange(row));
-    row.querySelector(".range-start-ch").addEventListener("change", async () => {
+    // Each handler updates the dropdowns it affects, then the summary
+    // and the preview.
+    const on = (cls, handler) => row.querySelector("." + cls).addEventListener("change", async () => {
+        await handler();
+        rangeChanged(row);
+    });
+    on("range-mode", () => onRangeModeChange(row));
+    on("range-book", () => onRangeBookChange(row));
+    on("range-start-ch", async () => {
         await refreshRangeVerseDropdown(row, "range-start-ch", "range-start-vs", 1);
         await constrainRangeEnd(row);
     });
-    row.querySelector(".range-start-vs").addEventListener("change", () => constrainRangeEnd(row));
-    row.querySelector(".range-end-ch").addEventListener("change", () => constrainRangeEnd(row));
-    row.querySelector(".range-parasha").addEventListener("change", () => refreshRangeAliyahDropdown(row));
-    row.querySelector(".btn-remove-range").addEventListener("click", () => {
+    on("range-start-vs", () => constrainRangeEnd(row));
+    on("range-end-ch", () => constrainRangeEnd(row));
+    on("range-end-vs", async () => {});
+    on("range-parasha", () => refreshRangeAliyahDropdown(row));
+    on("range-aliyah", async () => {});
+    on("range-haftara", async () => {});
+    row.querySelector(".range-summary").addEventListener("click", () => {
+        setRangeOpen(row, !row.classList.contains("open"));
+    });
+    row.querySelector(".range-remove").addEventListener("click", () => {
         if (document.querySelectorAll(".range-row").length <= 1) {
             showToast("At least one range is required.", true);
             return;
         }
         row.remove();
+        scheduleRefresh(true);
     });
 
-    onRangeModeChange(row);
+    await onRangeModeChange(row);
+    rangeChanged(row);
     return row;
 }
 
 // =============================================================
 //  Fetching verses (every range row, concatenated in order)
 // =============================================================
+// The Text and Tikkun views, pointed or letters only as chosen.
 function renderVerseBoxes() {
-    const pointedBox = document.getElementById("pointed-box");
-    const plainBox = document.getElementById("plain-box");
-    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
-
-    if (useTikkun) {
-        const placeholder = "<em>No Tora content in the current range(s).</em>";
-        pointedBox.innerHTML = currentTikkunHtml.pointed || placeholder;
-        plainBox.innerHTML = currentTikkunHtml.plain || placeholder;
-    } else {
-        pointedBox.innerHTML = "";
-        plainBox.innerHTML = "";
-        for (const item of currentVerseData) {
-            const p = document.createElement("div");
-            p.textContent = item.pointed;
-            pointedBox.appendChild(p);
-
-            const t = document.createElement("div");
-            t.textContent = item.plain;
-            plainBox.appendChild(t);
-        }
+    const pointed = document.querySelector("#text-kind .active").dataset.kind === "pointed";
+    const textBox = document.getElementById("text-box");
+    textBox.innerHTML = "";
+    for (const item of currentVerseData) {
+        const line = document.createElement("div");
+        line.textContent = pointed ? item.pointed : item.plain;
+        textBox.appendChild(line);
     }
-    document.getElementById("line-count").textContent = "Lines: " + currentVerseData.length;
+    const tikkunPointed = document.querySelector("#tikkun-kind .active").dataset.kind === "pointed";
+    document.getElementById("tikkun-box").innerHTML = (tikkunPointed ? currentTikkunHtml.pointed : currentTikkunHtml.plain)
+        || '<p class="muted" dir="ltr">The scroll layout is for the Tora only.</p>';
+    const n = currentVerseData.length;
+    document.getElementById("line-count").textContent = n ? `${n} ${n === 1 ? "pasuq" : "pesuqim"} loaded` : "";
+    const send = document.getElementById("btn-export-cloze-anki");
+    send.textContent = n ? `Send ${n} ${n === 1 ? "pasuq" : "pesuqim"} to Anki` : "Send to Anki";
+    send.disabled = !n;
+    document.getElementById("preview-empty").hidden = n > 0;
 }
 
+// Every range, fetched afresh and concatenated in order. Returns false
+// if one failed (whatever came before it stays shown).
 async function doFetchAll() {
-    const btn = document.getElementById("btn-fetch");
-    btn.disabled = true;
-    btn.textContent = "Fetching...";
+    // The backend appends, so start from nothing each time.
+    await api().clear_ranges();
+    currentVerseData = [];
+    currentTikkunHtml = { plain: "", pointed: "" };
+    for (const row of document.querySelectorAll(".range-row")) {
+        const book = row.querySelector(".range-book").value;
+        const mode = row.querySelector(".range-mode").value;
+        let result;
+        let tikkunResult;
+        if (mode === "cv") {
+            const [startCh, startVs, endCh, endVs] = ["range-start-ch", "range-start-vs", "range-end-ch", "range-end-vs"]
+                .map((c) => parseInt(row.querySelector("." + c).value, 10));
+            result = await api().fetch_chapter_verse(book, startCh, startVs, endCh, endVs);
+            if (result.ok) tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
+        } else if (mode === "hf") {
+            result = await api().fetch_haftara(row.querySelector(".range-haftara").value);
+        } else {
+            const parasha = row.querySelector(".range-parasha").value;
+            const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
+            result = await api().fetch_parashah_aliyah(book, parasha, aliyah);
+            if (result.ok) tikkunResult = await api().fetch_tikkun_parashah_aliyah(book, parasha, aliyah);
+        }
+        if (!result.ok) {
+            showToast("Could not load " + rangeSummary(row) + ": " + result.error, true);
+            return false;
+        }
+        currentVerseData = result.verses;
+        // Outside the Tora there's no scroll layout; a failure there only
+        // loses that view, not the range.
+        if (tikkunResult && tikkunResult.ok) {
+            currentTikkunHtml = { plain: tikkunResult.plain_html, pointed: tikkunResult.pointed_html };
+        }
+        document.getElementById("cache-status").textContent = result.cache_status;
+    }
+    const deck = document.getElementById("cloze-deck");
+    if (!deck.dataset.typed) deck.value = await api().suggest_cloze_deck();
+    return true;
+}
+
+// The preview follows the settings on its own: a change waits a moment
+// for the next (so stepping through verses doesn't fetch each), then
+// loads and regenerates. One update at a time -- the backend's verse list
+// is shared -- with any change made meanwhile done straight after.
+let refreshTimer = null;
+let refreshing = false;
+let pendingFetch = false;
+let pendingRun = false;
+
+function scheduleRefresh(fetch) {
+    pendingFetch = pendingFetch || fetch;
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(runRefresh, 350);
+}
+
+async function runRefresh() {
+    if (refreshing) {
+        pendingRun = true;
+        return;
+    }
+    refreshing = true;
+    const status = document.getElementById("preview-status");
     try {
-        // Always start from a clean accumulated state -- otherwise
-        // clicking "Fetch all ranges" a second time (e.g. after editing
-        // one row) would double up everything fetched the first time,
-        // since the backend appends rather than replaces.
-        await api().clear_ranges();
-        currentVerseData = [];
-        currentTikkunHtml = { plain: "", pointed: "" };
-        renderVerseBoxes();
-
-        const rows = document.querySelectorAll(".range-row");
-        for (const row of rows) {
-            const book = row.querySelector(".range-book").value;
-            const mode = row.querySelector(".range-mode").value;
-            let result;
-            let tikkunResult;
-            if (mode === "cv") {
-                const startCh = parseInt(row.querySelector(".range-start-ch").value, 10);
-                const startVs = parseInt(row.querySelector(".range-start-vs").value, 10);
-                const endCh = parseInt(row.querySelector(".range-end-ch").value, 10);
-                const endVs = parseInt(row.querySelector(".range-end-vs").value, 10);
-                result = await api().fetch_chapter_verse(book, startCh, startVs, endCh, endVs);
-                if (result.ok) {
-                    tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
-                }
-            } else if (mode === "hf") {
-                result = await api().fetch_haftara(row.querySelector(".range-haftara").value);
-            } else {
-                const parasha = row.querySelector(".range-parasha").value;
-                const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
-                result = await api().fetch_parashah_aliyah(book, parasha, aliyah);
-                if (result.ok) {
-                    tikkunResult = await api().fetch_tikkun_parashah_aliyah(book, parasha, aliyah);
-                }
-            }
-
-            if (!result.ok) {
-                showToast("Fetch failed: " + result.error, true);
-                return; // whatever ranges succeeded before this one stay visible
-            }
-            currentVerseData = result.verses;
-            // A range outside the Tora leaves tikkunResult.ok true with nothing
-            // new added -- only a genuine failure here is worth losing
-            // the tikkun display over, and even then the flat text above
-            // already fetched fine, so just drop the tikkun HTML rather
-            // than failing the whole range.
-            if (tikkunResult && tikkunResult.ok) {
-                currentTikkunHtml = { plain: tikkunResult.plain_html, pointed: tikkunResult.pointed_html };
+        do {
+            pendingRun = false;
+            const fetch = pendingFetch;
+            pendingFetch = false;
+            status.textContent = fetch ? "Loading…" : "Updating…";
+            if (fetch && !(await doFetchAll())) {
+                renderVerseBoxes();
+                continue;
             }
             renderVerseBoxes();
-            document.getElementById("cache-status").textContent = result.cache_status;
-        }
-        document.getElementById("cloze-deck").value = await api().suggest_cloze_deck();
+            await doGenerate();
+        } while (pendingRun || pendingFetch);
     } finally {
-        btn.disabled = false;
-        btn.textContent = "Fetch all ranges";
+        refreshing = false;
+        status.textContent = "";
     }
-}
-
-async function doClearRanges() {
-    const result = await api().clear_ranges();
-    currentVerseData = result.verses;
-    currentTikkunHtml = { plain: "", pointed: "" };
-    renderVerseBoxes();
-    showToast("Ranges cleared", false);
 }
 
 // =============================================================
 //  Cloze generation
 // =============================================================
 async function doGenerate() {
+    if (!currentVerseData.length) {
+        currentClozeOutput = "";
+        document.getElementById("output-box").innerHTML = "";
+        document.getElementById("viz-box").innerHTML = "";
+        return;
+    }
     const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
     const resetPerLine = document.getElementById("reset-per-line").checked;
     const result = await api().generate_cloze(maxLeafDisj, resetPerLine);
@@ -378,6 +426,24 @@ async function refreshNoteTypes(quiet) {
     return true;
 }
 
+// Whether Anki is open, checked now and then: shown in the bar, and the
+// note types are loaded each time it comes up.
+let ankiUp = null;
+async function checkAnki() {
+    const up = (await api().anki_status()).ok;
+    if (up !== ankiUp) {
+        ankiUp = up;
+        const pill = document.getElementById("anki-status");
+        pill.classList.toggle("on", up);
+        pill.textContent = up ? "Anki connected" : "Anki not running";
+        if (up) {
+            await refreshNoteTypes(true);
+        } else {
+            document.getElementById("cloze-note-type").innerHTML = '<option value="">(open Anki to choose)</option>';
+        }
+    }
+}
+
 async function doExportClozeToAnki() {
     const btn = document.getElementById("btn-export-cloze-anki");
     if (!document.getElementById("cloze-note-type").value && !(await refreshNoteTypes(false))) return;
@@ -399,8 +465,7 @@ async function doExportClozeToAnki() {
         if (result.failed) msg += `; ${result.failed} rejected by Anki`;
         showToast(msg, result.failed > 0);
     } finally {
-        btn.disabled = false;
-        btn.textContent = "Send to Anki";
+        renderVerseBoxes();  // the button's label and state
     }
 }
 
@@ -415,9 +480,6 @@ async function doExportCsv() {
     showToast(`Exported ${result.count} card(s) to ${result.path}`, false);
 }
 
-// =============================================================
-//  'Aliyya range export to Anki (tiqqun cards)
-// =============================================================
 // =============================================================
 //  'Ammud ranges -- rows of "from 'ammud X to Y", like the source ranges
 //  above; every 'ammud in every row is exported, once, to its own deck.
@@ -447,6 +509,33 @@ function updateAmmudDeck() {
         text = `${ammudim.length} 'ammudim, each to its own deck (${ammudDeck(ammudim[0])} … ${ammudDeck(ammudim.at(-1))})`;
     }
     document.getElementById("lpcg-deck").textContent = text;
+    showAmmudPreview(ammudim.includes(previewAmmud) ? previewAmmud : ammudim[0]);
+}
+
+// The Tiqqun tab shows one of the chosen 'ammudim at a time, as its page.
+let previewAmmud = null;
+let previewToken = 0;
+async function showAmmudPreview(n) {
+    const ammudim = selectedAmmudim();
+    const i = ammudim.indexOf(n);
+    document.getElementById("ammud-prev").disabled = i <= 0;
+    document.getElementById("ammud-next").disabled = i >= ammudim.length - 1;
+    document.getElementById("ammud-preview-label").textContent =
+        ammudim.length > 1 ? `'Ammud ${n} (${i + 1} of ${ammudim.length})` : `'Ammud ${n}`;
+    if (n === previewAmmud || document.querySelector('[data-panel="tiqqun"]').hidden) return;
+    previewAmmud = n;
+    const token = ++previewToken;
+    const result = await api().preview_ammud(n);
+    if (token !== previewToken) return;  // another 'ammud was chosen meanwhile
+    const frame = document.getElementById("ammud-frame");
+    frame.srcdoc = result.ok ? result.html
+        : `<p style="font-family:sans-serif;color:#b71c1c">Could not load 'ammud ${n}: ${diagramEscape(result.error)}</p>`;
+}
+
+function stepAmmudPreview(step) {
+    const ammudim = selectedAmmudim();
+    const next = ammudim[ammudim.indexOf(previewAmmud) + step];
+    if (next !== undefined) showAmmudPreview(next);
 }
 
 // The end can't come before the start, as with the source ranges.
@@ -458,11 +547,11 @@ function constrainAmmudEnd(row) {
 
 function addAmmudRow() {
     const row = document.createElement("div");
-    row.className = "row ammud-row";
+    row.className = "ammud-row";
     row.innerHTML = `
-      <label>From 'ammud: <select class="ammud-start"></select></label>
-      <label>to: <select class="ammud-end"></select></label>
-      <button class="btn-remove-ammud-range" type="button" title="Remove this range">Remove</button>`;
+      'Ammud <select class="ammud-start"></select>
+      to <select class="ammud-end"></select>
+      <button class="btn-remove-ammud-range range-remove" type="button" title="Remove this range">✕</button>`;
     document.getElementById("ammud-ranges").appendChild(row);
     // A new row starts just after the last row's end, or at 1.
     const rows = document.querySelectorAll(".ammud-row");
@@ -500,7 +589,7 @@ async function doExportPages() {
         showToast("Saved.", false);
     } finally {
         btn.disabled = false;
-        btn.textContent = "Save page";
+        btn.textContent = "Save pages as";
     }
 }
 
@@ -583,7 +672,7 @@ function makeSizeControl(cssVar, storageKey, unit, { step, min, max, defaultValu
 
 const tikkunFontSizeControl = makeSizeControl(
     "--ankipasuk-font-size", "ankipasuk_webgui_font_size_px", "px",
-    { step: 2, min: 8, max: 60, defaultValue: 16 }, // 16 matches .text-box's own default font-size
+    { step: 2, min: 8, max: 60, defaultValue: 16 }, // 16 matches #tikkun-box's own default font-size
 );
 const tikkunLineHeightControl = makeSizeControl(
     "--ankipasuk-line-height-scale", "ankipasuk_webgui_line_height_scale", "",
@@ -600,9 +689,15 @@ function applyStoredTikkunControls() {
     tikkunWidthControl.apply(tikkunWidthControl.read());
 }
 
-function updateTikkunViewVisibility() {
-    const useTikkun = document.getElementById("tikkun-view-toggle").checked;
-    document.getElementById("tikkun-display-controls").hidden = !useTikkun;
+// A row of buttons of which one is active (the preview's tabs, the
+// pointed / letters-only switches); ``onPick`` gets the picked button.
+function segmented(container, onPick) {
+    for (const btn of container.querySelectorAll("button")) {
+        btn.addEventListener("click", () => {
+            for (const b of container.querySelectorAll("button")) b.classList.toggle("active", b === btn);
+            onPick(btn);
+        });
+    }
 }
 
 // =============================================================
@@ -623,19 +718,28 @@ async function copyText(text) {
 window.addEventListener("pywebviewready", async () => {
     cachedBooks = await api().get_books();
     cachedBookLabels = await api().get_book_labels();
-    addRangeRow(); // start with exactly one range row
     document.getElementById("cache-status").textContent = await api().get_cache_status();
     injectTikkunCss();
     applyStoredTikkunControls();
+    renderVerseBoxes();
+    await addRangeRow(); // start with one range, loaded straight away
+
+    segmented(document.getElementById("main-tabs"), (btn) => {
+        for (const panel of document.querySelectorAll(".workspace")) panel.hidden = panel.dataset.panel !== btn.dataset.tab;
+        document.getElementById("line-count").hidden = btn.dataset.tab !== "cloze";
+        if (btn.dataset.tab === "tiqqun") updateAmmudDeck();  // loads the preview the first time
+    });
+    segmented(document.getElementById("preview-tabs"), (btn) => {
+        for (const view of document.querySelectorAll(".preview-body .view")) view.hidden = view.dataset.view !== btn.dataset.view;
+    });
+    segmented(document.getElementById("text-kind"), renderVerseBoxes);
+    segmented(document.getElementById("tikkun-kind"), renderVerseBoxes);
 
     document.getElementById("btn-add-range").addEventListener("click", addRangeRow);
-    document.getElementById("btn-fetch").addEventListener("click", doFetchAll);
-    document.getElementById("btn-clear-ranges").addEventListener("click", doClearRanges);
-    document.getElementById("tikkun-view-toggle").addEventListener("change", () => {
-        updateTikkunViewVisibility();
-        renderVerseBoxes();
-    });
-    updateTikkunViewVisibility();
+    document.getElementById("max-leaf-disj").addEventListener("input", () => scheduleRefresh(false));
+    document.getElementById("reset-per-line").addEventListener("change", () => scheduleRefresh(false));
+    document.getElementById("cloze-deck").addEventListener("input", (e) => { e.target.dataset.typed = "1"; });
+
     document.getElementById("tikkun-font-minus").addEventListener("click", () => tikkunFontSizeControl.adjust(-1));
     document.getElementById("tikkun-font-plus").addEventListener("click", () => tikkunFontSizeControl.adjust(1));
     document.getElementById("tikkun-line-height-minus").addEventListener(
@@ -645,12 +749,10 @@ window.addEventListener("pywebviewready", async () => {
     document.getElementById("tikkun-width-minus").addEventListener("click", () => tikkunWidthControl.adjust(-1));
     document.getElementById("tikkun-width-plus").addEventListener("click", () => tikkunWidthControl.adjust(1));
 
-    document.getElementById("btn-generate").addEventListener("click", doGenerate);
     document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
     document.getElementById("btn-export-cloze-anki").addEventListener("click", doExportClozeToAnki);
-    document.getElementById("btn-refresh-note-types").addEventListener("click", () => refreshNoteTypes(false));
-    document.getElementById("cloze-deck").value = await api().suggest_cloze_deck();
-    refreshNoteTypes(true); // Anki may not be open yet: stay quiet, retried on send
+    checkAnki();
+    setInterval(checkAnki, 8000);
 
     document.getElementById("btn-clear-cache").addEventListener("click", async () => {
         if (!confirm("Clear the local Sefaria cache? Future fetches will re-download from the network.")) return;
@@ -659,19 +761,19 @@ window.addEventListener("pywebviewready", async () => {
         showToast("Cache cleared", false);
     });
 
-    document.getElementById("btn-copy-pointed").addEventListener("click", () => {
-        copyText(currentVerseData.map((v) => v.pointed).join("\n"));
-    });
-    document.getElementById("btn-copy-plain").addEventListener("click", () => {
-        copyText(currentVerseData.map((v) => v.plain).join("\n"));
+    document.getElementById("btn-copy-text").addEventListener("click", () => {
+        const pointed = document.querySelector("#text-kind .active").dataset.kind === "pointed";
+        copyText(currentVerseData.map((v) => (pointed ? v.pointed : v.plain)).join("\n"));
     });
     document.getElementById("btn-copy-cloze").addEventListener("click", () => {
+        if (!currentClozeOutput) return showToast("Nothing loaded yet.", true);
         copyText(currentClozeOutput);
     });
 
     document.getElementById("btn-stats").addEventListener("click", async () => {
         const maxLeafDisj = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
-        await api().open_stats_window(maxLeafDisj);
+        const result = await api().open_stats_window(maxLeafDisj);
+        if (!result.ok) showToast(result.error, true);
     });
     document.getElementById("btn-anki-tools").addEventListener("click", async () => {
         await api().open_anki_connect_window();
@@ -679,6 +781,8 @@ window.addEventListener("pywebviewready", async () => {
 
     addAmmudRow();
     document.getElementById("btn-add-ammud-range").addEventListener("click", addAmmudRow);
+    document.getElementById("ammud-prev").addEventListener("click", () => stepAmmudPreview(-1));
+    document.getElementById("ammud-next").addEventListener("click", () => stepAmmudPreview(1));
     document.getElementById("btn-export-pages").addEventListener("click", doExportPages);
     document.getElementById("btn-export-amud").addEventListener("click", () => doExportAmud(false));
     document.getElementById("btn-export-amud-csv").addEventListener("click", () => doExportAmud(true));

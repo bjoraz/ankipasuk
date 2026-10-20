@@ -796,3 +796,29 @@ def test_one_csv_holds_several_ammudim_with_their_decks(tmp_path, monkeypatch):
 
 def test_no_ammudim_is_an_error(tmp_path):
     assert Api().export_ammudim_to_anki([])["ok"] is False
+
+
+def test_anki_status_says_whether_anki_answers(fake_anki, monkeypatch):
+    assert Api().anki_status() == {"ok": True}
+
+    import ankipasuk.anki_connect.client as client_module
+    from ankipasuk.anki_connect.client import AnkiConnectError
+
+    def refused(action, **_kw):
+        raise AnkiConnectError("Connection refused")
+
+    monkeypatch.setattr(client_module, "invoke", refused)
+    assert Api().anki_status()["ok"] is False
+
+
+def test_preview_ammud_is_the_page_export_or_its_error(monkeypatch):
+    import ankipasuk.webgui.api as api_module
+
+    monkeypatch.setattr(api_module, "ammud_pages_html", lambda ammudim, cache: f"<html>{ammudim}</html>")
+    assert Api().preview_ammud(7) == {"ok": True, "html": "<html>[7]</html>"}
+
+    def offline(ammudim, cache):
+        raise OSError("no network")
+
+    monkeypatch.setattr(api_module, "ammud_pages_html", offline)
+    assert Api().preview_ammud(7) == {"ok": False, "error": "no network"}
