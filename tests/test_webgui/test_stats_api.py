@@ -116,3 +116,13 @@ def test_get_diagrams_in_the_order_asked_skipping_unknown_labels(genesis_1_1, ge
     assert [d["ref"] for d in out] == ["Bereshit 1:2", "Bereshit 1:1"]
     assert all(d["diagram"]["units"] for d in out)
     assert sapi.get_font_css() == "x"
+
+
+def test_ratio_bars_fill_every_tenth_between_the_extremes():
+    from collections import Counter
+
+    from ankipasuk.webgui.stats_api import _ratio_bars
+
+    bars = _ratio_bars(Counter({1.2: 2, 1.5: 1}), {1.2: ["a", "b"], 1.5: ["c"]})
+    assert [(b["key"], b["count"]) for b in bars] == [("1.2", 2), ("1.3", 0), ("1.4", 0), ("1.5", 1)]
+    assert bars[1]["verses"] == []

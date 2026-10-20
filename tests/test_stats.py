@@ -1,4 +1,6 @@
-from ankipasuk.stats import compute_corpus_stats, format_stats_summary, write_stats_csv
+import pytest
+
+from ankipasuk.stats import compute_corpus_stats, format_stats_summary, ratio_bin, write_stats_csv
 from ankipasuk.text_processing import strip_vowels_and_trope
 
 
@@ -74,3 +76,15 @@ def test_write_stats_csv_has_one_row_per_verse(tmp_path, genesis_1_1, genesis_1_
 
     lines = out_path.read_text(encoding="utf-8-sig").strip().splitlines()
     assert len(lines) == 1 + stats["n_verses"]  # header + one row per verse
+
+
+@pytest.mark.parametrize("words, groups, expected", [
+    (5, 4, 1.3),    # 1.25: a tie goes up
+    (13, 10, 1.3),
+    (27, 20, 1.4),  # 1.35: the next bin's
+    (4, 3, 1.3),    # 1.333...
+    (7, 1, 7.0),
+    (3, 0, 0.0),
+])
+def test_ratio_bins_are_centred_tenths(words, groups, expected):
+    assert ratio_bin(words, groups) == expected

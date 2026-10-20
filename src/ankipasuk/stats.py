@@ -60,6 +60,13 @@ def analyze_verse_for_stats(pointed: str, max_leaf_disj: int) -> dict:
     }
 
 
+def ratio_bin(words: int, groups: int) -> float:
+    """The 0.1-wide bin, centred on its value, that ``words / groups``
+    falls in: 1.3 holds [1.25, 1.35). Worked out in integers, so a tie
+    like 5/4 always goes up, never to even."""
+    return (20 * words + groups) // (2 * groups) / 10 if groups else 0.0
+
+
 def compute_corpus_stats(verse_data, max_leaf_disj: int):
     """Aggregate per-verse statistics over the currently loaded verse range.
 
@@ -83,7 +90,7 @@ def compute_corpus_stats(verse_data, max_leaf_disj: int):
     depth_dist = Counter()
     depth_bins = defaultdict(list)
 
-    ratio_dist = Counter()          # words per disjunctive group, rounded to nearest 0.5
+    ratio_dist = Counter()          # words per disjunctive group, in 0.1 bins (see below)
     ratio_bins = defaultdict(list)
 
     trope_freq = Counter()          # total occurrences across all verses
@@ -130,8 +137,7 @@ def compute_corpus_stats(verse_data, max_leaf_disj: int):
         depth_dist[s["tree_depth"]] += 1
         depth_bins[s["tree_depth"]].append(label)
 
-        ratio = (s["word_count"] / s["disj_count"]) if s["disj_count"] else 0.0
-        ratio_key = round(ratio * 2) / 2  # bin to nearest 0.5
+        ratio_key = ratio_bin(s["word_count"], s["disj_count"])
         ratio_dist[ratio_key] += 1
         ratio_bins[ratio_key].append(label)
 

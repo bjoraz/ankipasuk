@@ -81,6 +81,7 @@ function renderBarChart(container, bars, axisLabel) {
     for (const row of container.querySelectorAll(".bar-row")) {
         row.addEventListener("click", () => {
             const verses = JSON.parse(row.dataset.verses);
+            if (!verses.length) return;  // an empty bin, kept to show the gap
             showVersePopup(`${axisLabel} = ${row.dataset.key}`, verses);
         });
     }

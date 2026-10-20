@@ -27,6 +27,18 @@ def _dist_to_bars(dist, bins, value_formatter=str):
     return [{"key": value_formatter(k), "count": dist[k], "verses": bins[k]} for k in sorted(dist.keys())]
 
 
+def _ratio_bars(dist, bins):
+    """Words per disjunctive group, every 0.1 bin from the lowest to the
+    highest -- the empty ones too, so the bars read as a histogram."""
+    if not dist:
+        return []
+    lo, hi = round(min(dist) * 10), round(max(dist) * 10)
+    return [
+        {"key": f"{t / 10:.1f}", "count": dist.get(t / 10, 0), "verses": bins.get(t / 10, [])}
+        for t in range(lo, hi + 1)
+    ]
+
+
 # Each mafsiq's rank, by name (the paseq's comes from the legarmeh rule).
 _RANKS = {name: rank for name, rank in TROPE_UNICODE.values() if rank} | {LEGARMEH_NAME: 4}
 
@@ -82,7 +94,7 @@ class StatsApi:
             "disj_count": _dist_to_bars(s["disj_count_dist"], s["disj_count_bins"]),
             "clause_count": _dist_to_bars(s["clause_count_dist"], s["clause_count_bins"]),
             "depth": _dist_to_bars(s["depth_dist"], s["depth_bins"]),
-            "ratio": _dist_to_bars(s["ratio_dist"], s["ratio_bins"], value_formatter=lambda k: f"{k:g}"),
+            "ratio": _ratio_bars(s["ratio_dist"], s["ratio_bins"]),
             "max_leaf_disj": self.max_leaf_disj,
         }
 
