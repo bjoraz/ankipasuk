@@ -33,21 +33,18 @@ function parseVerseLabel(label) {
     return { book: m[1], ch: Number(m[2]), vs: Number(m[3]) };
 }
 
-function showVersePopup(title, labels) {
+// The pesuqim behind a bar or row, each drawn as its diagram (diagram.js).
+async function showVersePopup(title, labels) {
     const sorted = [...new Set(labels)].sort((a, b) => {
         const pa = parseVerseLabel(a);
         const pb = parseVerseLabel(b);
         return pa.book.localeCompare(pb.book) || pa.ch - pb.ch || pa.vs - pb.vs;
     });
     let html = `<div class="modal-overlay" id="modal-overlay"><div class="modal">`;
-    html += `<h3>${title}</h3><div class="muted">${sorted.length} verse(s)</div>`;
-    for (const label of sorted) {
-        const entry = verseLookup[label];
-        html += `<div class="verse-ref">${label}</div>`;
-        html += `<div class="verse-text">${entry ? escapeHtml(entry.pointed) : "(text unavailable)"}</div>`;
-    }
-    html += `<button id="modal-close">Close</button></div></div>`;
+    html += `<h3>${escapeHtml(title)}</h3><div class="muted">${sorted.length} verse(s)</div>`;
+    html += `<div id="modal-diagrams"></div><button id="modal-close">Close</button></div></div>`;
     document.getElementById("verse-modal").innerHTML = html;
+    renderDiagrams(document.getElementById("modal-diagrams"), await api().get_diagrams(sorted));
     document.getElementById("modal-overlay").addEventListener("click", (e) => {
         if (e.target.id === "modal-overlay") closeModal();
     });
@@ -214,6 +211,9 @@ async function loadStructure() {
 //  Wiring
 // =============================================================
 window.addEventListener("pywebviewready", async () => {
+    const fontStyle = document.createElement("style");  // the STAM font, for the diagrams
+    fontStyle.textContent = await api().get_font_css();
+    document.head.appendChild(fontStyle);
     verseLookup = await api().get_verse_lookup();
     document.getElementById("summary-text").textContent = await api().get_summary();
 

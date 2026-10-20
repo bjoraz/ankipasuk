@@ -44,6 +44,7 @@ from ..cloze_export import (
     csv_rows,
     qeriya_context,
     qeriya_tags,
+    source_label,
 )
 from ..config import (
     BOOK_CATEGORIES,
@@ -52,6 +53,7 @@ from ..config import (
     POINTED_VERSION,
     QERIYA_DECK_NAMES,
 )
+from ..diagram import pasuq_diagram
 from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
@@ -74,7 +76,7 @@ from ..sefaria import (
     parse_start_ref,
 )
 from ..settings import Settings
-from ..text_processing import format_units, strip_vowels_and_trope
+from ..text_processing import strip_vowels_and_trope
 from ..tikkun import (
     FONT_ANKI_FILENAME,
     get_amud_lines,
@@ -92,7 +94,6 @@ from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
-from .tree_html import tree_to_html
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
@@ -401,8 +402,7 @@ class Api:
 
         max_leaf_disj = max(1, max_leaf_disj)
         lines = []
-        unit_debug_lines = []
-        viz_html_blocks = []
+        diagrams = []
         next_start = 1
 
         for item in self._current_verse_data:
@@ -411,12 +411,11 @@ class Api:
                 continue
 
             start_counter = 1 if reset_per_line else next_start
-            cl, last, tree, _tok, units = verse_to_nested_cloze(
+            cl, last, _tree, _tok, _units = verse_to_nested_cloze(
                 v, start_counter=start_counter, max_leaf_disj=max_leaf_disj
             )
             lines.append(cl)
-            unit_debug_lines.append(format_units(units))
-            viz_html_blocks.append(f'<div class="viz-verse">{tree_to_html(tree)}</div>')
+            diagrams.append({"ref": source_label(item), "diagram": pasuq_diagram(v, max_leaf_disj)})
 
             if not reset_per_line:
                 next_start = last + 1
@@ -424,8 +423,10 @@ class Api:
         return {
             "ok": True,
             "output": "\n".join(lines),
-            "tokens": "\n\n".join(unit_debug_lines),
-            "viz_html": "".join(viz_html_blocks),
+            # One entry per pasuq for the diagram and the list of groups
+            # (static/diagram.js); greyed brackets mark the divisions the
+            # cards don't make at this max_leaf_disj.
+            "diagrams": diagrams,
         }
 
     # =============================================================
@@ -793,7 +794,8 @@ class Api:
     def open_stats_window(self, max_leaf_disj: int) -> dict:
         if not self._current_verse_data:
             return {"ok": False, "error": "Fetch a range of verses first."}
-        stats_api = StatsApi(self._current_verse_data, max_leaf_disj)
+        font = self.get_tikkun_font_css()
+        stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "")
         window = webview.create_window(
             "Corpus statistics",
             str(_STATIC_DIR / "stats.html"),

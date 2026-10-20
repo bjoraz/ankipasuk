@@ -158,38 +158,55 @@ button:disabled { opacity: 0.6; cursor: default; }
 }
 
 .text-box.viz {
-    max-height: 320px;
-    font-size: 14px;
+    max-height: 480px;
+    white-space: normal;
+    padding: 4px 8px;
 }
 
-.viz-verse {
-    margin-bottom: 10px;
+.text-box.groups {
+    white-space: normal;
 }
 
-.viz-verse:last-child {
-    margin-bottom: 0;
+/* Pasuq text everywhere in the app is in the tikkun's STAM font (its
+   @font-face comes from api.get_tikkun_font_css), which has the niqqud
+   and ta'amim too. */
+#pointed-box, #plain-box, .dg-text, .dg-gtext, .verse-text {
+    font-family: "ShlomosemiStam", "SBL Hebrew", "Ezra SIL", "Noto Serif Hebrew", serif;
 }
 
-.viz-row {
-    display: flex;
-    margin-bottom: 1px;
-}
+/* ---- Pasuq diagrams (diagram.js, ankipasuk.diagram) ---- */
+.dg-pasuq { padding: 6px 0 8px; border-bottom: 1px solid #eee; }
+.dg-pasuq:last-child { border-bottom: none; }
+.dg-ref { font-family: sans-serif; font-size: 11px; color: #777; margin-bottom: 2px; }
+.dg-units { display: flex; flex-wrap: wrap; flex-direction: row-reverse; justify-content: flex-start; gap: 4px 24px; }
+/* A unit too wide for the window scrolls, starting at the pasuq's start;
+   its thin scrollbar has room of its own below the text. */
+.dg-unit { max-width: 100%; overflow-x: auto; overflow-y: hidden; direction: rtl;
+           scrollbar-width: thin; scrollbar-color: #c8c8c8 transparent; }
+.dg-unit.dg-scrolls { padding-bottom: 7px; }
+.dg-unit::-webkit-scrollbar { height: 5px; }
+.dg-unit::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 3px; }
+.dg-unit::-webkit-scrollbar-track { background: transparent; }
+.dg-inner { position: relative; display: inline-block; white-space: nowrap; direction: ltr; }
+.dg-text { font-size: 22px; line-height: 1.3; padding: 0 2px; white-space: nowrap; }
+svg.dg-brackets { position: absolute; left: 0; top: 0; overflow: visible; }
+.dg-line { stroke: #222; stroke-width: 1; fill: none; }
+.dg-label rect { fill: white; stroke: #222; stroke-width: 1; }
+.dg-label text { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 9px; fill: #222; direction: rtl; }
+/* One colour per rank: the old view's pastels (config.UNIT_COLORS) fill
+   the label, a darker shade of the same colour draws the bracket. */
+.dg-r1 .dg-line, .dg-r1 .dg-label rect { stroke: #f9a825; } .dg-r1 .dg-label rect { fill: #fff9c4; }
+.dg-r2 .dg-line, .dg-r2 .dg-label rect { stroke: #1976d2; } .dg-r2 .dg-label rect { fill: #bbdefb; }
+.dg-r3 .dg-line, .dg-r3 .dg-label rect { stroke: #388e3c; } .dg-r3 .dg-label rect { fill: #c8e6c9; }
+.dg-r4 .dg-line, .dg-r4 .dg-label rect { stroke: #c2185b; } .dg-r4 .dg-label rect { fill: #f8bbd0; }
+/* Divisions the cloze cards don't make at the current setting. */
+.dg-grey .dg-line, .dg-grey .dg-label rect { stroke: #b8b8b8; fill: white; }
+.dg-grey .dg-line { fill: none; }
+.dg-grey .dg-label text { fill: #b8b8b8; }
 
-.viz-guide {
-    flex-shrink: 0;
-}
-
-.viz-line {
-    text-align: right;
-    padding: 1px 6px;
-    border-radius: 2px;
-    flex: 1;
-    line-height: 1.3;
-}
-
-.viz-line .conj {
-    color: #666;
-}
+/* The small list of groups. */
+.dg-groups { margin: 2px 0 8px; padding-right: 22px; font-size: 17px; line-height: 1.5; }
+.dg-glabel { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 10px; color: #888; display: inline-block; min-width: 4.5em; }
 
 .toast {
     position: fixed;

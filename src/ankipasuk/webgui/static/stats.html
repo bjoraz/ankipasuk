@@ -28,7 +28,7 @@
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex;
                     align-items: center; justify-content: center; z-index: 500; }
-  .modal { background: white; border-radius: 6px; width: 560px; max-height: 80vh; overflow: auto; padding: 14px; }
+  .modal { background: white; border-radius: 6px; width: min(900px, 92vw); max-height: 80vh; overflow: auto; padding: 14px; }
   .modal h3 { margin-top: 0; }
   .modal .verse-ref { font-weight: 600; color: #37474f; margin-top: 10px; }
   .modal .verse-text { direction: rtl; text-align: right; font-size: 17px; margin: 2px 0 6px; }
@@ -82,6 +82,7 @@
 
 <div id="verse-modal"></div>
 
+<script src="diagram.js"></script>
 <script src="stats.js"></script>
 </body>
 </html>

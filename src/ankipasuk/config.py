@@ -303,6 +303,17 @@ TROPE_UNICODE = {
 # text_processing.adjust_for_munach_legarmeh.
 LEGARMEH_NAME = "Paseq"
 
+# The mafsiqim in Hebrew, as the diagram labels them (see ankipasuk.diagram):
+# the Sephardi names, matching the transliterations above.
+TROPE_HEBREW_NAMES = {
+    "Sof pasuq": "סוף פסוק", "Atnaḥ": "אתנח",
+    "Segolta": "סגולתא", "Shalshelet": "שלשלת", "Tarḥa": "טרחא",
+    "Zaqef qaton": "זקף קטן", "Zaqef gadol": "זקף גדול",
+    "Ravia'": "רביע", "Tevir": "תביר", "Qadma": "קדמא", "Yetiv": "יתיב", "Zarqa": "זרקא",
+    "Gerish": "גריש", "Shene gerishin": "שני גרישין", "Pazer gadol": "פזר גדול",
+    "Talsha": "תלשא", "Paseq": "פסק",
+}
+
 MAKEF = "\u05BE"
 MUNACH = "\u05A3"
 PASEQ = "\u05C0"

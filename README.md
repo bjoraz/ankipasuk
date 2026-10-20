@@ -165,9 +165,8 @@ format_structure(verse_structure_signature(pasuq))  # '(((L3 (L3 L2)) (L2 L1)) (
   `choose_split_index`, and the stopping point is the one `max_leaf_disj`
   parameter.
 - The tree that comes out is reused everywhere: for the cloze markup
-  (`cloze.py`), the indented, colored view in the main window, the clause
-  and depth counts in the statistics, and the structure signatures
-  (`structure.py`).
+  (`cloze.py`), the diagrams (`diagram.py`, below), the clause and depth
+  counts in the statistics, and the structure signatures (`structure.py`).
 - The Anki scheduling tool (below) relies on exactly one property of the
   output, that the whole pasuq is always the highest-numbered cloze, and on
   nothing else.
@@ -260,13 +259,29 @@ A pasuq read in more than one haftara gets every one's tag: Yirmeyahu 1
 is read for Shemot and for Mattot, Yesha'yahu 54:1–10 for Noaḥ and for Ki
 Tetse.
 
+## The diagram
+
+Each pasuq's division is drawn after Joshua Jacobson's diagrams (*Chanting
+the Hebrew Bible*). Above the pointed text, each mafsiq has a bracket over
+the stretch of text it closes, labelled with its rank and Hebrew name: 1
+אתנח and 1 סוף פסוק on top, down to rank 4 just above the words, one colour
+per rank. The atnaḥ half and the sof pasuq half are drawn as separate units,
+side by side when they fit and one under the other when they don't. A unit
+still too wide for the window scrolls sideways, with the mouse wheel too.
+
+It always shows the complete division. Brackets in grey are divisions the
+cloze cards don't make at the current **Max disjunctive groups per leaf**,
+so you can see where a card's clauses stop. Pasuq text everywhere in the
+app is in the same STAM font as the tiqqun.
+
 ## Statistics
 
 **Corpus statistics** opens a window on whatever is loaded: words per
 pasuq, groups per pasuq, how many clauses and how deep the split goes at
 your current *N*, words per group, averages by chapter, how often each
 mafsiq occurs, and the structure groupings described above. Click any bar
-or row to see the pesuqim behind it. There's also a per-pasuq CSV export.
+or row to see the pesuqim behind it, each drawn as its diagram. There's
+also a per-pasuq CSV export.
 
 ## Tools that work on your Anki collection (optional)
 
@@ -356,11 +371,11 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
 1. Add one or more ranges, by chapter and verse, by parasha and 'aliyya,
    or by haftara, from the Tora, Nevi'im or the five Megillot, then click
    **Fetch all ranges**. A range's end can't come before its start: the end
-   pickers start where the start is. Ranges are joined in the order you add them, so you can run
-   the end of one book into the start of the next.
+   pickers start where the start is. Ranges are joined in the order you
+   add them, so you can run the end of one book into the start of the next.
 2. Set **Max disjunctive groups per leaf** and click **Generate cloze
-   cards**. You'll see the cloze markup, the groups for each pasuq, and
-   each pasuq's tree drawn as indented, colored rows.
+   cards**. You'll see the cloze markup, each pasuq's groups, and its
+   diagram (see below).
 3. Export the notes, one per pasuq, in either of two ways:
    - **Export to CSV**, then import the file into Anki. It's tab-separated:
      the pasuq's number (its place in the book, or in the haftara), the
@@ -406,6 +421,7 @@ src/ankipasuk/
 ├── text_processing.py   ranking, paseq, grouping, splitting
 ├── cloze.py             tree → nested cloze markup, structure signature
 ├── structure.py         grouping pesuqim by structure
+├── diagram.py           a pasuq's division as Jacobson-style brackets
 ├── stats.py             statistics for a loaded range
 ├── qeriya.py            parasha / 'aliyya / maftir / holiday / haftara tag logic
 ├── cloze_export.py      the cloze notes both exports (CSV, AnkiConnect) build

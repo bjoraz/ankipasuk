@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import webview
 
+from ..config import BOOK_HEBREW_NAMES
+from ..diagram import pasuq_diagram
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
 from ..structure import (
     format_structure,
@@ -25,12 +27,32 @@ def _dist_to_bars(dist, bins, value_formatter=str):
     return [{"key": value_formatter(k), "count": dist[k], "verses": bins[k]} for k in sorted(dist.keys())]
 
 
+def _our_spelling(label: str) -> str:
+    """ "Genesis 1:1" -> "Bereshit 1:1", as the rest of the app writes it."""
+    book, _space, ref = label.rpartition(" ")
+    return f"{BOOK_HEBREW_NAMES.get(book, book)} {ref}"
+
+
 class StatsApi:
-    def __init__(self, verse_data: list[dict], max_leaf_disj: int) -> None:
+    def __init__(self, verse_data: list[dict], max_leaf_disj: int, font_css: str = "") -> None:
         self._window: webview.Window | None = None
         self.verse_data = verse_data
         self.max_leaf_disj = max_leaf_disj
+        self.font_css = font_css  # the STAM font's @font-face, from the main window's Api
         self.stats = compute_corpus_stats(verse_data, max_leaf_disj)
+
+    def get_font_css(self) -> str:
+        return self.font_css
+
+    def get_diagrams(self, labels: list[str]) -> list[dict]:
+        """``[{"ref", "diagram"}]`` for the pesuqim labelled ``labels`` (as
+        in the verse lookup), in that order, greyed for this window's
+        max_leaf_disj -- see ankipasuk.diagram."""
+        lookup, n = self.get_verse_lookup(), self.max_leaf_disj
+        return [
+            {"ref": _our_spelling(label), "diagram": pasuq_diagram(lookup[label]["pointed"], n)}
+            for label in labels if label in lookup and lookup[label]["pointed"].strip()
+        ]
 
     def get_summary(self) -> str:
         return format_stats_summary(self.stats, self.max_leaf_disj)

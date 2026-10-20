@@ -351,8 +351,8 @@ async function doGenerate() {
         return;
     }
     document.getElementById("output-box").textContent = result.output;
-    document.getElementById("tokens-box").textContent = result.tokens;
-    document.getElementById("viz-box").innerHTML = result.viz_html;
+    document.getElementById("tokens-box").innerHTML = groupsHtml(result.diagrams);
+    renderDiagrams(document.getElementById("viz-box"), result.diagrams);
 }
 
 async function refreshNoteTypes(quiet) {

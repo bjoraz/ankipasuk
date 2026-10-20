@@ -78,13 +78,12 @@ def test_generate_cloze_matches_verse_to_nested_cloze(genesis_1_1):
 
     expected_cloze, _last, _tree, _tok, _units = verse_to_nested_cloze(genesis_1_1, max_leaf_disj=2)
     assert result["output"] == expected_cloze
-    assert "viz-line" in result["viz_html"]
+    (entry,) = result["diagrams"]
+    assert entry["ref"] == "Bereshit 1:1"
+    assert entry["diagram"]["units"]
 
 
-def test_generate_cloze_wraps_each_verse_for_spacing(genesis_1_1, genesis_1_2):
-    """Each verse's rows must be wrapped in its own container so CSS can
-    put a gap between verses without affecting the (smaller) gap between
-    rows within the same verse."""
+def test_generate_cloze_gives_one_diagram_per_verse_greyed_for_the_card_setting(genesis_1_1, genesis_1_2):
     api = Api()
     api._current_verse_data = [
         {"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": genesis_1_1},
@@ -92,7 +91,11 @@ def test_generate_cloze_wraps_each_verse_for_spacing(genesis_1_1, genesis_1_2):
     ]
     result = api.generate_cloze(2, True)
     assert result["ok"] is True
-    assert result["viz_html"].count('class="viz-verse"') == 2
+    assert [d["ref"] for d in result["diagrams"]] == ["Bereshit 1:1", "Bereshit 1:2"]
+    # At N = 2 some divisions aren't made by the cards; at N = 1 all are.
+    boxes = lambda r: [b for d in r["diagrams"] for u in d["diagram"]["units"] for b in u["boxes"]]  # noqa: E731
+    assert any(b["grey"] for b in boxes(result))
+    assert not any(b["grey"] for b in boxes(api.generate_cloze(1, True)))
 
 
 def test_generate_cloze_skips_blank_lines(genesis_1_1):

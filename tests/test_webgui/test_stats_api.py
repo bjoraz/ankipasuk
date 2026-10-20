@@ -101,3 +101,11 @@ def test_export_csv_without_window_reports_error(genesis_1_1):
     sapi._window = None
     result = sapi.export_csv()
     assert result["ok"] is False
+
+
+def test_get_diagrams_in_the_order_asked_skipping_unknown_labels(genesis_1_1, genesis_1_2):
+    sapi = StatsApi(_verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)]), max_leaf_disj=2, font_css="x")
+    out = sapi.get_diagrams(["Genesis 1:2", "Genesis 9:9", "Genesis 1:1"])
+    assert [d["ref"] for d in out] == ["Bereshit 1:2", "Bereshit 1:1"]
+    assert all(d["diagram"]["units"] for d in out)
+    assert sapi.get_font_css() == "x"
