@@ -11,8 +11,8 @@ with its own job:
   mafsiqim allow. You learn the reading a piece at a time and see how the
   ta'amim divide the pasuq as you go. The hidden part shows only its bare
   letters, the way it's written in the sefer, and you supply the reading.
-- **Tiqqun cards** are for memorizing what you'll actually read: a whole
-  'aliyya or 'ammud, line by line, laid out as in the sefer (the standard
+- **Tiqqun cards** are for memorizing what you'll actually read: an
+  'ammud at a time, line by line, laid out as in the sefer (the standard
   layout of 245 'ammudim with 42 lines each). The cloze cards teach you the
   pesuqim; these make sure you can read them off the column in front of
   you.
@@ -177,11 +177,11 @@ different system of ta'amim.
 
 ## Tiqqun cards
 
-Tiqqun cards are for memorizing the qeriya itself, a whole 'aliyya or 'ammud
-at a time. Choose a range of 'aliyyot (or a single 'ammud, 1 to 245) and
-AnkiPasuk sends the cards straight to Anki through the AnkiConnect add-on,
-or saves them as a CSV to import. In the app they're in the **Export
-'aliyyot to Anki (tiqqun cards)** panel.
+Tiqqun cards are for memorizing the qeriya itself, an 'ammud at a time.
+Choose an 'ammud (1 to 245) and AnkiPasuk sends its cards straight to Anki
+through the AnkiConnect add-on, or saves them as a CSV to import. Each
+'ammud has its own deck, `Ammudim::001` to `Ammudim::245`, so there's no
+deck to choose. In the app this is the **Tiqqun cards** panel.
 
 Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
 layout data, which follows the standard layout of the sefer: 245 'ammudim
@@ -222,12 +222,10 @@ don't need AnkiLPCG installed.
 Both kinds use the same note type, "Ankipasuk Aliyah", which is created the
 first time you export to Anki (so do that once before importing a CSV).
 As with the cloze export, the deck is created if it's missing, and a card
-that's already in Anki is skipped, wherever it is: the same pasuq's card
-(even one exported earlier as part of an 'ammud rather than an 'aliyya),
+that's already in Anki is skipped, wherever it is: the same pasuq's card,
 or in line mode the same lines. Existing cards are never changed. A pasuq's
 card is tagged with its parasha, 'aliyya and holidays like the cloze
-notes, plus `ammud::NNN` or `parasha::<slug>` for what it was exported
-as. Each card has small controls in the corner for text
+notes, plus `ammud::NNN`. Each card has small controls in the corner for text
 size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you set there
 applies to every card.
 
@@ -367,9 +365,8 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
    Either way each note gets its tags: the parasha, 'aliyya and holiday
    tags for the Tora, and `haftara::<parasha>` for a haftara. The tagging
    tool looks for the reference in a field called `Source`.
-4. For tiqqun cards, use the panel at the bottom: book, first and last
-   parasha and 'aliyya (or an 'ammud number), deck name, and how to divide
-   the cards.
+4. For tiqqun cards, use the panel at the bottom: the 'ammud, and how to
+   divide its cards.
 
 **Reset cloze numbering for each line** is on by default, so each pasuq
 starts again at c1 and becomes its own note. Turn it off if you'd rather
@@ -385,8 +382,8 @@ tikkun.io's pages and font are all kept on disk:
 - Anywhere else, if you set `ANKIPASUK_CACHE_DIR`
 
 **Clear cache** in the main window empties it. Your own settings (the last
-deck name you used, in `settings.json`, and the layout controls, in
-`webview_storage/`) live in the same folder and aren't touched by it.
+deck and note type you sent cloze notes to, in `settings.json`, and the
+layout controls, in `webview_storage/`) live in the same folder and aren't touched by it.
 
 ## Code layout
 

@@ -14,6 +14,7 @@ from ankipasuk.config import POINTED_VERSION
 from ankipasuk.lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ankipasuk.lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ankipasuk.settings import Settings
+from ankipasuk.verse_cards import build_verse_cards
 from ankipasuk.webgui.api import Api
 
 
@@ -328,25 +329,11 @@ def _seed_two_aliyah_parasha(api, tmp_path):
     api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
-def test_export_aliyot_to_anki_pushes_one_note_type_and_notes_per_aliyah(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-
-    result = api.export_aliyot_to_anki(
-        "Genesis", "Bereshit", 1, "Bereshit", 2, "Qeriya::Recitation",
-    )
-
-    assert result["ok"] is True
-    assert result["aliyot"] == 2
-    assert result["notes_added"] == 2  # one scroll line per 'aliyya -> one card per 'aliyya
-    assert LPCG_MODEL_NAME in fake_anki.models
-    assert all(n["deck"] == "Qeriya::Recitation" for n in fake_anki.notes.values())
-
-
 _SEFARIA_GENESIS_NAMES = [
     "Bereshit", "Noach", "Lech Lecha", "Vayera", "Chayei Sara", "Toldot",
     "Vayetzei", "Vayishlach", "Vayeshev", "Miketz", "Vayigash", "Vayechi",
 ]
+
 
 
 def _seed_full_genesis(api, tmp_path):
@@ -366,23 +353,6 @@ def test_get_parashot_labels_use_our_names_but_values_stay_sefarias(tmp_path):
     result = api.get_parashot("Genesis")
     assert result["names"] == _SEFARIA_GENESIS_NAMES
     assert result["labels"][:5] == ["Bereshit", "Noaḥ", "Lekh Lekha", "Vayyera", "Ḥayye Sara"]
-
-
-def test_export_aliyot_uses_our_names_in_title_and_tags(tmp_path, fake_anki):
-    api = Api()
-    _seed_full_genesis(api, tmp_path)
-
-    result = api.export_aliyot_to_anki("Genesis", "Chayei Sara", 1, "Chayei Sara", 1, "Qeriya::Tiqqun")
-
-    assert result["ok"] is True
-    note = next(iter(fake_anki.notes.values()))
-    assert note["fields"]["Title"] == "Bereshit Ḥayye Sara 1 (Bereshit 1:1)"
-    # The fake Ḥayye Sara is Bereshit 1:1, so the pasuq's own qeriya tags
-    # come along too -- it really is read on Simḥat Tora.
-    assert sorted(note["tags"]) == [
-        "aliyya::bereshit::05-hayye_sara::1", "ankipasuk-aliyya", "holiday::simhat_tora::7",
-        "parasha::hayye_sara",
-    ]
 
 
 def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
@@ -422,15 +392,14 @@ def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
     api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
-def test_export_aliyot_to_anki_verse_mode_shares_a_boundary_row(tmp_path, fake_anki, monkeypatch):
+def test_verse_cards_share_a_boundary_row(tmp_path, monkeypatch):
     api = Api()
     _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch)
 
-    result = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
-
-    assert result["ok"] is True
-    assert result["notes_added"] == 2  # one card per verse, not per row
-    back_rows = sorted(n["fields"]["BackRows"] for n in fake_anki.notes.values())
+    # Through the cache, as the 'ammud export builds them.
+    cards = build_verse_cards("Genesis", [(1, 1), (1, 2)], api._cache, title="t")
+    assert len(cards) == 2  # one card per verse, not per row
+    back_rows = sorted(c["BackRows"] for c in cards)
     # Verse 1's card tests only its own word ("אאא") -- verse 2's word on
     # that same row ("בבב") still occupies the row (a real sefer
     # doesn't blank out the next verse's opening word), but must be
@@ -485,18 +454,15 @@ def _seed_aliyah_starting_mid_row(api, tmp_path, monkeypatch):
     api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
-def test_export_aliyot_to_anki_excludes_a_prior_verses_bleed_from_the_first_card(
-    tmp_path, fake_anki, monkeypatch,
+def test_verse_cards_exclude_a_prior_verses_bleed_from_the_first_card(
+    tmp_path, monkeypatch,
 ):
     api = Api()
     _seed_aliyah_starting_mid_row(api, tmp_path, monkeypatch)
 
-    result = api.export_aliyot_to_anki("Genesis", "Bereshit", 2, "Bereshit", 2, "Deck")
-
-    assert result["ok"] is True
-    assert result["notes_added"] == 1  # only verse 2's own card -- verse 1 isn't in range
-    (note,) = fake_anki.notes.values()
-    back_rows = note["fields"]["BackRows"]
+    # Only verse 2 is asked for; verse 1 shares its first line.
+    (card,) = build_verse_cards("Genesis", [(1, 2)], api._cache, title="t")
+    back_rows = card["BackRows"]
 
     # Verse 2's own tested content is ONLY its own 2 words -- verse 1's
     # word, sharing the same row, must show as plain context, never as
@@ -510,89 +476,6 @@ def test_export_aliyot_to_anki_excludes_a_prior_verses_bleed_from_the_first_card
         '<div class="line beginning-marker">[Beginning]</div>'
         '<div class="line"><div class="column"><span class="fragment">קקק '
     )
-
-
-def test_export_aliyot_to_anki_row_mode_still_available(tmp_path, fake_anki, monkeypatch):
-    api = Api()
-    _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch)
-
-    result = api.export_aliyot_to_anki(
-        "Genesis", "Bereshit", 1, "Bereshit", 1, "Deck", card_division="row",
-    )
-
-    assert result["ok"] is True
-    assert result["notes_added"] == 3  # one card per physical row, the old behavior
-
-
-def test_get_lpcg_deck_name_defaults_when_nothing_saved_yet(tmp_path):
-    api = Api()
-    api._settings = Settings(cache_dir=tmp_path)
-    assert api.get_lpcg_deck_name() == Api.DEFAULT_LPCG_DECK_NAME
-
-
-def test_export_aliyot_to_anki_remembers_the_deck_name_for_next_time(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Master::Qeriya::Aliyyot")
-    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
-
-    # Simulates a fresh app launch reading the same on-disk settings.
-    api2 = Api()
-    api2._settings = Settings(cache_dir=tmp_path)
-    assert api2.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
-
-
-def test_export_aliyot_to_anki_sets_a_box_width_from_the_verse_text(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
-
-    (note,) = fake_anki.notes.values()
-    # "אאא" alone is far short of MIN_BOX_WIDTH_CH, so the floor -- not
-    # the verse-text-derived factor -- is what actually sets this field
-    # here; see test_lpcg.py for the content-driven case.
-    assert note["fields"]["BoxWidth"] == "40ch"
-
-
-def test_export_aliyot_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki):
-    """A note type created by an older version of this code (before a CSS
-    change, e.g. adding the STAM font or setuma-gap styling) must not be
-    stuck with stale styling forever -- ensure_model alone never updates
-    an existing model, so export_aliyot_to_anki must also refresh it."""
-    from ankipasuk.anki_connect.operations import ensure_model
-    from ankipasuk.lpcg import CARD_TEMPLATES, FIELD_NAMES
-
-    ensure_model(LPCG_MODEL_NAME, FIELD_NAMES, "stale old css", CARD_TEMPLATES, url="http://localhost:8765")
-
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
-
-    assert fake_anki.models[LPCG_MODEL_NAME]["css"] != "stale old css"
-
-
-def test_export_aliyot_to_anki_tags_notes_with_the_parasha(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-
-    api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 1, "Deck")
-
-    (note,) = fake_anki.notes.values()
-    assert "ankipasuk-aliyya" in note["tags"]
-    assert "parasha::bereshit" in note["tags"]
-
-
-def test_export_aliyot_to_anki_reports_sefaria_errors(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-
-    result = api.export_aliyot_to_anki(
-        "Genesis", "Not A Parasha", 1, "Bereshit", 1, "Deck",
-    )
-    assert result["ok"] is False
-    assert "error" in result
 
 
 def _seed_one_amud(api, tmp_path, monkeypatch):
@@ -624,20 +507,21 @@ def test_export_amud_to_anki_pushes_notes_for_the_whole_amud(tmp_path, fake_anki
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    result = api.export_amud_to_anki(1, "Deck")
+    result = api.export_amud_to_anki(1)
 
     assert result["ok"] is True
     assert result["amud"] == 1
     assert result["book"] == "Genesis"
     assert result["notes_added"] == 1
-    assert all(n["deck"] == "Deck" for n in fake_anki.notes.values())
+    assert result["deck"] == "Ammudim::001"
+    assert all(n["deck"] == "Ammudim::001" for n in fake_anki.notes.values())
 
 
 def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
 
-    api.export_amud_to_anki(1, "Deck")
+    api.export_amud_to_anki(1)
 
     (note,) = fake_anki.notes.values()
     # Plus the pasuq's own qeriya tags (Bereshit 1:1 is read on Simḥat
@@ -645,17 +529,33 @@ def test_export_amud_to_anki_tags_notes_as_an_amud(tmp_path, fake_anki, monkeypa
     assert note["tags"] == ["ammud::001", "holiday::simhat_tora::7"]
 
 
-def test_export_amud_to_anki_remembers_the_deck_name(tmp_path, fake_anki, monkeypatch):
+def test_exporting_the_same_ammud_twice_adds_nothing_the_second_time(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
+    first, again = api.export_amud_to_anki(1), api.export_amud_to_anki(1)
+    assert (first["notes_added"], first["already_in_anki"]) == (1, 0)
+    assert (again["notes_added"], again["already_in_anki"]) == (0, 1)
+    assert len(fake_anki.notes) == 1
 
-    api.export_amud_to_anki(1, "Master::Qeriya::Aliyyot")
-    assert api.get_lpcg_deck_name() == "Master::Qeriya::Aliyyot"
+
+def test_export_amud_to_anki_refreshes_css_on_an_already_existing_model(tmp_path, fake_anki, monkeypatch):
+    """A note type created by an older version of this code (before a CSS
+    change, e.g. adding the STAM font or setuma-gap styling) must not be
+    stuck with stale styling forever -- ensure_model alone never updates
+    an existing model, so the export must also refresh it."""
+    from ankipasuk.anki_connect.operations import ensure_model
+    from ankipasuk.lpcg import CARD_TEMPLATES, FIELD_NAMES
+
+    ensure_model(LPCG_MODEL_NAME, FIELD_NAMES, "stale old css", CARD_TEMPLATES, url="http://localhost:8765")
+    api = Api()
+    _seed_one_amud(api, tmp_path, monkeypatch)
+    api.export_amud_to_anki(1)
+    assert fake_anki.models[LPCG_MODEL_NAME]["css"] != "stale old css"
 
 
 def test_export_amud_to_anki_rejects_out_of_range_amud(tmp_path, fake_anki):
     api = Api()
-    result = api.export_amud_to_anki(0, "Deck")
+    result = api.export_amud_to_anki(0)
     assert result["ok"] is False
     assert "error" in result
 
@@ -794,16 +694,6 @@ def test_export_csv_has_the_anki_header_and_a_tags_column(tmp_path, genesis_1_1)
 # =============================================================
 #  No duplicates, and the deck is created
 # =============================================================
-def test_exporting_the_same_aliyyot_twice_adds_nothing_the_second_time(tmp_path, fake_anki):
-    api = Api()
-    _seed_two_aliyah_parasha(api, tmp_path)
-    first = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 2, "Qeriya::Tiqqun")
-    again = api.export_aliyot_to_anki("Genesis", "Bereshit", 1, "Bereshit", 2, "Elsewhere")
-    assert (first["notes_added"], first["already_in_anki"]) == (2, 0)
-    assert (again["notes_added"], again["already_in_anki"]) == (0, 2)
-    assert len(fake_anki.notes) == 2
-
-
 def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
@@ -814,7 +704,7 @@ def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, f
         "deck": "Amudim::001", "model": "Ankipasuk Aliyah", "tags": ["amud::001"],
         "fields": {"Title": "Bereshit Amud 1", "Sequence": "1", "FrontRows": "<old/>", "Line": ""},
     }
-    result = api.export_amud_to_anki(1, "Ammudim::001")
+    result = api.export_amud_to_anki(1)
     assert (result["notes_added"], result["already_in_anki"]) == (0, 1)
     assert fake_anki.notes[50]["fields"]["FrontRows"] == "<old/>"  # untouched
 
@@ -822,11 +712,11 @@ def test_an_ammud_export_skips_a_pasuq_already_exported_as_an_aliyya(tmp_path, f
 def test_both_exports_create_a_missing_deck(tmp_path, genesis_1_1, fake_anki, monkeypatch):
     api = Api()
     _seed_one_amud(api, tmp_path, monkeypatch)
-    api.export_amud_to_anki(1, "New::Tiqqun")
+    api.export_amud_to_anki(1)
     fake_anki.models["Leyning (by pasuk)"] = {"fields": CLOZE_FIELDS, "css": "", "cardTemplates": []}
     cloze_api = _api_with_haftara(tmp_path, genesis_1_1)
     cloze_api.export_cloze_to_anki(2, True, "New::Haftarot", "Leyning (by pasuk)")
-    assert {"New::Tiqqun", "New::Haftarot"} <= fake_anki.decks
+    assert {"Ammudim::001", "New::Haftarot"} <= fake_anki.decks
 
 
 def test_tiqqun_cards_can_be_saved_as_csv(tmp_path, monkeypatch):
@@ -839,7 +729,7 @@ def test_tiqqun_cards_can_be_saved_as_csv(tmp_path, monkeypatch):
             return str(out_path)
 
     api._window = FakeWindow()
-    result = api.export_amud_csv(1, "Ammudim::001")
+    result = api.export_amud_csv(1)
     assert result == {"ok": True, "count": 1, "path": str(out_path)}
     text = out_path.read_text(encoding="utf-8-sig")
     assert "#notetype:Ankipasuk Aliyah\n#deck:Ammudim::001\n" in text

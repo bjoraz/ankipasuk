@@ -79,6 +79,11 @@ def tiqqun_ammud_tag(ammud_num: int) -> str:
     return f"ammud::{ammud_num:03d}"
 
 
+def tiqqun_ammud_deck(ammud_num: int) -> str:
+    """The deck an 'ammud's tiqqun cards go into: one per 'ammud."""
+    return f"Ammudim::{ammud_num:03d}"
+
+
 def to_slug(name: str) -> str:
     """The ASCII form of a transliterated name, used in tags: lowercase, ḥ
     as h, apostrophes dropped, spaces as ``_`` (``"Ḥayye Sara"`` ->

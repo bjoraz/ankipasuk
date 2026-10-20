@@ -56,18 +56,14 @@ from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
 from ..qeriya import (
-    ALIYYA_TAG_NAMESPACE,
-    TIQQUN_ALIYYA_TAG,
     haftara_label,
     haftara_table,
     parasha_names,
     parse_range_ref,
+    tiqqun_ammud_deck,
     tiqqun_ammud_tag,
-    tiqqun_parasha_tag,
-    to_slug,
 )
 from ..sefaria import (
-    fetch_aliyot_in_range,
     fetch_verse_range,
     get_aliyah_ref,
     get_book_structure,
@@ -91,7 +87,7 @@ from ..tiqqun_export import existing_keys as tiqqun_existing_keys
 from ..tiqqun_export import is_duplicate as tiqqun_is_duplicate
 from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
 from ..tiqqun_export import row_key as tiqqun_row_key
-from ..verse_cards import build_amud_verse_cards, build_verse_cards
+from ..verse_cards import build_amud_verse_cards
 from .anki_connect_api import AnkiConnectApi
 from .stats_api import StatsApi
 from .tree_html import tree_to_html
@@ -474,7 +470,7 @@ class Api:
     #  'Aliyya recitation export (overlapping-context notes, pushed
     #  directly to Anki via AnkiConnect)
     # =============================================================
-    DEFAULT_LPCG_DECK_NAME = "Master::Qeriya::Aliyyot"
+
 
     # =============================================================
     #  Cloze export straight to Anki (AnkiConnect)
@@ -562,14 +558,8 @@ class Api:
             "failed": len(result_ids) - added, "deck": deck_name,
         }
 
-    def get_lpcg_deck_name(self) -> str:
-        """The deck name to prefill the export form with: whatever was
-        last used (see export_aliyot_to_anki / export_amud_to_anki), or
-        DEFAULT_LPCG_DECK_NAME the first time the app is ever run."""
-        return self._settings.get("lpcg_deck_name", self.DEFAULT_LPCG_DECK_NAME)
-
     def _push_lpcg_notes(self, notes: list[dict], deck_name: str) -> dict:
-        """Send tiqqun notes (see _tiqqun_aliyot_notes / _tiqqun_amud_notes)
+        """Send tiqqun notes (see _tiqqun_amud_notes)
         to ``deck_name``, creating the deck if needed and making sure the
         font, note type, CSS and templates are in place (and refreshed if
         stale) first.
@@ -579,7 +569,6 @@ class Api:
         ankipasuk.tiqqun_export) -- is skipped; existing notes are never
         changed. Returns ``{"ok": True, "notes_added", "already_in_anki",
         "failed"}`` or ``{"ok": False, "error"}``."""
-        self._settings.set("lpcg_deck_name", deck_name)
         if not notes:
             return {"ok": False, "error": "No text was found to export."}
 
@@ -620,7 +609,6 @@ class Api:
     def _write_tiqqun_csv(self, notes: list[dict], deck_name: str, default_name: str) -> dict:
         """Save tiqqun notes as an Anki CSV. Importing it needs the
         tiqqun note type already in Anki (any export to Anki creates it)."""
-        self._settings.set("lpcg_deck_name", deck_name)
         if not notes:
             return {"ok": False, "error": "No text was found to export."}
         if self._window is None:
@@ -659,54 +647,6 @@ class Api:
             notes.append({"fields": fields, "tags": note_tags, "key": key})
         return notes
 
-    def _tiqqun_aliyot_notes(
-        self, book: str, start_parasha: str, start_aliyah: int, end_parasha: str, end_aliyah: int,
-        card_division: str, context_lines: int, recite_lines: int, group_size: int,
-    ) -> tuple[list[dict], int]:
-        """The tiqqun notes for a range of 'aliyyot, and how many 'aliyyot
-        that was. One 'aliyya is one LPCG "poem", so a card's context never
-        reaches into the next 'aliyya. Raises RuntimeError/ValueError."""
-        aliyot = fetch_aliyot_in_range(
-            book, start_parasha, start_aliyah, end_parasha, end_aliyah, self._cache, POINTED_VERSION,
-        )
-        ours = parasha_names(book, get_parasha_structure(book, self._cache))
-        context = qeriya_context({book}, self._cache)
-        hebrew_book = BOOK_HEBREW_NAMES.get(book, book)
-        notes = []
-        for aliyah in aliyot:
-            verses = aliyah["verses"]
-            if not verses:
-                continue
-            # Our name and slug for the parasha (falling back to Sefaria's
-            # if the pairing doesn't hold), and the ref with our book name.
-            entry = ours.get(aliyah["parasha"])
-            parasha_name = entry["name"] if entry else aliyah["parasha"]
-            parasha_slug = entry["slug"] if entry else to_slug(aliyah["parasha"])
-            ref = aliyah["ref"]
-            if ref.startswith(book + " "):
-                ref = hebrew_book + ref[len(book):]
-            title = f"{hebrew_book} {parasha_name} {aliyah['aliyah_num']} ({ref})"
-            tags = [TIQQUN_ALIYYA_TAG, tiqqun_parasha_tag(parasha_slug)]
-            if card_division == "verse":
-                verse_refs = [(v["ch"], v["vs"]) for v in verses]
-                fields_list = build_verse_cards(book, verse_refs, self._cache, title=title)
-            else:
-                verse_refs = None
-                if entry:  # a row card spans lines, so it carries its 'aliyya's tag
-                    tags.append(
-                        f"{ALIYYA_TAG_NAMESPACE}{to_slug(hebrew_book)}::{entry['rel']:02d}-{entry['slug']}"
-                        f"::{aliyah['aliyah_num']}"
-                    )
-                lines = get_scroll_lines_for_range(
-                    book, verses[0]["ch"], verses[0]["vs"], verses[-1]["ch"], verses[-1]["vs"], self._cache,
-                )
-                fields_list = build_lpcg_fields(
-                    lines, title=title, context_lines=context_lines,
-                    recite_lines=recite_lines, group_size=group_size,
-                )
-            notes += self._tiqqun_notes(book, fields_list, verse_refs, tags, context)
-        return notes, len(aliyot)
-
     def _tiqqun_amud_notes(
         self, amud_num: int, card_division: str, context_lines: int, recite_lines: int, group_size: int,
     ) -> tuple[list[dict], str]:
@@ -728,32 +668,25 @@ class Api:
         context = qeriya_context({book}, self._cache)
         return self._tiqqun_notes(book, fields_list, verse_refs, tags, context), book
 
-    def export_aliyot_to_anki(
-        self,
-        book: str,
-        start_parasha: str,
-        start_aliyah: int,
-        end_parasha: str,
-        end_aliyah: int,
-        deck_name: str,
-        card_division: str = "verse",
-        context_lines: int = 2,
-        recite_lines: int = 1,
-        group_size: int = 1,
+    def export_amud_to_anki(
+        self, amud_num: int, card_division: str = "verse", context_lines: int = 2,
+        recite_lines: int = 1, group_size: int = 1,
     ) -> dict:
-        """Send the tiqqun cards for a range of 'aliyyot to ``deck_name``
-        through AnkiConnect (see _push_lpcg_notes for duplicates and the
-        deck).
+        """Send the tiqqun cards for 'ammud ``amud_num`` (1-245, see
+        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to its own deck,
+        ``Ammudim::NNN`` (see :func:`ankipasuk.qeriya.tiqqun_ammud_deck`),
+        through AnkiConnect; see _push_lpcg_notes for duplicates.
 
-        ``card_division`` picks how each 'aliyya's lines become cards:
+        ``card_division`` picks how the 'ammud's lines become cards:
 
-        - "verse" (default, recommended): one card per pasuq, word-precise
-          at any line it shares with the pasuq just before/after (see
-          :mod:`ankipasuk.verse_cards`) -- only that pasuq's own words are
-          tested; a neighbour's words on the same line show as plain
-          context. Exactly one extra line before as context.
-          ``context_lines``/``recite_lines``/``group_size`` are ignored.
-        - "row": the AnkiLPCG-style sliding window over the sefer's lines,
+        - "verse" (default, recommended): one card per pasuq starting on
+          the 'ammud, word-precise at any line it shares with the pasuq
+          just before/after (see :mod:`ankipasuk.verse_cards`) -- only that
+          pasuq's own words are tested; a neighbour's words on the same
+          line show as plain context. Exactly one extra line before as
+          context. ``context_lines``/``recite_lines``/``group_size`` are
+          ignored.
+        - "row": the AnkiLPCG-style sliding window over the 'ammud's lines,
           tuned by ``context_lines``/``recite_lines``/``group_size`` (see
           :func:`ankipasuk.lpcg.build_lpcg_fields`).
 
@@ -763,71 +696,26 @@ class Api:
         (:data:`ankipasuk.lpcg.MODEL_NAME`) is created if missing.
         """
         try:
-            notes, n_aliyot = self._tiqqun_aliyot_notes(
-                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
-                card_division, context_lines, recite_lines, group_size,
-            )
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
-            return {"ok": False, "error": str(e)}
-        result = self._push_lpcg_notes(notes, deck_name)
-        if result["ok"]:
-            result["aliyot"] = n_aliyot
-        elif result["error"] == "No text was found to export.":
-            result["error"] = "No 'aliyyot with text were found in that range."
-        return result
-
-    def export_aliyot_csv(
-        self, book: str, start_parasha: str, start_aliyah: int, end_parasha: str, end_aliyah: int,
-        deck_name: str, card_division: str = "verse", context_lines: int = 2,
-        recite_lines: int = 1, group_size: int = 1,
-    ) -> dict:
-        """Like export_aliyot_to_anki, but saved as a CSV to import."""
-        try:
-            notes, _n = self._tiqqun_aliyot_notes(
-                book, start_parasha, start_aliyah, end_parasha, end_aliyah,
-                card_division, context_lines, recite_lines, group_size,
-            )
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
-            return {"ok": False, "error": str(e)}
-        return self._write_tiqqun_csv(notes, deck_name, "tiqqun_aliyyot.csv")
-
-    def export_amud_to_anki(
-        self,
-        amud_num: int,
-        deck_name: str,
-        card_division: str = "verse",
-        context_lines: int = 2,
-        recite_lines: int = 1,
-        group_size: int = 1,
-    ) -> dict:
-        """Send the tiqqun cards for 'ammud ``amud_num`` (1-245, see
-        :data:`ankipasuk.tikkun.TOTAL_AMUDIM`) to ``deck_name``: in pasuq
-        mode one card per pasuq starting on it (via
-        :func:`ankipasuk.verse_cards.build_amud_verse_cards`), in row mode
-        the whole 'ammud as one sliding window. See export_aliyot_to_anki.
-        """
-        try:
             notes, book = self._tiqqun_amud_notes(
                 amud_num, card_division, context_lines, recite_lines, group_size,
             )
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        result = self._push_lpcg_notes(notes, deck_name)
+        deck = tiqqun_ammud_deck(amud_num)
+        result = self._push_lpcg_notes(notes, deck)
         if result["ok"]:
-            result["amud"] = amud_num
-            result["book"] = book
+            result.update(amud=amud_num, book=book, deck=deck)
         elif result["error"] == "No text was found to export.":
             result["error"] = f"'Ammud {amud_num} has no text."
         return result
 
     def export_amud_csv(
-        self, amud_num: int, deck_name: str, card_division: str = "verse", context_lines: int = 2,
+        self, amud_num: int, card_division: str = "verse", context_lines: int = 2,
         recite_lines: int = 1, group_size: int = 1,
     ) -> dict:
-        """Like export_amud_to_anki, but saved as a CSV to import."""
+        """Like export_amud_to_anki, but saved as a CSV to import (into the
+        same ``Ammudim::NNN`` deck)."""
         try:
             notes, _book = self._tiqqun_amud_notes(
                 amud_num, card_division, context_lines, recite_lines, group_size,
@@ -835,7 +723,7 @@ class Api:
         except (RuntimeError, ValueError) as e:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        return self._write_tiqqun_csv(notes, deck_name, f"tiqqun_ammud_{amud_num:03d}.csv")
+        return self._write_tiqqun_csv(notes, tiqqun_ammud_deck(amud_num), f"tiqqun_ammud_{amud_num:03d}.csv")
 
     # =============================================================
     #  Secondary windows
