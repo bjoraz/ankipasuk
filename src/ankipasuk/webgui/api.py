@@ -77,9 +77,9 @@ from ..tikkun import (
     FONT_ANKI_FILENAME,
     get_amud_lines,
     get_book_for_page,
+    get_book_verses_on_amud,
     get_font_base64,
     get_scroll_lines_for_range,
-    get_verses_starting_on_amud,
 )
 from ..tiqqun_export import content_key as tiqqun_content_key
 from ..tiqqun_export import csv_text as tiqqun_csv_text
@@ -628,46 +628,38 @@ class Api:
             return {"ok": False, "error": str(e)}
         return {"ok": True, "count": len(notes), "path": target}
 
-    def _tiqqun_notes(
-        self, book: str, fields_list: list[dict], verse_refs: list[tuple[int, int]] | None,
-        tags: list[str], context: dict,
-    ) -> list[dict]:
-        """``{"fields", "tags", "key"}`` per card. In pasuq mode
-        (``verse_refs`` given, one per card) each card also gets its
-        pasuq's qeriya tags, as the cloze export does."""
-        notes = []
-        for i, fields in enumerate(fields_list):
-            if verse_refs is not None and len(verse_refs) == len(fields_list):
-                ch, vs = verse_refs[i]
-                key = tiqqun_pasuq_key(book, ch, vs)
-                note_tags = tags + [t for t in qeriya_tags(context, book, ch, vs) if t not in tags]
-            elif fields.get("Line"):
-                key, note_tags = tiqqun_row_key(fields["Line"]), list(tags)
-            else:
-                key, note_tags = tiqqun_content_key(fields), list(tags)
-            notes.append({"fields": fields, "tags": note_tags, "key": key})
-        return notes
-
     def _tiqqun_amud_notes(
         self, amud_num: int, card_division: str, context_lines: int, recite_lines: int, group_size: int,
-    ) -> tuple[list[dict], str]:
-        """The tiqqun notes for one 'ammud (sefer column), and its book. A
-        sefer starts each book on a fresh column, so an 'ammud is always
-        within one book. Raises RuntimeError/ValueError."""
-        book = get_book_for_page(amud_num, self._cache)
-        title = f"{BOOK_HEBREW_NAMES.get(book, book)} 'Ammud {amud_num}"
+    ) -> list[dict]:
+        """The tiqqun notes for one 'ammud (sefer column). An 'ammud can hold
+        the end of one book and the start of the next (111, 148, 200), so
+        each pasuq card gets its own book's title, tags and identity.
+        Raises RuntimeError/ValueError."""
         tags = [tiqqun_ammud_tag(amud_num)]
+
+        def title(*books: str) -> str:
+            return f"{'–'.join(BOOK_HEBREW_NAMES.get(b, b) for b in books)} 'Ammud {amud_num}"
+
         if card_division == "verse":
-            verse_refs = get_verses_starting_on_amud(amud_num, self._cache)
-            fields_list = build_amud_verse_cards(book, amud_num, self._cache, title=title)
-        else:
-            verse_refs = None
-            fields_list = build_lpcg_fields(
-                get_amud_lines(amud_num, self._cache), title=title, context_lines=context_lines,
-                recite_lines=recite_lines, group_size=group_size,
-            )
-        context = qeriya_context({book}, self._cache)
-        return self._tiqqun_notes(book, fields_list, verse_refs, tags, context), book
+            cards = build_amud_verse_cards(amud_num, self._cache, title_for=title)
+            context = qeriya_context({book for (book, _ch, _vs), _f in cards}, self._cache)
+            return [{
+                "fields": fields,
+                "tags": tags + [t for t in qeriya_tags(context, book, ch, vs) if t not in tags],
+                "key": tiqqun_pasuq_key(book, ch, vs),
+            } for (book, ch, vs), fields in cards]
+        # A row card spans lines, so it carries only the 'ammud's tag; one
+        # straddling two books is titled with both.
+        books = list(dict.fromkeys(book for book, _ch, _vs in get_book_verses_on_amud(amud_num, self._cache)))
+        books = books or [get_book_for_page(amud_num, self._cache)]
+        fields_list = build_lpcg_fields(
+            get_amud_lines(amud_num, self._cache), title=title(*books), context_lines=context_lines,
+            recite_lines=recite_lines, group_size=group_size,
+        )
+        return [{
+            "fields": f, "tags": list(tags),
+            "key": tiqqun_row_key(f["Line"]) if f.get("Line") else tiqqun_content_key(f),
+        } for f in fields_list]
 
     def _tiqqun_ammudim_notes(
         self, ammudim: list[int], card_division: str, context_lines: int, recite_lines: int,
@@ -684,7 +676,7 @@ class Api:
         notes = []
         for n in unique:
             try:
-                ammud_notes, _book = self._tiqqun_amud_notes(
+                ammud_notes = self._tiqqun_amud_notes(
                     n, card_division, context_lines, recite_lines, group_size,
                 )
             except (RuntimeError, ValueError) as e:

@@ -15,6 +15,7 @@ from ankipasuk.tikkun import (
     get_amud_lines,
     get_amud_row_fragments,
     get_book_for_page,
+    get_book_verses_on_amud,
     get_preceding_row,
     get_preceding_row_fragments,
     get_row_fragments_for_range,
@@ -585,3 +586,23 @@ def test_get_verses_starting_on_amud_rejects_out_of_range_amud(tmp_path):
         get_verses_starting_on_amud(0, cache)
     with pytest.raises(ValueError, match="between 1 and 245"):
         get_verses_starting_on_amud(TOTAL_AMUDIM + 1, cache)
+
+
+def test_an_ammud_holding_the_end_of_one_book_and_the_start_of_the_next(tmp_path):
+    # As 'ammud 111 does: Shemot ends, then Vayyiqra begins on the same page.
+    # tikkun.io's page entries give only chapter:verse; the book comes from
+    # which book's table of contents puts that pasuq on this 'ammud.
+    toc = {
+        "2": {"40": {"38": {"p": 1, "l": 1}}, "1": {"1": {"p": 9, "l": 1}}},
+        "3": {"1": {"1": {"p": 1, "l": 3}, "2": {"p": 1, "l": 4}}},
+    }
+    pages = {1: [
+        _line("אאא", verses=[{"chapter": 40, "verse": 38}]),
+        _line(""),
+        _line("בבב", verses=[{"chapter": 1, "verse": 1}]),
+        _line("גגג", verses=[{"chapter": 1, "verse": 2}]),
+    ]}
+    cache = _seed(tmp_path, toc, pages)
+    assert get_book_verses_on_amud(1, cache) == [
+        ("Exodus", 40, 38), ("Leviticus", 1, 1), ("Leviticus", 1, 2),
+    ]

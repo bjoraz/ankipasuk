@@ -56,15 +56,18 @@ then discarded from the output.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from itertools import groupby
+
 from .cache import SefariaCache
 from .config import POINTED_VERSION
 from .lpcg import BEGINNING_MARKER, box_width_from_char_counts
 from .sefaria import fetch_torah_range
 from .tikkun import (
     get_amud_row_fragments,
+    get_book_verses_on_amud,
     get_preceding_row_fragments,
     get_row_fragments_for_range,
-    get_verse_row_indices_on_amud,
     leading_verses_needing_alignment,
 )
 
@@ -420,15 +423,22 @@ def build_verse_cards(
 
 
 def build_amud_verse_cards(
-    book: str, amud_num: int, cache: SefariaCache, *, title: str, author: str = "",
-) -> list[dict[str, str]]:
+    amud_num: int, cache: SefariaCache, *, title_for: Callable[[str], str], author: str = "",
+) -> list[tuple[tuple[str, int, int], dict[str, str]]]:
     """The cache-driven entry point for a single 'ammud: one card per verse
-    that starts on it (see :func:`ankipasuk.tikkun.get_verses_starting_on_amud`),
-    via :func:`_build_from_verse_refs` -- so the 'ammud's own first card is
+    that starts on it, as ``((book, chapter, verse), fields)`` (see
+    :func:`ankipasuk.tikkun.get_book_verses_on_amud`), via
+    :func:`_build_from_verse_refs` -- so the 'ammud's own first card is
     just as word-precise as any other, even when its own first tagged row
     also carries a bleed word or two from whatever verse came right
     before it (which, since this is the 'ammud's OWN first tagged verse,
     always started on an earlier 'ammud when it exists at all).
+
+    An 'ammud that holds the end of one book and the start of the next
+    (111, 148, 200) is built one book at a time, each pasuq aligned
+    against its own book's text; ``title_for(book)`` gives each card's
+    title, and the cards are numbered (``Sequence``) through the whole
+    'ammud.
 
     Symmetrically, this 'ammud's own LAST card can reach past this 'ammud's
     own last row too, when that verse's own tail crosses onto the NEXT
@@ -446,11 +456,14 @@ def build_amud_verse_cards(
     for whatever a crossed-over verse's tail needs.
     """
     all_rows = get_amud_row_fragments(amud_num, cache)
-    verse_row_indices = get_verse_row_indices_on_amud(amud_num, cache)
-    if not verse_row_indices:
-        return []
-
-    verse_refs = [vs for vs, _row_index in verse_row_indices]
-    return _build_from_verse_refs(
-        book, verse_refs, cache, title=title, author=author, box_width_rows=all_rows,
-    )
+    cards = []
+    for book, run in groupby(get_book_verses_on_amud(amud_num, cache), key=lambda ref: ref[0]):
+        run = list(run)
+        fields_list = _build_from_verse_refs(
+            book, [(ch, vs) for _book, ch, vs in run], cache,
+            title=title_for(book), author=author, box_width_rows=all_rows,
+        )
+        cards += zip(run, fields_list)
+    for seq, (_ref, fields) in enumerate(cards, start=1):
+        fields["Sequence"] = str(seq)
+    return cards

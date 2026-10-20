@@ -28,7 +28,7 @@ from .config import TORAH_VERSE_COUNTS
 from .lpcg import FIELD_NAMES, MODEL_NAME
 from .qeriya import parse_range_ref
 from .sefaria import get_chapter_lengths
-from .tikkun import get_book_for_page, get_verses_starting_on_amud
+from .tikkun import get_book_verses_on_amud
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _TITLE_RANGE_RE = re.compile(r"\(([^()]+)\)\s*$")
@@ -75,9 +75,9 @@ def existing_note_key(fields: dict[str, str], tags: list[str], cache: SefariaCac
 
     ammud = next((t.split("::", 1)[1] for t in tags if t.lower().startswith(("ammud::", "amud::"))), None)
     if ammud and ammud.isdigit():
-        refs = get_verses_starting_on_amud(int(ammud), cache)
+        refs = get_book_verses_on_amud(int(ammud), cache)  # an 'ammud can hold two books
         if seq <= len(refs):
-            return pasuq_key(get_book_for_page(int(ammud), cache), *refs[seq - 1])
+            return pasuq_key(*refs[seq - 1])
         return None
 
     m = _TITLE_RANGE_RE.search(fields.get("Title", ""))

@@ -483,11 +483,11 @@ TOTAL_AMUDIM = 245
 
 
 def get_book_for_page(page_num: int, cache: SefariaCache) -> str:
-    """Which of the 5 Tora books 'ammud ``page_num`` falls in.
+    """The Tora book 'ammud ``page_num`` starts in.
 
-    A sefer always starts each of the 5 books (Ḥummashim) at
-    the top of a fresh column -- so an 'ammud can never straddle two books,
-    and this always has a single unambiguous answer.
+    Three 'ammudim (111, 148, 200) also hold the start of the next book,
+    after the four blank lines between books; see
+    :func:`get_book_verses_on_amud` for which pasuq is in which book.
     """
     if not (1 <= page_num <= TOTAL_AMUDIM):
         raise ValueError(f"'Ammud must be between 1 and {TOTAL_AMUDIM} (got {page_num}).")
@@ -561,6 +561,25 @@ def get_verses_starting_on_amud(amud_num: int, cache: SefariaCache) -> list[tupl
     row/verse-boundary overlap.
     """
     return [vs for vs, _row_index in get_verse_row_indices_on_amud(amud_num, cache)]
+
+
+def get_book_verses_on_amud(amud_num: int, cache: SefariaCache) -> list[tuple[str, int, int]]:
+    """Like :func:`get_verses_starting_on_amud`, but with each pasuq's book:
+    ``(book, chapter, verse)``. tikkun.io's page entries don't say which
+    book a pasuq is in, and an 'ammud can hold the end of one book and the
+    start of the next (111, 148 and 200 do), so the book is the one whose
+    table of contents puts that pasuq on this 'ammud."""
+    toc = get_toc(cache)
+    out = []
+    for ch, vs in get_verses_starting_on_amud(amud_num, cache):
+        book = next((
+            b for b, num in TIKKUN_BOOK_NUMBERS.items()
+            if toc.get(str(num), {}).get(str(ch), {}).get(str(vs), {}).get("p") == amud_num
+        ), None)
+        if book is None:
+            raise ValueError(f"'Ammud {amud_num}: no book has {ch}:{vs} on this 'ammud.")
+        out.append((book, ch, vs))
+    return out
 
 
 def get_verse_row_indices_on_amud(amud_num: int, cache: SefariaCache) -> list[tuple[tuple[int, int], int]]:
