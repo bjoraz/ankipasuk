@@ -401,6 +401,47 @@ CSS = f"""\
     font-size: small;
     direction: ltr;
 }}
+
+/* Answer side: hovering (or tapping, on a phone) a word shows it with its
+   niqqud and ta'amim, above the word. Only the Back's words carry the
+   data (see verse_cards._words_html). The STAM font has no niqqud, so the
+   pop-up uses an ordinary pointed Hebrew font. */
+.lines .w {{
+    position: relative;
+    cursor: help;
+}}
+
+.lines .w:hover {{
+    background-color: rgba(255, 220, 0, 0.25);
+    border-radius: 2px;
+}}
+
+.lines .w:hover::after {{
+    content: attr(data-p);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    direction: rtl;
+    font-family: "SBL Hebrew", "Taamey Frank CLM", "Ezra SIL", "Noto Serif Hebrew", serif;
+    font-size: 1.4em;
+    line-height: 1.6;
+    color: black;
+    background: #fffbe6;
+    border: 1px solid #c8b560;
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    pointer-events: none;
+}}
+
+.nightMode .lines .w:hover::after {{
+    color: #eee;
+    background: #333;
+    border-color: #776;
+}}
 """
 
 

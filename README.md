@@ -208,6 +208,9 @@ card tests that pasuq's words and nothing more:
   next one.
 - A pasuq that runs over onto the next 'ammud gets a visible "['Ammud N]"
   divider where the column changes.
+- On the answer side, hovering a word (tapping it, on a phone) shows it
+  with its niqqud and ta'amim; a ketiv shows its qere, in braces. The
+  next pasuq's covered words don't.
 
 The alignment also works backwards. If the first pasuq you asked for starts
 in the middle of a line, it steps back to the last petuḥa (the last point

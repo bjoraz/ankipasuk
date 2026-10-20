@@ -25,6 +25,7 @@ from ankipasuk.tikkun import (
     leading_verses_needing_alignment,
     scroll_plain_text,
     scroll_pointed_text,
+    scroll_words,
 )
 
 BOOK = "Genesis"
@@ -619,3 +620,39 @@ def test_blank_lines_between_books_are_kept_only_when_asked(tmp_path):
     assert len(get_amud_lines(1, cache)) == 2
     lines = get_amud_lines(1, cache, keep_blank=True)
     assert len(lines) == 3 and lines[1]["char_count"] == 0 and lines[1]["is_petucha"]
+
+
+def test_scroll_words_pair_each_plain_word_with_its_pointed_form():
+    words = scroll_words("בְּרֵאשִׁ֖ית בָּרָ֣א")
+    assert words == ["בראשית", "ברא"]
+    assert [w.pointed for w in words] == ["בְּרֵאשִׁ֖ית", "בָּרָ֣א"]
+
+
+def test_scroll_words_split_a_maqaf_compound_into_its_halves():
+    words = scroll_words("עַל־פְּנֵ֣י תְה֑וֹם")
+    assert words == ["על", "פני", "תהום"]
+    assert [w.pointed for w in words] == ["עַל־", "פְּנֵ֣י", "תְה֑וֹם"]
+
+
+def test_scroll_words_attach_a_lone_mark_to_the_word_before():
+    words = scroll_words("וַיִּקְרָ֨א ׀ לְמֹשֶׁ֜ה")
+    assert words == ["ויקרא", "למשה"]
+    assert words[0].pointed == "וַיִּקְרָ֨א ׀"
+
+
+def test_scroll_words_a_compound_running_into_the_next_word():
+    words = scroll_words("וְאֶת־כׇּל־")
+    assert words == ["ואת", "כל"]
+    assert [w.pointed for w in words] == ["וְאֶת־", "כׇּל־"]
+
+
+def test_scroll_words_a_ketiv_is_pointed_with_its_qere_even_across_a_space():
+    words = scroll_words("לֵאָ֖ה בגד#[בָּ֣א גָ֑ד] וַתִּקְרָ֥א")
+    assert words == ["לאה", "בגד", "ותקרא"]
+    assert words[1].pointed == "{בָּ֣א גָ֑ד}"
+
+
+def test_scroll_words_an_inverted_nun_and_its_word_each_get_their_own():
+    words = scroll_words("(׆)#וַיְהִ֛י")
+    assert words == ["׆", "ויהי"]
+    assert [w.pointed for w in words] == ["׆", "וַיְהִ֛י"]

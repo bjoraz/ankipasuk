@@ -380,3 +380,21 @@ def test_no_amud_break_against_the_beginning_marker():
     rows = [([["a"]], False, 1)]
     fields = build_verse_cards_from_words(rows, [(1, 1)], [1], None, title="T", box_width="5ch")
     assert "amud-break" not in fields[0]["BackRows"]
+
+
+def test_answer_side_words_show_their_pointing_on_hover_and_the_question_side_does_not():
+    from ankipasuk.tikkun import Word
+
+    rows = [([[Word("בראשית", "בְּרֵאשִׁ֖ית"), Word("ברא", "בָּרָ֣א")]], False, 1)]
+    (card,) = build_verse_cards_from_words(rows, [(1, 1)], [2], None, title="t", box_width="10ch")
+    assert '<span class="w" data-p="בְּרֵאשִׁ֖ית">בראשית</span>' in card["BackRows"]
+    assert "data-p" not in card["FrontRows"]
+
+
+def test_masked_next_pasuq_words_get_no_hover():
+    from ankipasuk.tikkun import Word
+
+    rows = [([[Word("אאא", "אַאַא"), Word("בבב", "בַּבַּב")]], False, 1)]
+    cards = build_verse_cards_from_words(rows, [(1, 1)], [1, 1], None, title="t", box_width="10ch")
+    assert 'data-p="אַאַא"' in cards[0]["BackRows"]
+    assert 'data-p="בַּבַּב"' not in cards[0]["BackRows"]  # the next pasuq's word, masked

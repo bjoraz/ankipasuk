@@ -57,6 +57,7 @@ then discarded from the output.
 from __future__ import annotations
 
 from collections.abc import Callable
+from html import escape
 from itertools import groupby
 
 from .cache import SefariaCache
@@ -178,6 +179,20 @@ def segment_rows_by_verse(rows: list[Row], verse_word_counts: list[int]) -> list
     return per_verse
 
 
+def _words_html(words: list[str], *, hover: bool) -> str:
+    """Words joined by spaces. With ``hover`` (the answer side), a word
+    that knows its pointed form (:class:`ankipasuk.tikkun.Word`) is
+    wrapped so hovering it shows that form (see ``.w`` in
+    :mod:`ankipasuk.lpcg`'s CSS)."""
+    if not hover:
+        return " ".join(words)
+    return " ".join(
+        f'<span class="w" data-p="{escape(word.pointed)}">{word}</span>'
+        if getattr(word, "pointed", None) else word
+        for word in words
+    )
+
+
 def _render_row_html(fragment_htmls: list[str], *, is_petucha: bool) -> str:
     """The shared ``.line`` > ``.column`` > ``.fragment`` markup
     :mod:`ankipasuk.tikkun`'s own ``_render_line`` uses (see that
@@ -223,9 +238,9 @@ def _render_split_fragment(seg: dict[str, list[str]], *, revealed: bool) -> str:
     """
     parts = []
     if seg["leading"]:
-        parts.append(" ".join(seg["leading"]))
+        parts.append(_words_html(seg["leading"], hover=revealed))
     if seg["own"]:
-        cloze_text = " ".join(seg["own"])
+        cloze_text = _words_html(seg["own"], hover=revealed)
         css_class = "cloze-inline" if revealed else "cloze-inline redacted"
         parts.append(f'<span class="{css_class}">{cloze_text}</span>')
     if seg["trailing"]:
@@ -269,7 +284,7 @@ def _render_own_rows(own_rows: list[dict], *, revealed: bool, starting_page_num:
     return "".join(parts)
 
 
-def _render_whole_row(row: Row) -> str:
+def _render_whole_row(row: Row, *, hover: bool = False) -> str:
     """A whole, unsplit row rendered as plain context -- used for the
     extra "one row before" lookback (see build_verse_cards_from_words),
     which -- except possibly for the very first verse in the whole range
@@ -277,7 +292,7 @@ def _render_whole_row(row: Row) -> str:
     so needs no word-level splitting of its own (its own fragment/gap
     structure is still preserved, though -- see :func:`_render_row_html`)."""
     fragments, is_petucha, _page_num = row
-    fragment_htmls = [" ".join(frag) for frag in fragments]
+    fragment_htmls = [_words_html(frag, hover=hover) for frag in fragments]
     return _render_row_html(fragment_htmls, is_petucha=is_petucha)
 
 
@@ -329,20 +344,21 @@ def build_verse_cards_from_words(
 
         if first_row_index is not None and first_row_index > 0:
             context_row = rows[first_row_index - 1]
-            context_html = _render_whole_row(context_row)
-            context_page_num = context_row[2]
-        elif preceding_row is not None:
-            context_html = _render_whole_row(preceding_row)
-            context_page_num = preceding_row[2]
         else:
-            context_html = f'<div class="line beginning-marker">{BEGINNING_MARKER}</div>'
+            context_row = preceding_row
+        if context_row is not None:
+            context_html = _render_whole_row(context_row)
+            back_context_html = _render_whole_row(context_row, hover=True)
+            context_page_num = context_row[2]
+        else:
+            context_html = back_context_html = f'<div class="line beginning-marker">{BEGINNING_MARKER}</div>'
             context_page_num = None  # no real row to compare an 'ammud break against
 
         fields.append({
             "FrontRows": context_html + _render_own_rows(
                 own_rows, revealed=False, starting_page_num=context_page_num,
             ),
-            "BackRows": context_html + _render_own_rows(
+            "BackRows": back_context_html + _render_own_rows(
                 own_rows, revealed=True, starting_page_num=context_page_num,
             ),
             "Title": title,

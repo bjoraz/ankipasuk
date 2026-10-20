@@ -155,6 +155,59 @@ def scroll_pointed_text(fragment: str) -> str:
     return text.replace("[", "{").replace("]", "}")
 
 
+_RAW_WORD_RE = re.compile(r"\S*\[[^\]]*\]\S*|\S+")
+
+
+class Word(str):
+    """A plain scroll word (see :func:`scroll_plain_text`) that also knows
+    its pointed form, niqqud and ta'amim included, or ``None`` -- for the
+    tiqqun cards' answer side, where hovering a word shows how it's
+    pointed (see :mod:`ankipasuk.verse_cards`). Everywhere else it is just
+    the plain word: it compares, counts and joins like any string."""
+
+    pointed: str | None
+
+    def __new__(cls, plain: str, pointed: str | None = None):
+        word = super().__new__(cls, plain)
+        word.pointed = pointed
+        return word
+
+
+def scroll_words(fragment: str) -> list[Word]:
+    """``scroll_plain_text(fragment).split()``, each word paired with its
+    pointed form. Pointing goes word by word through the raw text: a
+    maqaf compound (עַל־פְּנֵי) is two plain words, each getting its own
+    half; a mark standing on its own (a pesiq) joins the word before it.
+    A ketiv's pointed form is its qere, in braces as tikkun.io shows it --
+    how the word is read. If the pairing doesn't reproduce the plain words
+    exactly, the words come back unpointed rather than wrongly pointed."""
+    plain = scroll_plain_text(fragment).split()
+    words: list[Word] = []
+    # A qere annotation can span words ("בגד#[בָּ֣א גָ֑ד]"): keep it whole.
+    for raw in _RAW_WORD_RE.findall(fragment):
+        parts = scroll_plain_text(raw).split()
+        pointed = scroll_pointed_text(raw).strip()
+        if not parts:
+            if words and pointed:
+                words[-1] = Word(words[-1], f"{words[-1].pointed} {pointed}")
+            continue
+        # A compound can run on into the next word (וְאֶת־כׇּל־): set the
+        # trailing maqaf aside so the halves line up with the plain words.
+        run_on = "־" if pointed.endswith("־") else ""
+        halves = pointed.removesuffix("־").split("־")
+        spaced = pointed.split()  # e.g. an inverted nun and its word ("׆ וַיְהִ֛י")
+        if len(halves) == len(parts):
+            pointed_parts = [half + "־" for half in halves[:-1]] + [halves[-1] + run_on]
+        elif len(spaced) == len(parts):
+            pointed_parts = spaced
+        else:
+            pointed_parts = [pointed] * len(parts)
+        words += [Word(p, q) for p, q in zip(parts, pointed_parts)]
+    if words != plain:
+        return [Word(w) for w in plain]
+    return words
+
+
 def _render_line(entry: dict, *, pointed: bool = False) -> dict | None:
     """Render one page-line entry into ``{"html": ..., "is_petucha": ...,
     "char_count": ...}``, using the same ``<div class="column"><span
@@ -432,7 +485,7 @@ def _row_fragments(entry: dict, page_num: int) -> tuple[list[list[str]], bool, i
     fragments: list[list[str]] = []
     for column in entry["text"]:
         for frag in column:
-            words = scroll_plain_text(frag).split()
+            words = scroll_words(frag)
             if words:
                 fragments.append(words)
     return fragments, bool(entry.get("isPetucha")), page_num

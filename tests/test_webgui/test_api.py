@@ -9,6 +9,8 @@ and stamped per-verse with "book" rather than tracked as a single
 Api-wide _current_book) threaded through correctly between calls.
 """
 
+import re
+
 from ankipasuk.cache import SefariaCache
 from ankipasuk.config import POINTED_VERSION
 from ankipasuk.lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
@@ -392,6 +394,11 @@ def _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch):
     api._cache.set_tikkun_font("ZmFrZS1mb250")  # avoid a real network fetch
 
 
+def _without_hover(html):
+    """The answer side minus its per-word hover spans (verse_cards._words_html)."""
+    return re.sub(r'<span class="w" data-p="[^"]*">([^<]*)</span>', r"\1", html)
+
+
 def test_verse_cards_share_a_boundary_row(tmp_path, monkeypatch):
     api = Api()
     _seed_two_verses_sharing_a_row(api, tmp_path, monkeypatch)
@@ -399,7 +406,7 @@ def test_verse_cards_share_a_boundary_row(tmp_path, monkeypatch):
     # Through the cache, as the 'ammud export builds them.
     cards = build_verse_cards("Genesis", [(1, 1), (1, 2)], api._cache, title="t")
     assert len(cards) == 2  # one card per verse, not per row
-    back_rows = sorted(c["BackRows"] for c in cards)
+    back_rows = sorted(_without_hover(c["BackRows"]) for c in cards)
     # Verse 1's card tests only its own word ("אאא") -- verse 2's word on
     # that same row ("בבב") still occupies the row (a real sefer
     # doesn't blank out the next verse's opening word), but must be
@@ -462,7 +469,7 @@ def test_verse_cards_exclude_a_prior_verses_bleed_from_the_first_card(
 
     # Only verse 2 is asked for; verse 1 shares its first line.
     (card,) = build_verse_cards("Genesis", [(1, 2)], api._cache, title="t")
-    back_rows = card["BackRows"]
+    back_rows = _without_hover(card["BackRows"])
 
     # Verse 2's own tested content is ONLY its own 2 words -- verse 1's
     # word, sharing the same row, must show as plain context, never as
