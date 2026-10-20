@@ -53,9 +53,9 @@ def test_compute_maftir_range_same_chapter():
 
 
 def test_compute_maftir_range_crosses_chapter_boundary():
-    # Vayyetse: 'aliyya 7 ends 32:2 (Jewish/Sefaria numbering), maftir is 3
-    # verses -> crosses back into chapter 31 -> 31:55-32:2.
-    assert qr.compute_maftir_range("Genesis", (32, 2), 3) == (31, 55, 32, 2)
+    # Walking 3 pesuqim back from 32:2 crosses into chapter 31, which has
+    # 54 pesuqim in the Hebrew numbering -> 31:54-32:2.
+    assert qr.compute_maftir_range("Genesis", (32, 2), 3) == (31, 54, 32, 2)
 
 
 def test_chapter_counts_override_changes_verse_index():
@@ -64,14 +64,14 @@ def test_chapter_counts_override_changes_verse_index():
     the static table, since production tagging relies on this to stay
     correct if Sefaria's live chapter structure ever differs from the
     static snapshot (this is exactly what happened at Genesis 31/32)."""
-    static_idx = qr.verse_index("Genesis", 32, 1)  # uses the static table (31 has 55 verses)
+    static_idx = qr.verse_index("Genesis", 32, 1)  # uses the static table (31 has 54 verses)
 
-    # A live count where chapter 31 has only 54 verses instead of 55.
+    # A live count where chapter 31 has 55 verses, as English Bibles number it.
     live_counts = list(qr.TORAH_VERSE_COUNTS["Genesis"])
-    live_counts[30] = 54  # chapter 31 (0-indexed)
+    live_counts[30] = 55  # chapter 31 (0-indexed)
     live_idx = qr.verse_index("Genesis", 32, 1, chapter_counts=live_counts)
 
-    assert live_idx == static_idx - 1
+    assert live_idx == static_idx + 1
     # And the round trip works with the override too.
     assert qr.verse_from_index("Genesis", live_idx, chapter_counts=live_counts) == (32, 1)
 
@@ -81,15 +81,14 @@ def test_compute_maftir_range_uses_chapter_counts_override():
     static table, the maftir backward-walk must reflect the live value,
     not silently compute an off-by-one range."""
     live_counts = list(qr.TORAH_VERSE_COUNTS["Genesis"])
-    live_counts[30] = 54  # chapter 31 has 54 verses in this (hypothetical) live count
+    live_counts[30] = 55  # chapter 31 has 55 verses in this (hypothetical) live count
 
-    # With the override, verse_index for (32, 2) is one less than with the
-    # static table, so walking back the same 3 verses lands one verse
-    # earlier throughout -- but still correctly straddles the boundary.
+    # With the override, walking back the same 3 verses from (32, 2) lands
+    # on 31:55 instead of 31:54 -- still correctly straddling the boundary.
     result = qr.compute_maftir_range("Genesis", (32, 2), 3, chapter_counts=live_counts)
     static_result = qr.compute_maftir_range("Genesis", (32, 2), 3)
     assert result != static_result
-    assert result == (31, 54, 32, 2)  # one verse earlier than the static-table answer
+    assert result == (31, 55, 32, 2)
 
 
 def test_parasha_table_genesis_matches_known_slugs():
@@ -158,14 +157,14 @@ def test_tags_for_verse_full_aliyah_and_maftir_for_bereshit():
     )
 
 
-def test_tags_for_verse_vayetzei_maftir_crosses_chapter_boundary():
-    # Vayyetse is the 7th parasha of Genesis (rel=7). 'Aliyya 7 real end is
-    # 32:2 in Jewish/Sefaria numbering; maftir is 3 verses -> 31:55-32:2.
-    refs = ["Genesis 1:1"] * 6 + ["Genesis 31:43-32:2"]
+def test_tags_for_verse_vayetzei_maftir_is_the_last_three_pesuqim():
+    # Vayyetse is the 7th parasha of Genesis (rel=7). 'Aliyya 7 ends at
+    # 32:3 in the Hebrew numbering (Sefaria's); maftir is 3 verses -> 32:1-32:3.
+    refs = ["Genesis 1:1"] * 6 + ["Genesis 31:43-32:3"]
     sefaria_parashot = _fake_sefaria_parashot({"vayyetse": refs})
     intervals = qr.build_parasha_intervals("Genesis", sefaria_parashot)
 
-    for ch, vs in [(31, 55), (32, 1), (32, 2)]:
+    for ch, vs in [(32, 1), (32, 2), (32, 3)]:
         assert "aliyya::bereshit::07-vayyetse::maftir" in qr.tags_for_verse(
             "Genesis", ch, vs, intervals, []
         )
@@ -259,3 +258,18 @@ def test_every_weekly_and_holiday_rename_targets_a_tag_the_tagger_generates():
     targets = {v for k, v in renames.items() if k.startswith(("aliyah::", "holiday::"))}
     assert targets <= generated
     assert "aliyah::devarim::11-vezot_haberakhah::maftir" not in renames  # no maftir in the table
+
+
+def test_the_static_chapter_table_uses_the_hebrew_numbering():
+    # Sefaria and tikkun.io both number these chapters the Hebrew way;
+    # English Bibles split them differently, and a table following them
+    # made tikkun.io lookups fail at those boundaries (KeyError).
+    from ankipasuk.config import TORAH_VERSE_COUNTS as c
+
+    assert (c["Genesis"][30], c["Genesis"][31]) == (54, 33)
+    assert (c["Exodus"][6], c["Exodus"][7]) == (29, 28)
+    assert (c["Exodus"][19], c["Exodus"][20], c["Exodus"][21]) == (23, 37, 30)
+    assert (c["Leviticus"][4], c["Leviticus"][5]) == (26, 23)
+    assert (c["Numbers"][15], c["Numbers"][16]) == (35, 28)
+    assert c["Deuteronomy"][4] == 30
+    assert [sum(c[b]) for b in c] == [1533, 1210, 859, 1288, 956]
