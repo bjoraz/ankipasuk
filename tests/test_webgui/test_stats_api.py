@@ -39,11 +39,14 @@ def test_get_distributions_on_empty_data_returns_empty_dict():
     assert sapi.get_summary() == "No verses to analyze."
 
 
-def test_get_trope_frequency_sorted_descending(genesis_1_1, genesis_1_2):
+def test_get_trope_frequency_by_rank_then_count_with_hebrew_names(genesis_1_1, genesis_1_2):
     sapi = StatsApi(_verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)]), max_leaf_disj=2)
     tropes = sapi.get_trope_frequency()
-    counts = [t["count"] for t in tropes]
-    assert counts == sorted(counts, reverse=True)
+    order = [(t["rank"], -t["count"]) for t in tropes]
+    assert order == sorted(order)
+    by_name = {t["name"]: t for t in tropes}
+    assert by_name["Sof pasuq"]["rank"] == 1
+    assert by_name["Sof pasuq"]["hebrew"] == "סוף פסוק"
 
 
 def test_get_structure_by_word_count_groups_correctly(genesis_1_1):
@@ -62,6 +65,9 @@ def test_get_structure_summary_ranked_by_frequency(genesis_1_1, genesis_1_2):
     sapi = StatsApi(verse_data, max_leaf_disj=2)
     summary = sapi.get_structure_summary()
     assert summary[0]["count"] == 3  # genesis_1_1's shape appears 3 times, must be first
+    # Each shape is shown as its first pasuq's diagram.
+    assert summary[0]["example"]["ref"] == "Bereshit 1:1"
+    assert summary[0]["example"]["diagram"]["units"]
 
 
 def test_get_chapter_data_shape(genesis_1_1):
@@ -70,6 +76,7 @@ def test_get_chapter_data_shape(genesis_1_1):
     assert data["chapters"][0]["book"] == "Genesis"
     assert data["chapters"][0]["chapter"] == 1
     assert data["chapters"][0]["avg_words"] == 7.0
+    assert data["chapters"][0]["label"] == "Bereshit 1"
 
 
 def test_get_chapter_data_does_not_merge_same_chapter_number_across_books(genesis_1_1, genesis_1_2):

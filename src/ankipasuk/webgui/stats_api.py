@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import webview
 
-from ..config import BOOK_HEBREW_NAMES
+from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, TROPE_HEBREW_NAMES, TROPE_UNICODE
 from ..diagram import pasuq_diagram
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
 from ..structure import (
@@ -27,6 +27,10 @@ def _dist_to_bars(dist, bins, value_formatter=str):
     return [{"key": value_formatter(k), "count": dist[k], "verses": bins[k]} for k in sorted(dist.keys())]
 
 
+# Each mafsiq's rank, by name (the paseq's comes from the legarmeh rule).
+_RANKS = {name: rank for name, rank in TROPE_UNICODE.values() if rank} | {LEGARMEH_NAME: 4}
+
+
 def _our_spelling(label: str) -> str:
     """ "Genesis 1:1" -> "Bereshit 1:1", as the rest of the app writes it."""
     book, _space, ref = label.rpartition(" ")
@@ -40,6 +44,7 @@ class StatsApi:
         self.max_leaf_disj = max_leaf_disj
         self.font_css = font_css  # the STAM font's @font-face, from the main window's Api
         self.stats = compute_corpus_stats(verse_data, max_leaf_disj)
+        self._diagrams: dict[str, dict] = {}
 
     def get_font_css(self) -> str:
         return self.font_css
@@ -48,11 +53,19 @@ class StatsApi:
         """``[{"ref", "diagram"}]`` for the pesuqim labelled ``labels`` (as
         in the verse lookup), in that order, greyed for this window's
         max_leaf_disj -- see ankipasuk.diagram."""
-        lookup, n = self.get_verse_lookup(), self.max_leaf_disj
+        lookup = self.get_verse_lookup()
         return [
-            {"ref": _our_spelling(label), "diagram": pasuq_diagram(lookup[label]["pointed"], n)}
-            for label in labels if label in lookup and lookup[label]["pointed"].strip()
+            self._diagram(label) for label in labels if label in lookup and lookup[label]["pointed"].strip()
         ]
+
+    def _diagram(self, label: str) -> dict:
+        # Each structure tab shows its pesuqim again, so they're made once.
+        if label not in self._diagrams:
+            pointed = self.get_verse_lookup()[label]["pointed"]
+            self._diagrams[label] = {
+                "ref": _our_spelling(label), "diagram": pasuq_diagram(pointed, self.max_leaf_disj)
+            }
+        return self._diagrams[label]
 
     def get_summary(self) -> str:
         return format_stats_summary(self.stats, self.max_leaf_disj)
@@ -82,6 +95,7 @@ class StatsApi:
                 {
                     "book": book,
                     "chapter": ch,
+                    "label": f"{BOOK_HEBREW_NAMES.get(book, book)} {ch}",
                     "avg_words": s["chapter_avg_words"][(book, ch)],
                     "avg_disj": s["chapter_avg_disj"][(book, ch)],
                     "verses": s["chapter_bins"][(book, ch)],
@@ -94,10 +108,20 @@ class StatsApi:
         if self.stats is None:
             return []
         s = self.stats
+        # Rank first (1 to 4), then the most frequent, as the diagram labels them.
         return [
-            {"name": name, "count": count, "verses": s["trope_bins"][name]}
-            for name, count in sorted(s["trope_freq"].items(), key=lambda kv: -kv[1])
+            {"name": name, "hebrew": TROPE_HEBREW_NAMES.get(name, name), "rank": _RANKS.get(name, 0),
+             "count": count, "verses": s["trope_bins"][name]}
+            for name, count in sorted(s["trope_freq"].items(), key=lambda kv: (_RANKS.get(kv[0], 9), -kv[1]))
         ]
+
+    def _structure(self, sig, labels: list[str]) -> dict:
+        """One structure: its signature, how many pesuqim share it, which,
+        and the diagram of the first of them as its example."""
+        return {
+            "label": format_structure(sig), "count": len(labels), "verses": labels,
+            "example": self._diagram(labels[0]),
+        }
 
     def get_structure_by_word_count(self) -> list:
         grouped = group_verses_by_word_count_and_structure(self.verse_data)
@@ -105,7 +129,7 @@ class StatsApi:
             {
                 "axis_value": wc,
                 "structures": [
-                    {"label": format_structure(sig), "count": len(labels), "verses": labels}
+                    self._structure(sig, labels)
                     for sig, labels in sorted(
                         structs.items(), key=lambda kv: (-len(kv[1]), format_structure(kv[0]))
                     )
@@ -120,7 +144,7 @@ class StatsApi:
             {
                 "axis_value": dc,
                 "structures": [
-                    {"label": format_structure(sig), "count": len(labels), "verses": labels}
+                    self._structure(sig, labels)
                     for sig, labels in sorted(
                         structs.items(), key=lambda kv: (-len(kv[1]), format_structure(kv[0]))
                     )
@@ -134,10 +158,7 @@ class StatsApi:
             group_verses_by_structure(self.verse_data).items(),
             key=lambda kv: (-len(kv[1]), format_structure(kv[0])),
         )
-        return [
-            {"label": format_structure(sig), "count": len(labels), "verses": labels}
-            for sig, labels in summary
-        ]
+        return [self._structure(sig, labels) for sig, labels in summary]
 
     def export_csv(self) -> dict:
         if self.stats is None:

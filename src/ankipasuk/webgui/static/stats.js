@@ -122,9 +122,8 @@ async function loadChapterData() {
     let html = "";
     for (const c of data.chapters) {
         const pct = (c.avg_words / maxWords) * 100;
-        const key = `${c.book} ${c.chapter}`;
-        html += `<div class="bar-row" data-verses='${JSON.stringify(c.verses)}' data-key="${key}">
-            <div class="bar-label">${c.book} Ch ${c.chapter}</div>
+        html += `<div class="bar-row" data-verses='${JSON.stringify(c.verses)}' data-key="${escapeHtml(c.label)}">
+            <div class="bar-label wide">${escapeHtml(c.label)}</div>
             <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
             <div class="bar-count">${c.avg_words.toFixed(1)}w / ${c.avg_disj.toFixed(1)}dg</div>
         </div>`;
@@ -133,7 +132,7 @@ async function loadChapterData() {
     for (const row of container.querySelectorAll(".bar-row")) {
         row.addEventListener("click", () => {
             const verses = JSON.parse(row.dataset.verses);
-            showVersePopup(`Chapter ${row.dataset.key}`, verses);
+            showVersePopup(row.dataset.key, verses);
         });
     }
 }
@@ -144,10 +143,20 @@ async function loadChapterData() {
 async function loadTropeFrequency() {
     const tropes = await api().get_trope_frequency();
     const container = document.getElementById("trope-content");
-    let html = "<div>Click a ta'am to see which verses contain it.</div><br>";
+    // Labelled as in the diagrams: Hebrew name, coloured by rank, rank 1 first.
+    const maxCount = Math.max(...tropes.map((t) => t.count), 1);
+    let html = "<div>Click a ta'am to see which verses contain it.</div>";
+    let rank = null;
     for (const t of tropes) {
-        html += `<div class="trope-row" data-verses='${JSON.stringify(t.verses)}' data-name="${t.name}">
-            ${t.name}: ${t.count}</div>`;
+        if (t.rank !== rank) {
+            rank = t.rank;
+            html += `<div class="axis-header">${rank ? `Rank ${rank}` : "Other"}</div>`;
+        }
+        const pct = (t.count / maxCount) * 100;
+        html += `<div class="bar-row trope-row" data-verses='${JSON.stringify(t.verses)}' data-name="${escapeHtml(t.hebrew)}">
+            <div class="bar-label wide"><span class="taam-chip dg-r${t.rank}" title="${escapeHtml(t.name)}">${escapeHtml(t.hebrew)}</span></div>
+            <div class="bar-track"><div class="bar-fill dg-r${t.rank}" style="width:${pct}%"></div></div>
+            <div class="bar-count">${t.count}</div></div>`;
     }
     container.innerHTML = html;
     for (const row of container.querySelectorAll(".trope-row")) {
@@ -161,20 +170,34 @@ async function loadTropeFrequency() {
 // =============================================================
 //  Structure
 // =============================================================
-function renderStructureGroups(container, groups, axisLabel) {
-    let html = "<div>Click a structure to see its verses.</div>";
-    for (const group of groups) {
-        html += `<div class="axis-header">${axisLabel} = ${group.axis_value} (${group.structures.reduce((a, s) => a + s.count, 0)} verses)</div>`;
-        for (const s of group.structures) {
-            html += `<div class="struct-line" data-verses='${JSON.stringify(s.verses)}'>&nbsp;&nbsp;${s.label} &times;${s.count}</div>`;
+// Each structure is drawn as the diagram of its first pasuq, with how many
+// share it; click for them all. Lazily, as the page scrolls: there can be
+// hundreds.
+function structureHtml(s) {
+    if (s.header) return `<div class="axis-header">${escapeHtml(s.header)}</div>`;
+    return `<div class="struct-entry" title="${escapeHtml(s.label)}">`
+        + `<div class="struct-count">&times;${s.count}</div>${diagramHtml(s.example.diagram, s.example.ref)}</div>`;
+}
+
+function renderStructures(container, items) {
+    lazyFill(container, items, structureHtml, (entries) => {
+        for (const el of entries) {
+            const s = items[Number(el.dataset.i)];
+            if (s.header) continue;
+            if (!el.dataset.bound) {
+                el.dataset.bound = "1";
+                el.addEventListener("click", () => showVersePopup(`Structure ×${s.count}`, s.verses));
+            }
         }
-    }
-    container.innerHTML = html;
-    for (const row of container.querySelectorAll(".struct-line")) {
-        row.addEventListener("click", () => {
-            showVersePopup("Structure", JSON.parse(row.dataset.verses));
-        });
-    }
+        drawUnits(entries.flatMap((el) => [...el.querySelectorAll(".dg-inner")]));
+    }, null, true);
+}
+
+function groupedStructures(groups, axisLabel) {
+    return groups.flatMap((g) => [
+        { header: `${axisLabel} = ${g.axis_value} (${g.structures.reduce((a, s) => a + s.count, 0)} verses)` },
+        ...g.structures,
+    ]);
 }
 
 async function loadStructure() {
@@ -182,19 +205,11 @@ async function loadStructure() {
 
     async function showSubtab(key) {
         if (key === "by-word-count") {
-            renderStructureGroups(container, await api().get_structure_by_word_count(), "Words in verse");
+            renderStructures(container, groupedStructures(await api().get_structure_by_word_count(), "Words in verse"));
         } else if (key === "by-disj-count") {
-            renderStructureGroups(container, await api().get_structure_by_disj_count(), "Disjunctive groups");
+            renderStructures(container, groupedStructures(await api().get_structure_by_disj_count(), "Disjunctive groups"));
         } else {
-            const summary = await api().get_structure_summary();
-            let html = "<div>Most common verse shapes, most-shared first.</div><br>";
-            for (const s of summary) {
-                html += `<div class="struct-line" data-verses='${JSON.stringify(s.verses)}'>${s.label} &times;${s.count}</div>`;
-            }
-            container.innerHTML = html;
-            for (const row of container.querySelectorAll(".struct-line")) {
-                row.addEventListener("click", () => showVersePopup("Structure", JSON.parse(row.dataset.verses)));
-            }
+            renderStructures(container, await api().get_structure_summary());
         }
     }
 

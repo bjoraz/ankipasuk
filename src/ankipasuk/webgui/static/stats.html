@@ -20,10 +20,26 @@
   .bar-label { width: 3em; text-align: right; font-size: 12px; color: #444; flex-shrink: 0; }
   .bar-track { flex: 1; background: #f0f0f0; border-radius: 2px; overflow: hidden; }
   .bar-fill { background: #64b5f6; height: 18px; }
+  .bar-label.wide { width: 7em; }
   .bar-count { width: 3em; font-size: 12px; color: #444; }
 
-  .trope-row, .struct-line { cursor: pointer; padding: 2px 4px; }
-  .trope-row:hover, .struct-line:hover { background: #eef4fb; }
+  .taam-chip { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 13px; padding: 0 5px;
+               border: 1px solid; border-radius: 2px; color: #222; direction: rtl; }
+  .taam-chip.dg-r1 { border-color: #f9a825; background: #fff9c4; }
+  .taam-chip.dg-r2 { border-color: #1976d2; background: #bbdefb; }
+  .taam-chip.dg-r3 { border-color: #388e3c; background: #c8e6c9; }
+  .taam-chip.dg-r4 { border-color: #c2185b; background: #f8bbd0; }
+  .taam-chip.dg-r0 { border-color: #b8b8b8; background: white; }
+  .bar-fill.dg-r1 { background: #f9a825; } .bar-fill.dg-r2 { background: #1976d2; }
+  .bar-fill.dg-r3 { background: #388e3c; } .bar-fill.dg-r4 { background: #c2185b; }
+  .bar-fill.dg-r0 { background: #b8b8b8; }
+
+  .struct-entry { display: flex; gap: 10px; align-items: flex-end; cursor: pointer; padding: 0 4px;
+                  border-bottom: 1px solid #eee; }
+  .struct-entry:hover { background: #eef4fb; }
+  .struct-entry .dg-pasuq { flex: 1; min-width: 0; border-bottom: none; }
+  .struct-count { font-size: 12px; color: #444; width: 3em; flex-shrink: 0; padding-bottom: 12px; }
+  #structure-content .dg-pending { height: 110px; }
   .axis-header { font-weight: 600; margin: 10px 0 2px; }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex;
