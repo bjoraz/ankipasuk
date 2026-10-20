@@ -335,13 +335,11 @@ def test_title_author_sequence_box_width_stamped_on_every_card():
 def test_field_dict_has_no_row_mode_fields():
     rows = [([["a"]], False, 1)]
     fields = build_verse_cards_from_words(rows, [(1, 1)], [1], None, title="T", box_width="5ch")
-    assert set(fields[0].keys()) == {
-        "FrontRows", "BackRows", "Title", "Author", "Sequence", "BoxWidth", "Pasuq",
-    }
-    assert fields[0]["Pasuq"] == ""  # no book given
+    assert set(fields[0].keys()) == {"FrontRows", "BackRows", "Title", "Author", "Sequence", "BoxWidth"}
+    assert fields[0]["Title"] == "T"  # no book given
     named = build_verse_cards_from_words(rows, [(1, 1)], [1], None, title="T", box_width="5ch",
                                          book_label="Bereshit")
-    assert named[0]["Pasuq"] == "Bereshit 1:1"
+    assert named[0]["Title"] == "Bereshit 1:1"
 
 
 # =============================================================

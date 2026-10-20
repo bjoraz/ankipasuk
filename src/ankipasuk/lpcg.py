@@ -51,10 +51,6 @@ FIELD_NAMES = [
     # field both shapes always populate.
     "Title", "Line", "Context", "Prompt", "FrontRows", "BackRows",
     "Author", "Sequence", "BoxWidth",
-    # The pasuq a pasuq-mode card is for, e.g. "Bereshit 1:3" (empty on
-    # line-mode cards, which are lines, not pesuqim). Added last, so the
-    # older fields keep their places in an existing note type and the CSV.
-    "Pasuq",
 ]
 BEGINNING_MARKER = "[Beginning]"
 
@@ -151,11 +147,15 @@ _SIZE_CONTROLS_HTML = """\
 # limit.
 _LINES_STYLE = "width: calc({{BoxWidth}} * var(--ankipasuk-width-scale, 1))"
 
+# A pasuq card's title is its pasuq ("Bereshit 1:3"; the 'ammud is in its
+# tags and deck). A line card's is its 'ammud, numbered: only line cards
+# have a Line, which the template tests for without showing it.
+_TITLE_HTML = '<div class="title">{{Title}}{{#Line}} {{Sequence}}{{/Line}}</div>'
+
 _FRONT_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
 
-<div class="title">{{{{Title}}}} {{{{Sequence}}}}</div>
-{{{{#Pasuq}}}}<div class="pasuq-ref">{{{{Pasuq}}}}</div>{{{{/Pasuq}}}}
+{_TITLE_HTML}
 {{{{#Author}}}}<div class="author">{{{{Author}}}}</div>{{{{/Author}}}}
 
 <br>
@@ -176,8 +176,7 @@ _FRONT_TEMPLATE = f"""\
 _BACK_TEMPLATE = f"""\
 {_SIZE_CONTROLS_HTML}
 
-<div class="title">{{{{Title}}}} {{{{Sequence}}}}</div>
-{{{{#Pasuq}}}}<div class="pasuq-ref">{{{{Pasuq}}}}</div>{{{{/Pasuq}}}}
+{_TITLE_HTML}
 {{{{#Author}}}}<div class="author">{{{{Author}}}}</div>{{{{/Author}}}}
 
 <br>
@@ -402,15 +401,10 @@ CSS = f"""\
     filter: invert(85%);
 }}
 
-.title, .author, .pasuq-ref {{
+.title, .author {{
     text-align: center;
     font-size: small;
     direction: ltr;
-}}
-
-.pasuq-ref {{
-    font-weight: 600;
-    margin-top: 2px;
 }}
 
 /* Answer side: hovering (or tapping, on a phone) a word turns it, in

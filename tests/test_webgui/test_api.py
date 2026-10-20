@@ -741,7 +741,7 @@ def test_tiqqun_cards_can_be_saved_as_csv(tmp_path, monkeypatch):
     result = api.export_ammudim_csv([1])
     assert result == {"ok": True, "count": 1, "path": str(out_path)}
     text = out_path.read_text(encoding="utf-8-sig")
-    assert "#notetype:Ankipasuk Aliyah\n#tags column:11\n#deck column:12\n" in text
+    assert "#notetype:Ankipasuk Aliyah\n#tags column:10\n#deck column:11\n" in text
     assert text.rstrip().endswith("ammud::001 holiday::simhat_tora::7\tAmmudim::001")
 
 

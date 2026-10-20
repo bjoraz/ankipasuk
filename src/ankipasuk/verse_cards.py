@@ -328,7 +328,7 @@ def build_verse_cards_from_words(
     simply discarded here.
 
     With ``book_label`` (the book as the app writes it, e.g. "Bereshit"),
-    each card's "Pasuq" field says which pasuq it is ("Bereshit 1:3").
+    each card's title is its pasuq ("Bereshit 1:3") instead of ``title``.
 
     Every card's "one row before" context (see the module docstring)
     comes straight out of ``rows`` -- the row immediately before whichever
@@ -365,11 +365,10 @@ def build_verse_cards_from_words(
             "BackRows": back_context_html + _render_own_rows(
                 own_rows, revealed=True, starting_page_num=context_page_num,
             ),
-            "Title": title,
+            "Title": f"{book_label} {ch}:{vs}" if book_label else title,
             "Author": author,
             "Sequence": str(i + 1),
             "BoxWidth": box_width,
-            "Pasuq": f"{book_label} {ch}:{vs}" if book_label else "",
         })
 
     return fields

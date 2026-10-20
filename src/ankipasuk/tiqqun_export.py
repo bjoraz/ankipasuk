@@ -117,21 +117,20 @@ def pasuq_label(key: str) -> str | None:
     return f"{BOOK_HEBREW_NAMES.get(book, book)} {ref}"
 
 
-def missing_pasuq_fields(notes_info: list[dict], cache: SefariaCache) -> list[tuple[int, str]]:
-    """``(note id, "Bereshit 1:3")`` for each pasuq-mode tiqqun note in
-    ``notes_info`` (AnkiConnect's ``notesInfo``) whose "Pasuq" field is
-    empty -- notes made before the field existed -- with the pasuq worked
-    out as for the duplicate check (see :func:`existing_note_key`). Notes
-    whose pasuq can't be recovered, and line-mode notes, are left out."""
+def pasuq_titles(notes_info: list[dict], cache: SefariaCache) -> list[tuple[int, str, str]]:
+    """``(note id, old title, new title)`` for each pasuq-mode tiqqun note
+    in ``notes_info`` (AnkiConnect's ``notesInfo``) whose title isn't yet
+    its pasuq ("Bereshit 'Ammud 1" -> "Bereshit 1:3"), with the pasuq
+    worked out as for the duplicate check (see :func:`existing_note_key`).
+    Notes whose pasuq can't be recovered, and line-mode notes, are left
+    out."""
     found = []
     for note in notes_info:
         fields = {name: f["value"] for name, f in note["fields"].items()}
-        if fields.get("Pasuq", "").strip():
-            continue
         key = existing_note_key(fields, note.get("tags", []), cache)
         label = pasuq_label(key) if key else None
-        if label:
-            found.append((note["noteId"], label))
+        if label and fields.get("Title", "") != label:
+            found.append((note["noteId"], fields.get("Title", ""), label))
     return found
 
 
