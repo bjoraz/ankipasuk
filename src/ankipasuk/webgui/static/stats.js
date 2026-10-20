@@ -146,13 +146,16 @@ async function loadTropeFrequency() {
 // =============================================================
 //  Structure
 // =============================================================
-// Each structure: its signature and how many pesuqim share it on the left,
-// the diagram of its first pasuq on the right; click for them all. Lazily, as the page scrolls: there can be
+// Each structure: how many pesuqim share it, its signature and the diagram
+// of its first pasuq; click for them all. Lazily, as the page scrolls: there can be
 // hundreds.
 function structureHtml(s) {
     if (s.header) return `<div class="axis-header">${escapeHtml(s.header)}</div>`;
-    return `<div class="struct-entry"><div class="struct-sig"><span class="struct-count">&times;${s.count}</span> `
-        + `${escapeHtml(s.label)}</div>${diagramHtml(s.example.diagram, s.example.ref)}</div>`;
+    // The signature goes on the diagram's reference line, taking no width
+    // from the diagram itself.
+    const html = diagramHtml(s.example.diagram, s.example.ref).replace(
+        '<div class="dg-ref">', `<div class="dg-ref"><span class="struct-sig">${escapeHtml(s.label)}</span>`);
+    return `<div class="struct-entry"><div class="struct-count">&times;${s.count}</div>${html}</div>`;
 }
 
 function renderStructures(container, items) {

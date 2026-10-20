@@ -145,6 +145,20 @@ function wheelAlong(unit) {
     }, { passive: false });
 }
 
+let fontReady = null;
+function diagramFontReady() {
+    if (!fontReady) {
+        const probe = document.createElement("span");
+        probe.className = "dg-text";
+        document.body.appendChild(probe);
+        const family = getComputedStyle(probe).fontFamily;
+        probe.remove();
+        fontReady = document.fonts.load(`22px ${family}`, "בְּ").catch(() => null)
+            .then(() => document.fonts.ready);
+    }
+    return fontReady;
+}
+
 // Fill ``container`` with one entry per item, lazily: each starts as an
 // empty placeholder and gets its real HTML (``htmlFor(item)``) only when
 // it comes into view or close to it, while ``root`` scrolls; ``onFilled``
@@ -186,7 +200,10 @@ function lazyFill(container, items, htmlFor, onFilled, root, refill) {
         }
     }, { root, rootMargin: DIAGRAM_AHEAD });
     container._dgObserver = observer;
-    document.fonts.ready.then(() => {
+    // Measure only once the pasuq font is in: a font that loads only when
+    // the first diagram shows would otherwise widen the text after its
+    // brackets were drawn, leaving them short.
+    diagramFontReady().then(() => {
         for (const el of container.children) observer.observe(el);
     });
     if (refill && !container._dgResize) {

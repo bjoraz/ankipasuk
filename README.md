@@ -283,7 +283,7 @@ app is in the same STAM font as the tiqqun.
 **Corpus statistics** opens a window on whatever is loaded: words per
 pasuq, groups per pasuq, how many clauses and how deep the split goes at
 your current *N*, words per group, how often each mafsiq occurs, and the
-structure groupings described above, each shape written out beside the
+structure groupings described above, each shape written out with the
 diagram of a pasuq that has it. Click any bar or row to see the pesuqim
 behind it, each drawn as its diagram. There's also a per-pasuq CSV
 export.
