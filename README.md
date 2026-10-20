@@ -102,7 +102,10 @@ cards**. Each has its settings on the left, in three numbered steps, and a
 preview on the right that follows them as you go: there's nothing to fetch
 or generate by hand. The bar at the top also opens **Statistics** and
 **Anki tools**, and shows whether Anki is open with AnkiConnect, which
-sending cards needs. The note types are loaded as soon as it is.
+sending cards needs. The note types are loaded as soon as it is. The ◀
+at the top of the preview folds the settings away, to see the preview on
+its own across the whole window; **▶ Settings** brings them back, and the
+app remembers which you left it on.
 
 ### The Cloze cards tab
 

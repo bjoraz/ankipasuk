@@ -689,6 +689,19 @@ function applyStoredTikkunControls() {
     tikkunWidthControl.apply(tikkunWidthControl.read());
 }
 
+// The settings column, folded away or not, for both tabs at once; kept
+// for next time.
+function setSidebarCollapsed(collapsed) {
+    document.body.classList.toggle("sidebar-collapsed", collapsed);
+    for (const btn of document.querySelectorAll(".sidebar-toggle")) {
+        btn.textContent = collapsed ? "▶ Settings" : "◀";
+        btn.title = collapsed ? "Show the settings" : "Hide the settings, to see the preview on its own";
+    }
+    try {
+        localStorage.setItem("ankipasuk_sidebar_collapsed", collapsed ? "1" : "");
+    } catch (e) { /* storage unavailable: just not remembered */ }
+}
+
 // A row of buttons of which one is active (the preview's tabs, the
 // pointed / letters-only switches); ``onPick`` gets the picked button.
 function segmented(container, onPick) {
@@ -723,6 +736,13 @@ window.addEventListener("pywebviewready", async () => {
     applyStoredTikkunControls();
     renderVerseBoxes();
     await addRangeRow(); // start with one range, loaded straight away
+
+    let collapsed = false;
+    try { collapsed = localStorage.getItem("ankipasuk_sidebar_collapsed") === "1"; } catch (e) { /* none kept */ }
+    setSidebarCollapsed(collapsed);
+    for (const btn of document.querySelectorAll(".sidebar-toggle")) {
+        btn.addEventListener("click", () => setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed")));
+    }
 
     segmented(document.getElementById("main-tabs"), (btn) => {
         for (const panel of document.querySelectorAll(".workspace")) panel.hidden = panel.dataset.panel !== btn.dataset.tab;
