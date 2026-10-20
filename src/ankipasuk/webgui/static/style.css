@@ -81,43 +81,11 @@ button:disabled { opacity: 0.6; cursor: default; }
     font-family: "ShlomosemiStam", "SBL Hebrew", "Ezra SIL", "Noto Serif Hebrew", serif;
 }
 
-/* ---- Pasuq diagrams (diagram.js, ankipasuk.diagram) ---- */
-.dg-pasuq { padding: 6px 0 8px; border-bottom: 1px solid #eee; }
-/* An entry not yet filled in (diagram.js, lazyFill): about its usual
-   height, so the scrollbar is about right before it's drawn. */
+/* Diagram styles are in diagram.css. Placeholders here are about an
+   entry's usual height, so the scrollbar is about right before it's drawn. */
 #viz-box .dg-pending, #modal-diagrams .dg-pending { height: 110px; }
 #output-box .dg-pending { height: 3.2em; }
 #output-box .out-line { margin-bottom: 0.4em; }
-.dg-pasuq:last-child { border-bottom: none; }
-.dg-ref { font-family: sans-serif; font-size: 11px; color: #777; margin-bottom: 2px; }
-/* Units on one line are aligned on their text, not their top brackets. */
-.dg-units { display: flex; flex-wrap: wrap; flex-direction: row-reverse; justify-content: flex-start;
-            align-items: flex-end; gap: 4px 24px; }
-/* A unit too wide for the window scrolls, starting at the pasuq's start;
-   its thin scrollbar has room of its own below the text. */
-.dg-unit { max-width: 100%; overflow-x: auto; overflow-y: hidden; direction: rtl;
-           scrollbar-width: thin; scrollbar-color: #c8c8c8 transparent; }
-.dg-unit.dg-scrolls { padding-bottom: 7px; }
-.dg-unit::-webkit-scrollbar { height: 5px; }
-.dg-unit::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 3px; }
-.dg-unit::-webkit-scrollbar-track { background: transparent; }
-.dg-inner { position: relative; display: inline-block; white-space: nowrap; direction: ltr; }
-.dg-text { font-size: 22px; line-height: 1.3; padding: 0 2px; white-space: nowrap; }
-svg.dg-brackets { position: absolute; left: 0; top: 0; overflow: visible; }
-.dg-line { stroke: #222; stroke-width: 1; fill: none; }
-.dg-label rect { fill: white; stroke: #222; stroke-width: 1; }
-.dg-label text { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 10.5px; fill: #222; direction: rtl; }
-/* One colour per rank: the old view's pastels (config.UNIT_COLORS) fill
-   the label, a darker shade of the same colour draws the bracket. */
-.dg-r1 .dg-line, .dg-r1 .dg-label rect { stroke: #f9a825; } .dg-r1 .dg-label rect { fill: #fff9c4; }
-.dg-r2 .dg-line, .dg-r2 .dg-label rect { stroke: #1976d2; } .dg-r2 .dg-label rect { fill: #bbdefb; }
-.dg-r3 .dg-line, .dg-r3 .dg-label rect { stroke: #388e3c; } .dg-r3 .dg-label rect { fill: #c8e6c9; }
-.dg-r4 .dg-line, .dg-r4 .dg-label rect { stroke: #c2185b; } .dg-r4 .dg-label rect { fill: #f8bbd0; }
-/* Divisions the cloze cards don't make at the current setting. */
-.dg-grey .dg-line, .dg-grey .dg-label rect { stroke: #b8b8b8; fill: white; }
-.dg-grey .dg-line { fill: none; }
-.dg-grey .dg-label text { fill: #b8b8b8; }
-
 
 /* ================================================================
    Main window: a bar of tabs, then per tab a sidebar of numbered steps
@@ -182,6 +150,8 @@ button.link:hover { background: none; text-decoration: underline; }
 .range-editor .field-row[hidden] { display: none; }
 .range-editor select { max-width: 100%; }
 .range-editor .grow { flex: 1; min-width: 0; }
+.range-pa-controls { display: flex; flex-direction: column; gap: 6px; }
+.range-pa-controls[hidden] { display: none; }
 .ammud-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 
 /* The settings can be folded away, leaving the preview the whole width

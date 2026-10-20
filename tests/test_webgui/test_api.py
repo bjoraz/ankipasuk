@@ -822,3 +822,44 @@ def test_preview_ammud_is_the_page_export_or_its_error(monkeypatch):
 
     monkeypatch.setattr(api_module, "ammud_pages_html", offline)
     assert Api().preview_ammud(7) == {"ok": False, "error": "no network"}
+
+
+_ALIYOT = {
+    ("Noach", 1): "Genesis 6:9-6:22", ("Noach", 7): "Genesis 11:10-11:32",
+    ("Lech-Lecha", 2): "Genesis 12:14-13:4", ("Vayera", 3): "Genesis 18:20",
+}
+
+
+def test_a_parasha_span_runs_from_one_aliyyas_start_to_anothers_end(monkeypatch):
+    import ankipasuk.webgui.api as api_module
+
+    monkeypatch.setattr(api_module, "get_aliyah_ref", lambda book, p, n, cache: _ALIYOT[(p, n)])
+    api = Api()
+    assert api.get_parasha_span("Genesis", "Noach", 1, "Lech-Lecha", 2) == {
+        "ok": True, "start": [6, 9], "end": [13, 4]}
+    assert api.get_parasha_span("Genesis", "Noach", 7, "Noach", 7) == {
+        "ok": True, "start": [11, 10], "end": [11, 32]}
+    # An 'aliyya of a single pasuq ends where it starts.
+    assert api.get_parasha_span("Genesis", "Vayera", 3, "Vayera", 3)["end"] == [18, 20]
+    assert api.get_parasha_span("Genesis", "Lech-Lecha", 2, "Noach", 1)["ok"] is False
+
+
+def test_export_diagrams_saves_the_drawn_page_as_html(tmp_path, monkeypatch):
+    import ankipasuk.diagram_pages as diagram_pages_module
+
+    monkeypatch.setattr(diagram_pages_module, "get_font_base64", lambda cache: "Rk9OVA==")
+    out_path = tmp_path / "d.html"
+
+    class FakeWindow:
+        def create_file_dialog(self, *a, save_filename=None, **kw):
+            assert save_filename == "Bereshit_1_1_8.html"
+            return str(out_path)
+
+    api = Api()
+    api._window = FakeWindow()
+    result = api.export_diagrams('<div class="dg-pasuq">x</div>', "html", "Bereshit 1:1–8", "8 pesuqim")
+    assert result == {"ok": True, "path": str(out_path), "pages": None}
+    html = out_path.read_text(encoding="utf-8")
+    assert '<div class="dg-pasuq">x</div>' in html and "<h1>Bereshit 1:1–8</h1>" in html
+    assert "data:font/ttf;base64,Rk9OVA==" in html
+    assert api.export_diagrams("", "docx", "t", "s")["ok"] is False

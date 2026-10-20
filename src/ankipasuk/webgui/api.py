@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import traceback
 from pathlib import Path
 
@@ -54,6 +55,8 @@ from ..config import (
     QERIYA_DECK_NAMES,
 )
 from ..diagram import pasuq_diagram
+from ..diagram_pages import diagrams_html
+from ..diagram_pages import write_pdf as write_diagrams_pdf
 from ..lpcg import CARD_TEMPLATES, build_lpcg_fields, render_scroll_html
 from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
@@ -206,6 +209,28 @@ class Api:
             return {"ok": False, "error": str(e)}
         self._current_verse_data.extend(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
+
+    def get_parasha_span(
+        self, book: str, from_parasha: str, from_aliyah: int, to_parasha: str, to_aliyah: int,
+    ) -> dict:
+        """The chapter and verse from the start of one 'aliyya to the end
+        of another (inclusive, the same book): ``{"ok", "start": [ch, vs],
+        "end": [ch, vs]}``. A range by parasha and 'aliyya is then fetched
+        like any chapter and verse range."""
+        try:
+            first = get_aliyah_ref(book, from_parasha, int(from_aliyah), self._cache)
+            last = get_aliyah_ref(book, to_parasha, int(to_aliyah), self._cache)
+            start = parse_start_ref(first)
+            try:
+                end = parse_range_ref(last)[2]
+            except ValueError:  # an 'aliyya of one pasuq
+                end = parse_start_ref(last)
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        if tuple(end) < tuple(start):
+            return {"ok": False, "error": "The range ends before it starts."}
+        return {"ok": True, "start": list(start), "end": list(end)}
 
     def fetch_parashah_aliyah(self, book: str, parasha_name: str, aliyah_num: int) -> dict:
         """Like fetch_chapter_verse, but for a named parasha/'aliyya
@@ -755,6 +780,34 @@ class Api:
         name = f"tiqqun_ammud_{unique[0]:03d}.csv" if len(unique) == 1 else (
             f"tiqqun_ammudim_{unique[0]:03d}-{unique[-1]:03d}.csv")
         return self._write_tiqqun_csv(notes, name)
+
+    def export_diagrams(self, body_html: str, fmt: str, title: str, subtitle: str) -> dict:
+        """Save the diagram view -- ``body_html``, the diagrams as the
+        window drew them at page width (diagram.js, snapshotDiagrams) --
+        as ``fmt`` "html" or "pdf" (see ankipasuk.diagram_pages)."""
+        if fmt not in ("html", "pdf"):
+            return {"ok": False, "error": f"Unknown format: {fmt}"}
+        if self._window is None:
+            return {"ok": False, "error": "Window not ready."}
+        name = re.sub(r"[^\w]+", "_", title).strip("_") or "diagrams"
+        path = self._window.create_file_dialog(
+            webview.SAVE_DIALOG, save_filename=f"{name}.{fmt}",
+            file_types=(f"{fmt.upper()} files (*.{fmt})", "All files (*.*)"),
+        )
+        if not path:
+            return {"ok": False, "error": None}  # cancelled
+        target = path if isinstance(path, str) else path[0]
+        try:
+            if fmt == "pdf":
+                pages = write_diagrams_pdf(body_html, title, subtitle, self._cache, target)
+            else:
+                html = diagrams_html(body_html, title, subtitle, self._cache)
+                Path(target).write_text(html, encoding="utf-8")
+                pages = None
+        except (RuntimeError, ValueError, OSError) as e:
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+        return {"ok": True, "path": target, "pages": pages}
 
     def preview_ammud(self, ammud: int) -> dict:
         """One 'ammud as the page export would save it (see

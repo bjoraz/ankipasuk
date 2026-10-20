@@ -122,11 +122,14 @@ function drawUnits(inners) {
         l.rect.setAttribute("height", LABEL_HEIGHT);
         l.rect.setAttribute("rx", 2);
     });
-    for (const inner of inners) {
-        const unit = inner.parentElement;
-        unit.classList.toggle("dg-scrolls", unit.scrollWidth > unit.clientWidth + 1);
+    // Which units overflow, all read before any is marked: marking one and
+    // then reading the next would lay the page out again for each.
+    const units = inners.map((inner) => inner.parentElement);
+    const scrolls = units.map((unit) => unit.scrollWidth > unit.clientWidth + 1);
+    units.forEach((unit, i) => {
+        unit.classList.toggle("dg-scrolls", scrolls[i]);
         wheelAlong(unit);
-    }
+    });
 }
 
 // The mouse wheel scrolls a too-wide unit along its line: down moves on
@@ -223,4 +226,80 @@ function renderDiagrams(container, items, scrollRoot) {
     lazyFill(container, items, (it) => diagramHtml(it.diagram, it.ref),
         (pesuqim) => drawUnits(pesuqim.flatMap((p) => [...p.querySelectorAll(".dg-inner")])),
         scrollRoot || container, true);
+}
+
+// The diagrams as a finished page, for saving (ankipasuk.diagram_pages):
+// every pasuq drawn at ``width`` (the page's), off screen, a batch at a
+// time; a unit too wide for the page gets smaller text, drawn again.
+// Returns the drawn HTML, which needs no script to show or print. Each
+// batch is drawn on its own and taken out again as text, so the page
+// never holds more than one batch: a whole book in one place would make
+// every measurement lay all of it out again.
+async function snapshotDiagrams(items, width, onProgress) {
+    await diagramFontReady();
+    const box = document.createElement("div");
+    box.style.cssText = `position: absolute; left: -30000px; top: 0; width: ${width}px; background: white;`;
+    document.body.appendChild(box);
+    const BATCH = 50;
+    const parts = [];
+    try {
+        for (let i = 0; i < items.length; i += BATCH) {
+            box.innerHTML = items.slice(i, i + BATCH).map((it) => diagramHtml(it.diagram, it.ref)).join("");
+            const inners = [...box.querySelectorAll(".dg-inner")];
+            drawUnits(inners);
+            const wide = inners.filter((inner) => inner.offsetWidth > width);
+            for (const inner of wide) {
+                const size = Math.max(11, Math.floor((22 * (width - 4)) / inner.offsetWidth));
+                inner.querySelector(".dg-text").style.fontSize = size + "px";
+            }
+            if (wide.length) drawUnits(wide);
+            bakeForPrint(box);
+            parts.push(box.innerHTML);
+            if (onProgress) onProgress(Math.min(i + BATCH, items.length), items.length);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+        return parts.join("");
+    } finally {
+        box.remove();
+    }
+}
+
+// Drawn diagrams made to show without this page's styles or scripts: the
+// SVG's colours as attributes (a PDF renderer may not apply the page's
+// CSS to SVG -- WeasyPrint doesn't), each label's text as ordinary HTML
+// over its box (SVG text there is laid out left to right, Hebrew
+// included), and the drawing's working data dropped. Every read comes
+// before any change, as in drawUnits.
+function bakeForPrint(box) {
+    const shapes = [...box.querySelectorAll("svg path, svg rect")];
+    const shapeValues = shapes.map((el) => {
+        const cs = getComputedStyle(el);
+        return [cs.fill, cs.stroke, cs.strokeWidth];
+    });
+    const texts = [...box.querySelectorAll("svg text")];
+    const textColours = texts.map((t) => getComputedStyle(t).fill);
+    const first = texts.length ? getComputedStyle(texts[0]) : null;
+    const labelFont = first ? `font-family: ${first.fontFamily}; font-size: ${first.fontSize};` : "";
+    shapes.forEach((el, i) => {
+        const [fill, stroke, strokeWidth] = shapeValues[i];
+        el.setAttribute("fill", fill);
+        el.setAttribute("stroke", stroke);
+        el.setAttribute("stroke-width", strokeWidth);
+    });
+    texts.forEach((t, i) => {
+        const rect = t.previousElementSibling;
+        const label = document.createElement("div");
+        label.textContent = t.textContent;
+        label.dir = "rtl";
+        label.style.cssText = `position: absolute; left: ${rect.getAttribute("x")}px; top: ${rect.getAttribute("y")}px;`
+            + ` width: ${rect.getAttribute("width")}px; height: ${LABEL_HEIGHT}px; line-height: ${LABEL_HEIGHT}px;`
+            + ` text-align: center; white-space: nowrap; ${labelFont} color: ${textColours[i]};`;
+        t.closest(".dg-inner").appendChild(label);
+        t.remove();
+    });
+    for (const el of box.querySelectorAll("[data-boxes], [data-g], [data-wheel]")) {
+        el.removeAttribute("data-boxes");
+        el.removeAttribute("data-g");
+        el.removeAttribute("data-wheel");
+    }
 }

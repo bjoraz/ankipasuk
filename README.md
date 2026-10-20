@@ -86,9 +86,10 @@ or `PYWEBVIEW_GUI=qt` forces one.
 
 ### Optional extras
 
-- **PDF pages of 'ammudim** need WeasyPrint: `pip install -e ".[pdf]"`, or
-  with pipx `pipx inject ankipasuk weasyprint`. It draws text with Pango,
-  which Linux desktops have; on Windows it needs a GTK runtime.
+- **PDF** (of the diagrams, or of 'ammudim as pages) needs WeasyPrint:
+  `pip install -e ".[pdf]"`, or with pipx `pipx inject ankipasuk
+  weasyprint`. It draws text with Pango, which Linux desktops have; on
+  Windows it needs a GTK runtime. HTML export needs nothing extra.
 - **Sending cards straight to Anki**, and the collection tools, need Anki
   open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159)
   add-on. Without it you can still save CSV files to import.
@@ -111,11 +112,13 @@ app remembers which you left it on.
 
 1. **Pesuqim.** Add one or more ranges, by chapter and verse, by parasha
    and 'aliyya, or by haftara, from the Tora, Nevi'im or the five
-   Megillot. Each range is one line, e.g. `Bereshit 1:1–2:3`; click it to
-   change it, ✕ to remove it. A range's end can't come before its start:
-   the end pickers start where the start is. Ranges are joined in the
-   order you add them, so you can run the end of one book into the start
-   of the next.
+   Megillot. Each range is one line, e.g. `Bereshit 1:1–2:3` or
+   `Noaḥ 6 – Lekh Lekha 2`; click it to change it, ✕ to remove it. A
+   range by parasha and 'aliyya runs from one 'aliyya to another, in the
+   same parasha or a later one of the same book; a new one is a single
+   'aliyya. A range's end can't come before its start: the end pickers
+   start where the start is. Ranges are joined in the order you add them,
+   so you can run the end of one book into the start of the next.
 2. **Splitting.** **Groups per clause** (*N* below, default 2) is how many
    disjunctive groups a clause may keep before it's split again along its
    ta'amim. Lower means more, smaller clauses; 1 gives the complete
@@ -151,6 +154,13 @@ The preview has four views:
 
 A whole book loads quickly: pesuqim are drawn only as they scroll into
 view.
+
+**Save diagrams as** PDF or HTML, in the Diagram view, saves every loaded
+pasuq's diagram as A4 pages, to read from or print: a title, a legend of
+the rank colours, each pasuq kept whole on its page, and a half too wide
+for the page set in smaller text. The HTML carries the font inside it and
+needs no script, so it opens and prints anywhere. A PDF of a whole book
+takes a few minutes (Bereshit: 279 pages, about 4½ minutes).
 
 ### The Tiqqun cards tab
 
@@ -512,6 +522,7 @@ src/ankipasuk/
 ├── cloze_export.py      the cloze notes both exports (CSV, AnkiConnect) build
 ├── tiqqun_export.py     which pasuq a tiqqun card is (no duplicates), tiqqun CSV
 ├── ammud_pages.py       'ammudim as HTML/PDF pages
+├── diagram_pages.py     the diagram view as HTML/PDF pages
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both

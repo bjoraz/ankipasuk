@@ -3,6 +3,7 @@
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
 let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only holds what's in view)
+let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -79,22 +80,33 @@ const RANGE_ROW_TEMPLATE = `
       From <select class="range-start-ch"></select>:<select class="range-start-vs"></select>
       to <select class="range-end-ch"></select>:<select class="range-end-vs"></select>
     </div>
-    <div class="field-row range-pa-controls" hidden>
-      <select class="range-parasha grow"></select>
-      'Aliyya <select class="range-aliyah"></select>
+    <div class="range-pa-controls" hidden>
+      <div class="field-row">
+        From <select class="range-parasha grow"></select>
+        'aliyya <select class="range-aliyah"></select>
+      </div>
+      <div class="field-row">
+        to <select class="range-parasha-end grow"></select>
+        'aliyya <select class="range-aliyah-end"></select>
+      </div>
     </div>
   </div>
 `;
 
-// The range in one line: "Bereshit 1:1–2:3", "Bereshit · Noaḥ · 'aliyya 2",
-// or the haftara's own label.
+// The range in one line: "Bereshit 1:1–2:3", "Noaḥ · 'aliyya 2",
+// "Noaḥ · 'aliyyot 2–5", "Noaḥ 6 – Lekh Lekha 2", or the haftara's own label.
 function rangeSummary(row) {
     const q = (cls) => row.querySelector("." + cls);
     const mode = q("range-mode").value;
     const optionText = (sel) => (sel.selectedOptions[0] || {}).textContent || "";
     if (mode === "hf") return optionText(q("range-haftara")) || "Haftara";
     const book = optionText(q("range-book")).split(" · ")[0];
-    if (mode === "pa") return `${book} · ${optionText(q("range-parasha"))} · 'aliyya ${q("range-aliyah").value}`;
+    if (mode === "pa") {
+        const [p1, p2] = [optionText(q("range-parasha")), optionText(q("range-parasha-end"))];
+        const [a1, a2] = [q("range-aliyah").value, q("range-aliyah-end").value];
+        if (p1 !== p2) return `${p1} ${a1} – ${p2} ${a2}`;
+        return a1 === a2 ? `${p1} · 'aliyya ${a1}` : `${p1} · 'aliyyot ${a1}–${a2}`;
+    }
     const [sc, sv, ec, ev] = ["range-start-ch", "range-start-vs", "range-end-ch", "range-end-vs"].map((c) => q(c).value);
     if (sc === ec) return sv === ev ? `${book} ${sc}:${sv}` : `${book} ${sc}:${sv}–${ev}`;
     return `${book} ${sc}:${sv}–${ec}:${ev}`;
@@ -214,21 +226,46 @@ async function refreshRangeParashaDropdown(row) {
         parashaSelect.innerHTML = "";
         return;
     }
+    row._parashot = result;  // for the end pickers (constrainParashaEnd)
     setOptions(parashaSelect, result.names, false, result.labels);
     await refreshRangeAliyahDropdown(row);
 }
 
-async function refreshRangeAliyahDropdown(row) {
+// The 'aliyyot of the parasha chosen in ``parashaClass``, from
+// ``minAliyah`` on, into ``aliyahClass``.
+async function fillAliyot(row, parashaClass, aliyahClass, minAliyah) {
     const book = row.querySelector(".range-book").value;
-    const parasha = row.querySelector(".range-parasha").value;
+    const parasha = row.querySelector("." + parashaClass).value;
     if (!parasha) return;
     const result = await api().get_aliyah_count(book, parasha);
     if (!result.ok) {
         showToast("Could not load 'aliyyot: " + result.error, true);
         return;
     }
-    const aliyot = Array.from({ length: result.count }, (_, i) => i + 1);
-    setOptions(row.querySelector(".range-aliyah"), aliyot, true);
+    setOptions(row.querySelector("." + aliyahClass), numbersFrom(minAliyah, result.count), true);
+}
+
+async function refreshRangeAliyahDropdown(row) {
+    await fillAliyot(row, "range-parasha", "range-aliyah", 1);
+    await constrainParashaEnd(row);
+}
+
+// As with chapters and verses, the end can't come before the start: the
+// end parasha is the start's or a later one, and in the same parasha the
+// end 'aliyya is the start's or later. A new range ends where it starts,
+// one 'aliyya.
+async function constrainParashaEnd(row) {
+    const parashot = row._parashot;
+    if (!parashot) return;
+    const start = row.querySelector(".range-parasha").value;
+    const from = Math.max(0, parashot.names.indexOf(start));
+    const endSelect = row.querySelector(".range-parasha-end");
+    const keep = parashot.names.slice(from).includes(endSelect.value);
+    setOptions(endSelect, parashot.names.slice(from), keep, parashot.labels.slice(from));
+    if (!keep) endSelect.value = start;
+    const sameParasha = endSelect.value === start;
+    const startAliyah = parseInt(row.querySelector(".range-aliyah").value, 10) || 1;
+    await fillAliyot(row, "range-parasha-end", "range-aliyah-end", sameParasha ? startAliyah : 1);
 }
 
 async function addRangeRow() {
@@ -256,7 +293,9 @@ async function addRangeRow() {
     on("range-end-ch", () => constrainRangeEnd(row));
     on("range-end-vs", async () => {});
     on("range-parasha", () => refreshRangeAliyahDropdown(row));
-    on("range-aliyah", async () => {});
+    on("range-aliyah", () => constrainParashaEnd(row));
+    on("range-parasha-end", () => constrainParashaEnd(row));
+    on("range-aliyah-end", async () => {});
     on("range-haftara", async () => {});
     row.querySelector(".range-summary").addEventListener("click", () => {
         setRangeOpen(row, !row.classList.contains("open"));
@@ -319,10 +358,20 @@ async function doFetchAll() {
         } else if (mode === "hf") {
             result = await api().fetch_haftara(row.querySelector(".range-haftara").value);
         } else {
-            const parasha = row.querySelector(".range-parasha").value;
-            const aliyah = parseInt(row.querySelector(".range-aliyah").value, 10);
-            result = await api().fetch_parashah_aliyah(book, parasha, aliyah);
-            if (result.ok) tikkunResult = await api().fetch_tikkun_parashah_aliyah(book, parasha, aliyah);
+            // From one 'aliyya to another: worked out as chapter and verse,
+            // then loaded like any such range.
+            const q = (c) => row.querySelector("." + c).value;
+            const span = await api().get_parasha_span(
+                book, q("range-parasha"), parseInt(q("range-aliyah"), 10),
+                q("range-parasha-end"), parseInt(q("range-aliyah-end"), 10));
+            if (span.ok) {
+                const [startCh, startVs] = span.start;
+                const [endCh, endVs] = span.end;
+                result = await api().fetch_chapter_verse(book, startCh, startVs, endCh, endVs);
+                if (result.ok) tikkunResult = await api().fetch_tikkun_chapter_verse(book, startCh, startVs, endCh, endVs);
+            } else {
+                result = span;
+            }
         }
         if (!result.ok) {
             showToast("Could not load " + rangeSummary(row) + ": " + result.error, true);
@@ -388,6 +437,7 @@ async function runRefresh() {
 async function doGenerate() {
     if (!currentVerseData.length) {
         currentClozeOutput = "";
+        currentDiagrams = [];
         document.getElementById("output-box").innerHTML = "";
         document.getElementById("viz-box").innerHTML = "";
         return;
@@ -400,6 +450,7 @@ async function doGenerate() {
         return;
     }
     currentClozeOutput = result.output;
+    currentDiagrams = result.diagrams;
     // One line per pasuq, filled in as it scrolls into view (diagram.js's
     // lazyFill): a whole book's markup as one block of text made every
     // layout of the page take seconds in WebKitGTK.
@@ -466,6 +517,40 @@ async function doExportClozeToAnki() {
         showToast(msg, result.failed > 0);
     } finally {
         renderVerseBoxes();  // the button's label and state
+    }
+}
+
+// The diagram view as pages: drawn here at the page's width
+// (snapshotDiagrams), then saved by ankipasuk.diagram_pages.
+const DIAGRAM_PAGE_WIDTH = 680; // diagram_pages.PAGE_WIDTH_PX
+
+async function doSaveDiagrams() {
+    if (!currentDiagrams.length) return showToast("Nothing loaded yet.", true);
+    const btn = document.getElementById("btn-save-diagrams");
+    const status = document.getElementById("preview-status");
+    const fmt = document.getElementById("diagram-format").value;
+    btn.disabled = true;
+    try {
+        const body = await snapshotDiagrams(currentDiagrams, DIAGRAM_PAGE_WIDTH, (done, total) => {
+            status.textContent = `Drawing ${done} of ${total}…`;
+        });
+        // WeasyPrint takes about a second for each six pesuqim.
+        const long = currentDiagrams.length > 300 ? ` (about ${Math.ceil(currentDiagrams.length / 360)} min)` : "";
+        status.textContent = fmt === "pdf" ? `Making the PDF…${long}` : "Saving…";
+        const n = parseInt(document.getElementById("max-leaf-disj").value, 10) || 2;
+        const title = [...document.querySelectorAll(".range-summary")].map((el) => el.textContent).join("; ");
+        const subtitle = `${currentDiagrams.length} ${currentDiagrams.length === 1 ? "pasuq" : "pesuqim"}`
+            + ` · groups per clause: ${n}`;
+        const result = await api().export_diagrams(body, fmt, title, subtitle);
+        if (!result.ok) {
+            if (result.error) showToast("Could not save: " + result.error, true);
+            return; // null error: the save dialog was cancelled
+        }
+        const pages = result.pages ? ` (${result.pages} page${result.pages === 1 ? "" : "s"})` : "";
+        showToast(`Saved to ${result.path}${pages}`, false);
+    } finally {
+        btn.disabled = false;
+        status.textContent = "";
     }
 }
 
@@ -770,6 +855,7 @@ window.addEventListener("pywebviewready", async () => {
     document.getElementById("tikkun-width-plus").addEventListener("click", () => tikkunWidthControl.adjust(1));
 
     document.getElementById("btn-export-csv").addEventListener("click", doExportCsv);
+    document.getElementById("btn-save-diagrams").addEventListener("click", doSaveDiagrams);
     document.getElementById("btn-export-cloze-anki").addEventListener("click", doExportClozeToAnki);
     checkAnki();
     setInterval(checkAnki, 8000);

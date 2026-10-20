@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>AnkiPasuk</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="diagram.css">
 </head>
 <body class="main-window">
 
@@ -66,7 +67,17 @@
     </div>
 
     <div class="preview-body">
-      <div class="view" data-view="diagram"><div id="viz-box" class="pane"></div></div>
+      <div class="view" data-view="diagram">
+        <div class="view-tools">
+          <span class="muted">Grey brackets: divisions the cards don't make at this setting.</span>
+          <span class="inline-group">
+            <button id="btn-save-diagrams" type="button" class="link"
+                    title="All the diagrams as pages, to read from or print">Save diagrams as</button>
+            <select id="diagram-format"><option value="pdf">PDF</option><option value="html">HTML</option></select>
+          </span>
+        </div>
+        <div id="viz-box" class="pane"></div>
+      </div>
 
       <div class="view" data-view="text" hidden>
         <div class="view-tools">
