@@ -62,7 +62,7 @@ def test_parse_range_ref_rejects_a_single_verse():
 
 
 def test_toledot_starts_at_malachi_1_1():
-    # The printed S&P list has 1:7, a misprint; see data/haftarot.json.
+    # Confirmed: the printed S&P list's 1:7 is a misprint (data/haftarot.json).
     toledot = next(e for e in haftara_table() if e["slug"] == "toledot")
     assert toledot["refs"] == ["Malachi 1:1-2:7"]
 
