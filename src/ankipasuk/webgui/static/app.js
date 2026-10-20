@@ -2,6 +2,7 @@
 
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
+let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only holds what's in view)
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -350,8 +351,13 @@ async function doGenerate() {
         showToast(result.error, true);
         return;
     }
-    document.getElementById("output-box").textContent = result.output;
-    document.getElementById("tokens-box").innerHTML = groupsHtml(result.diagrams);
+    currentClozeOutput = result.output;
+    // One line per pasuq, filled in as it scrolls into view (diagram.js's
+    // lazyFill): a whole book's markup as one block of text made every
+    // layout of the page take seconds in WebKitGTK.
+    const outputBox = document.getElementById("output-box");
+    lazyFill(outputBox, result.output.split("\n"),
+        (line) => `<div class="out-line">${diagramEscape(line)}</div>`, () => {}, outputBox, false);
     renderDiagrams(document.getElementById("viz-box"), result.diagrams);
 }
 
@@ -660,7 +666,7 @@ window.addEventListener("pywebviewready", async () => {
         copyText(currentVerseData.map((v) => v.plain).join("\n"));
     });
     document.getElementById("btn-copy-cloze").addEventListener("click", () => {
-        copyText(document.getElementById("output-box").textContent);
+        copyText(currentClozeOutput);
     });
 
     document.getElementById("btn-stats").addEventListener("click", async () => {

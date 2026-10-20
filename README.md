@@ -263,11 +263,15 @@ Tetse.
 
 Each pasuq's division is drawn after Joshua Jacobson's diagrams (*Chanting
 the Hebrew Bible*). Above the pointed text, each mafsiq has a bracket over
-the stretch of text it closes, labelled with its rank and Hebrew name: 1
-אתנח and 1 סוף פסוק on top, down to rank 4 just above the words, one colour
-per rank. The atnaḥ half and the sof pasuq half are drawn as separate units,
-side by side when they fit and one under the other when they don't. A unit
+the stretch of text it closes, labelled with its rank and Hebrew name, one
+colour per rank. As in his diagrams, each division sits a row below the one
+it divides, so 1 אתנח and 1 סוף פסוק are on top, and a "downgraded" mafsiq,
+one that only divides what's left after an earlier one of the same rank (the
+tevir after the ravia' in Bereshit 31:33), sits lower than that one. The
+atnaḥ half and the sof pasuq half are separate units, side by side on their
+text line when they fit and one under the other when they don't. A unit
 still too wide for the window scrolls sideways, with the mouse wheel too.
+Pesuqim are drawn as they scroll into view, so a whole book opens quickly.
 
 It always shows the complete division. Brackets in grey are divisions the
 cloze cards don't make at the current **Max disjunctive groups per leaf**,
@@ -374,8 +378,8 @@ The old Tk interface (`ankipasuk-tk-legacy`) also needs tkinter
    pickers start where the start is. Ranges are joined in the order you
    add them, so you can run the end of one book into the start of the next.
 2. Set **Max disjunctive groups per leaf** and click **Generate cloze
-   cards**. You'll see the cloze markup, each pasuq's groups, and its
-   diagram (see below).
+   cards**. You'll see the cloze markup and each pasuq's diagram (see
+   below).
 3. Export the notes, one per pasuq, in either of two ways:
    - **Export to CSV**, then import the file into Anki. It's tab-separated:
      the pasuq's number (its place in the book, or in the haftara), the

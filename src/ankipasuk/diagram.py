@@ -1,8 +1,11 @@
 """A pasuq's division as a diagram, after Joshua Jacobson's (*Chanting the
 Hebrew Bible*): the pasuq's words with, above them, one bracket for each
 mafsiq, spanning the stretch of text that mafsiq closes and labelled with
-its rank and Hebrew name. Stronger divisions sit higher, so rank 1 is on
-top and the weakest are just above the words.
+its rank and Hebrew name. As in his diagrams, a bracket's row is how deep
+its division lies: the unit's own bracket on top, each division one row
+below the one it divides. So a mafsiq that only divides what's left after
+an earlier one of the same rank -- a "downgraded" one, like the tevir
+after the ravia' in Bereshit 31:33 -- sits a row lower than it.
 
 The brackets are the split tree of :func:`ankipasuk.text_processing.split_segment`
 at its finest (one group per leaf): every split puts a bracket over its
@@ -49,40 +52,46 @@ def taam_label(unit: dict) -> tuple[int, str]:
     return unit["level"], TROPE_HEBREW_NAMES.get(name, name)
 
 
-def _box(node, card_spans: set) -> dict:
+def _box(node, card_spans: set, depth: int) -> dict:
     first, last = _span(node)
     rank, name = taam_label(_last_unit(node))
-    return {"from": first, "to": last, "rank": rank, "name": name, "grey": (first, last) not in card_spans}
+    return {
+        "from": first, "to": last, "rank": rank, "name": name,
+        "grey": (first, last) not in card_spans, "depth": depth,
+    }
 
 
-def _boxes(node, card_spans: set) -> list[dict]:
+def _boxes(node, card_spans: set, depth: int) -> list[dict]:
+    """The brackets below ``node`` (at ``depth``): each split's first part
+    gets one, a row below the node it divides. Both parts go one level
+    deeper, so a split of what's left after the first part sits lower
+    than that first part's bracket."""
     if not isinstance(node, dict):
         return []
     left, right = node["left"], node["right"]
-    return [_box(left, card_spans)] + _boxes(left, card_spans) + _boxes(right, card_spans)
+    return ([_box(left, card_spans, depth + 1)]
+            + _boxes(left, card_spans, depth + 1) + _boxes(right, card_spans, depth + 1))
 
 
 def _with_heights(boxes: list[dict]) -> list[dict]:
-    """``h``: 1 for a bracket with none inside it, else 1 + the tallest
-    inside -- its row above the words."""
-    by_size = sorted(boxes, key=lambda b: b["to"] - b["from"])
-    for i, box in enumerate(by_size):
-        inside = [c for c in by_size[:i] if box["from"] <= c["from"] and c["to"] <= box["to"]]
-        box["h"] = 1 + max((c["h"] for c in inside), default=0)
+    """``h``: the bracket's row counted up from the words (the deepest
+    division is 1), which is what the drawing uses."""
+    deepest = max(b["depth"] for b in boxes)
+    for box in boxes:
+        box["h"] = deepest - box.pop("depth") + 1
     return boxes
 
 
 def pasuq_diagram(pointed: str, card_n: int = 1) -> dict:
-    """The diagram of one pointed pasuq: ``{"units", "groups"}``.
-
-    ``units`` (one or two) each have ``words`` (``{"text", "g"}``, ``g``
-    being the word's group) and ``boxes`` (``{"from", "to", "rank",
-    "name", "grey", "h"}``, ``from``/``to`` being groups). ``groups`` is
-    the plain list of groups: ``{"rank", "name", "text"}``."""
+    """The diagram of one pointed pasuq: ``{"units": [...]}``, one or two
+    units, each with ``words`` (``{"text", "g"}``, ``g`` being the word's
+    group) and ``boxes`` (``{"from", "to", "rank", "name", "grey", "h"}``,
+    ``from``/``to`` being groups and ``h`` the row, counted up from the
+    words)."""
     tokens = tokenize_pasuk(pointed)
     units = group_into_units(tokens)
     if not units:
-        return {"units": [], "groups": []}
+        return {"units": []}
     words = []
     for g, unit in enumerate(units):
         unit["g"] = g
@@ -96,13 +105,9 @@ def pasuq_diagram(pointed: str, card_n: int = 1) -> dict:
     out_units = []
     for part in parts:
         first, last = _span(part)
-        top = _box(part, card_spans) | {"grey": False}  # a unit's own bracket is always shown
+        top = _box(part, card_spans, 0) | {"grey": False}  # a unit's own bracket is always shown
         out_units.append({
             "words": [w for w in words if first <= w["g"] <= last],
-            "boxes": _with_heights([top] + _boxes(part, card_spans)),
+            "boxes": _with_heights([top] + _boxes(part, card_spans, 0)),
         })
-    groups = []
-    for unit in units:
-        rank, name = taam_label(unit)
-        groups.append({"rank": rank, "name": name, "text": " ".join(sub["text"] for sub in unit["subs"])})
-    return {"units": out_units, "groups": groups}
+    return {"units": out_units}

@@ -163,22 +163,27 @@ button:disabled { opacity: 0.6; cursor: default; }
     padding: 4px 8px;
 }
 
-.text-box.groups {
-    white-space: normal;
-}
+
 
 /* Pasuq text everywhere in the app is in the tikkun's STAM font (its
    @font-face comes from api.get_tikkun_font_css), which has the niqqud
    and ta'amim too. */
-#pointed-box, #plain-box, .dg-text, .dg-gtext, .verse-text {
+#pointed-box, #plain-box, .dg-text, .verse-text {
     font-family: "ShlomosemiStam", "SBL Hebrew", "Ezra SIL", "Noto Serif Hebrew", serif;
 }
 
 /* ---- Pasuq diagrams (diagram.js, ankipasuk.diagram) ---- */
 .dg-pasuq { padding: 6px 0 8px; border-bottom: 1px solid #eee; }
+/* An entry not yet filled in (diagram.js, lazyFill): about its usual
+   height, so the scrollbar is about right before it's drawn. */
+#viz-box .dg-pending, #modal-diagrams .dg-pending { height: 110px; }
+#output-box .dg-pending { height: 3.2em; }
+#output-box .out-line { margin-bottom: 0.4em; }
 .dg-pasuq:last-child { border-bottom: none; }
 .dg-ref { font-family: sans-serif; font-size: 11px; color: #777; margin-bottom: 2px; }
-.dg-units { display: flex; flex-wrap: wrap; flex-direction: row-reverse; justify-content: flex-start; gap: 4px 24px; }
+/* Units on one line are aligned on their text, not their top brackets. */
+.dg-units { display: flex; flex-wrap: wrap; flex-direction: row-reverse; justify-content: flex-start;
+            align-items: flex-end; gap: 4px 24px; }
 /* A unit too wide for the window scrolls, starting at the pasuq's start;
    its thin scrollbar has room of its own below the text. */
 .dg-unit { max-width: 100%; overflow-x: auto; overflow-y: hidden; direction: rtl;
@@ -192,7 +197,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 svg.dg-brackets { position: absolute; left: 0; top: 0; overflow: visible; }
 .dg-line { stroke: #222; stroke-width: 1; fill: none; }
 .dg-label rect { fill: white; stroke: #222; stroke-width: 1; }
-.dg-label text { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 9px; fill: #222; direction: rtl; }
+.dg-label text { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 10.5px; fill: #222; direction: rtl; }
 /* One colour per rank: the old view's pastels (config.UNIT_COLORS) fill
    the label, a darker shade of the same colour draws the bracket. */
 .dg-r1 .dg-line, .dg-r1 .dg-label rect { stroke: #f9a825; } .dg-r1 .dg-label rect { fill: #fff9c4; }
@@ -204,9 +209,6 @@ svg.dg-brackets { position: absolute; left: 0; top: 0; overflow: visible; }
 .dg-grey .dg-line { fill: none; }
 .dg-grey .dg-label text { fill: #b8b8b8; }
 
-/* The small list of groups. */
-.dg-groups { margin: 2px 0 8px; padding-right: 22px; font-size: 17px; line-height: 1.5; }
-.dg-glabel { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 10px; color: #888; display: inline-block; min-width: 4.5em; }
 
 .toast {
     position: fixed;

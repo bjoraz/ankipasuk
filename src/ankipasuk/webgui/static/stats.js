@@ -44,7 +44,9 @@ async function showVersePopup(title, labels) {
     html += `<h3>${escapeHtml(title)}</h3><div class="muted">${sorted.length} verse(s)</div>`;
     html += `<div id="modal-diagrams"></div><button id="modal-close">Close</button></div></div>`;
     document.getElementById("verse-modal").innerHTML = html;
-    renderDiagrams(document.getElementById("modal-diagrams"), await api().get_diagrams(sorted));
+    // The modal box is what scrolls, so it's what the lazy drawing watches.
+    renderDiagrams(document.getElementById("modal-diagrams"), await api().get_diagrams(sorted),
+        document.querySelector("#verse-modal .modal"));
     document.getElementById("modal-overlay").addEventListener("click", (e) => {
         if (e.target.id === "modal-overlay") closeModal();
     });

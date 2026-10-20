@@ -26,10 +26,26 @@ def test_jacobsons_example_has_his_brackets():
     ]
 
 
-def test_stronger_divisions_sit_higher():
+def _rows(unit):
+    """Each bracket's row from the top (0 = the unit's own bracket)."""
+    top = max(b["h"] for b in unit["boxes"])
+    return {b["name"]: top - b["h"] for b in unit["boxes"]}
+
+
+def test_rows_follow_how_deep_each_division_is_as_in_jacobsons_figure():
     first, _second = pasuq_diagram(GENESIS_31_33)["units"]
-    h = {b["name"]: b["h"] for b in first["boxes"]}
-    assert h["אתנח"] > h["טרחא"] > h["רביע"] > h["גריש"] == 1
+    # His figure: 1-ETN, 2-TIP, 3-REV on successive rows; 4-GER and the
+    # downgraded 3-TVR one lower; 4-LEG lowest.
+    assert _rows(first) == {"אתנח": 0, "טרחא": 1, "רביע": 2, "גריש": 3, "תביר": 3, "פסק": 4}
+
+
+def test_a_downgraded_taam_sits_below_the_earlier_one_of_its_rank():
+    # The tevir divides only what's left after the ravia' (both rank 3), so
+    # its bracket is lower -- even with nothing inside the ravia's bracket.
+    first, _second = pasuq_diagram(GENESIS_31_33)["units"]
+    rows = _rows(first)
+    assert rows["תביר"] > rows["רביע"]
+    assert rows["פסק"] > rows["גריש"]  # the same for the two rank-4 brackets
 
 
 def test_divisions_the_cards_dont_make_are_greyed():
@@ -55,11 +71,5 @@ def test_a_pasuq_without_an_atnah_is_one_unit(genesis_1_1):
     assert unit["boxes"][0]["name"] == "סוף פסוק"
 
 
-def test_the_groups_list():
-    groups = pasuq_diagram(GENESIS_31_33)["groups"]
-    assert groups[0] == {"rank": 4, "name": "גריש", "text": "וַיָּבֹ֨א לָבָ֜ן"}
-    assert groups[5]["name"] == "אתנח" and groups[-1]["name"] == "סוף פסוק"
-
-
 def test_an_empty_pasuq():
-    assert pasuq_diagram("") == {"units": [], "groups": []}
+    assert pasuq_diagram("") == {"units": []}
