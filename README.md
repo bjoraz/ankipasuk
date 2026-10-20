@@ -384,8 +384,7 @@ for context and asking for the pasuq's own lines. Pesuqim rarely start and
 end on a line break, and tikkun.io's data doesn't say where in a line one
 pasuq stops and the next starts. AnkiPasuk works it out by lining up the
 words on each line against Sefaria's word count for each pasuq, so every
-card tests that pasuq's words and nothing more. Each card is titled by its
-pasuq (`Bereshit 1:3`); its 'ammud is in its tags and deck.
+card tests that pasuq's words and nothing more:
 
 - On a line shared with the previous pasuq, its end is shown as ordinary
   text.
@@ -402,6 +401,9 @@ The alignment also works backwards. If the first pasuq you asked for starts
 in the middle of a line, it steps back to the last petuḥa (the last point
 where nothing earlier can spill onto the line) and aligns from there, so a
 stray word from before your range can't throw off every card after it.
+
+Each card is titled by its pasuq (`Bereshit 1:3`); its 'ammud is in its
+tags and deck.
 
 **By line.** The overlapping-window method from the
 [AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on: a few lines of
