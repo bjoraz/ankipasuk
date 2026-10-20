@@ -1,9 +1,16 @@
 {
- "_source": "Spanish and Portuguese Jews' Congregation, London: List of Tora readings and haftarot, p. 515.",
+ "_source": "Spanish and Portuguese Jews' Congregation, London: List of Tora readings and haftarot, pp. 515-517.",
  "_notes": [
-  "Toledot: Malachi 1:1-2:7, confirmed; the printed list's 1:7 is a misprint.",
-  "Vezot haBerakha: Joshua 1:1-10, confirmed against the S&P source (other Sephardi communities end at 1:9).",
-  "Vayyelekh: the Shabbat Shuva haftara, as printed."
+  "Vezot haBerakha: Joshua 1:1-10, confirmed against the source (other Sephardi communities end at 1:9).",
+  "Vayyelekh: the Shabbat Shuva haftara, as in the source.",
+  "Shabbat Rosh Hodesh: Isaiah 66:1-24 is followed by a repetition of 66:23."
+ ],
+ "_rules": [
+  "When parashiyyot are combined, only the last one's haftara is read.",
+  "Mattot, Mase and Devarim (42-44) are the three of the Three Weeks; when Mattot and Mase are read together, Mattot's is read after Pinehas and Mase's on the next Shabbat.",
+  "Va'ethannan to Nitsavim (45-51) are the seven of consolation, and Vayyelekh's (52) is read on Shabbat Shuva; none of these, nor the four parashiyyot, give way to Rosh Hodesh or Mahar Hodesh: the first and penultimate verses of Shabbat Rosh Hodesh's haftara, or the first and last of Mahar Hodesh's, are added instead.",
+  "Rosh Hodesh on Shabbat and Sunday: the first and last verses of Mahar Hodesh are added to Shabbat Rosh Hodesh's haftara, and 66:23 is not repeated.",
+  "Shabbat Hanukka on Rosh Hodesh: Shabbat Hanukka's haftara, then the first and last verses of Shabbat Rosh Hodesh's (and of Mahar Hodesh's on the first of two days of Rosh Hodesh)."
  ],
  "haftarot": [
   {
@@ -550,6 +557,38 @@
    "kind": "special",
    "refs": [
     "Malachi 3:4-24"
+   ]
+  },
+  {
+   "slug": "shabbat_rosh_hodesh",
+   "name": "Shabbat Rosh Ḥodesh",
+   "kind": "special",
+   "refs": [
+    "Isaiah 66:1-24"
+   ]
+  },
+  {
+   "slug": "mahar_hodesh",
+   "name": "Maḥar Ḥodesh",
+   "kind": "special",
+   "refs": [
+    "I Samuel 20:18-42"
+   ]
+  },
+  {
+   "slug": "shabbat_hanukka",
+   "name": "Shabbat Ḥanukka",
+   "kind": "special",
+   "refs": [
+    "Zechariah 2:14-4:7"
+   ]
+  },
+  {
+   "slug": "shabbat_hanukka_ii",
+   "name": "Second Shabbat Ḥanukka",
+   "kind": "special",
+   "refs": [
+    "I Kings 7:40-50"
    ]
   }
  ]

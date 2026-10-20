@@ -28,6 +28,7 @@ def test_special_shabbatot_use_the_holiday_tables_slugs():
     assert specials == {
         "shabbat_hol_hamoed_sukkot", "shabbat_sheqalim", "shabbat_zakhor", "shabbat_para",
         "shabbat_hahodesh", "shabbat_hol_hamoed_pesah", "shabbat_hagadol",
+        "shabbat_rosh_hodesh", "mahar_hodesh", "shabbat_hanukka", "shabbat_hanukka_ii",
     }
     # The four parashiyyot are already in the holiday reading table (for
     # their Tora reading); the haftara must be filed under the same slug.
@@ -62,7 +63,6 @@ def test_parse_range_ref_rejects_a_single_verse():
 
 
 def test_toledot_starts_at_malachi_1_1():
-    # Confirmed: the printed S&P list's 1:7 is a misprint (data/haftarot.json).
     toledot = next(e for e in haftara_table() if e["slug"] == "toledot")
     assert toledot["refs"] == ["Malachi 1:1-2:7"]
 
@@ -72,6 +72,14 @@ def test_a_pasuq_in_two_haftarot_gets_both_tags():
     assert haftara_tags_for_verse("Isaiah", 54, 10) == ["haftara::noah", "haftara::ki_tetse"]
     # Re'eh starts just after: 54:11.
     assert haftara_tags_for_verse("Isaiah", 54, 11) == ["haftara::ree"]
+
+
+def test_special_haftarot_share_pesuqim_with_weekly_ones():
+    # Shabbat Ḥanukka reads Beha'alotekha's haftara, its second Shabbat Pequde's.
+    assert haftara_tags_for_verse("Zechariah", 2, 14) == ["haftara::behaalotekha", "haftara::shabbat_hanukka"]
+    assert haftara_tags_for_verse("I Kings", 7, 40) == ["haftara::pequde", "haftara::shabbat_hanukka_ii"]
+    assert haftara_tags_for_verse("Isaiah", 66, 23) == ["haftara::shabbat_rosh_hodesh"]
+    assert haftara_tags_for_verse("I Samuel", 20, 42) == ["haftara::mahar_hodesh"]
 
 
 def test_ranges_are_inclusive_and_multi_part():

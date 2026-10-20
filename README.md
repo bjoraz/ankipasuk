@@ -236,12 +236,13 @@ niqqud.
 ## Haftarot
 
 Choose **Haftara** as a range's mode to load a parasha's haftara, or that
-of a special Shabbat (the four parashiyyot, Shabbat haGadol, and Ḥol
-haMo'ed Sukkot and Pesaḥ). The list follows the Spanish and Portuguese
-custom, from the S&P London list of readings; it's in
-`src/ankipasuk/data/haftarot.json`, with the few corrections to the
-printed list noted there. A haftara in two parts (Mishpatim, Tsav, Mase,
-Shabbat Shuva) loads in reading order.
+of a special Shabbat: the four parashiyyot, Shabbat haGadol, Ḥol haMo'ed
+Sukkot and Pesaḥ, Rosh Ḥodesh, Maḥar Ḥodesh, and the two Shabbatot of
+Ḥanukka. The list follows the Spanish and Portuguese custom, from the S&P
+London list of readings; it's in `src/ankipasuk/data/haftarot.json`,
+together with that list's rules for which haftara gives way to which. A
+haftara in two parts (Mishpatim, Tsav, Mase, Shabbat Shuva) loads in
+reading order.
 
 A pasuq read in more than one haftara gets every one's tag: Yirmeyahu 1
 is read for Shemot and for Mattot, Yesha'yahu 54:1–10 for Noaḥ and for Ki
