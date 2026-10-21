@@ -151,6 +151,17 @@ def test_gods_names_are_formulas_unless_their_wording_is_exceptional(tanakh):
     assert ours["formula"] == ph.TITLES and not ours["variant"]
 
 
+def test_spans_are_each_occurrence_in_the_texts_order(tanakh):
+    genesis = sh._book("Genesis")
+    pesuqim = [{"book": "Genesis", "ch": 1, "vs": v, "pointed": " ".join(w for w, *_ in genesis[f"1:{v}"])}
+               for v in range(1, 32)]
+    out = ph.passage(pesuqim)
+    evening = next(p for p in out["phrases"] if "refrain" in p["kinds"] and p["here"] == 6
+                   and sh.consonants(p["text"]).startswith("ויהיערב"))
+    assert [v for v, *_ in evening["spans"]] == [4, 7, 12, 18, 22, 30]  # 1:5, 1:8, ... 1:31
+    assert all(v == v2 and k < k2 for v, k, v2, k2 in evening["spans"])
+
+
 def test_long_phrases_whole(tanakh):
     # The princes' offering, twelve times; the Decalogue, as in Shemot 20.
     offering = max(rows(tanakh, "Numbers", (7, 1), (7, 89)), key=lambda r: r["length"])
@@ -168,5 +179,6 @@ def test_passage_marks_the_loaded_words(genesis_1_1, genesis_1_2):
     words = sh.pieces(genesis_1_2)
     assert [sh.consonants(words[k][0]) for _v, k in entry["marks"]] == ["תהו", "ובהו"]
     assert entry["verses"] == [1] and entry["places"][0]["ref"] == "Yirmeyahu 4:23"
+    assert entry["spans"] == [[*entry["marks"][0], *entry["marks"][-1]]]  # its first word and last
     empty = {"refrain": [], "echo": [], "idiom": [], "formula": []}
     assert ph.passage([]) == {"phrases": [], "sections": empty}

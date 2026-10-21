@@ -257,6 +257,11 @@ body.sidebar-collapsed .sidebar { display: none; }
 .ph-n { color: #607d8b; }
 .ph-place { color: var(--accent); text-decoration: none; }
 .ph-place:hover { text-decoration: underline; }
+.ph-jump { float: right; display: inline-flex; align-items: center; gap: 1px; margin: -2px 0 0 6px; }
+.ph-jump button { padding: 0 7px; font-size: 13px; line-height: 1.35; border-radius: 3px; color: #455a64; }
+.ph-pos { min-width: 3.4em; text-align: center; color: #455a64; font-size: 11px; }
+@keyframes ph-flash { 0%, 35% { background-color: #ffd54f; } 100% { background-color: transparent; } }
+#text-box .ph-flash { animation: ph-flash 1.6s ease-out; }
 .ph-rare { font-size: 10px; color: #8d6e63; border: 1px solid #e0d6d0; border-radius: 3px; padding: 0 3px; margin-left: 4px; }
 .ph-class { padding: 8px 10px 3px; font-size: 11px; color: #78909c; font-weight: 600; text-transform: uppercase;
             letter-spacing: 0.04em; cursor: default; }

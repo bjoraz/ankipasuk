@@ -425,7 +425,9 @@ In the **Text** view, switch the side panel from **Shorashim** to
   the wording is exceptional (אל שדי; יהוה אלהים in Bereshit 2–3).
 
 One section shows at a time, by its tab. Click a phrase to underline it
-in the text, in its own colour, alongside the shorashim's colours. Under
+in the text, in its own colour, alongside the shorashim's colours; one
+that's here more than once gets arrows, ‹ 2/6 ›, to go from one
+occurrence to the next, each brought into view and flashed. Under
 each phrase are the places it shares (for an echo) or how many other
 pesuqim have it; click one to open the phrase's viewer: its pesuqim here
 on one side, and on the other the place in its whole chapter, fetched from

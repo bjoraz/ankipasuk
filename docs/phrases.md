@@ -228,11 +228,16 @@ test):
     here and where else: an echo's places, each a link, or "35
     elsewhere", a link too (the other pesuqim it's in).
   - Clicking a row underlines the phrase in the text, in the palette's
-    colours (the shorashim's, in click order), and brings its first pasuq
-    into view; the row is marked in the same colour. **Clear colours**
+    colours (the shorashim's, in click order), and shows an occurrence:
+    the first one in view, or else the first, brought into view and
+    flashed. The row is marked in the same colour. **Clear colours**
     clears roots and phrases. Each underline is one line from a phrase's
     first word to its last, spaces and maqaf included; where picked
     phrases share words, each keeps its own depth below the text.
+  - A picked phrase that's here more than once gets arrows, ‹ 2/6 ›, that
+    go to its previous or next occurrence in the text (round from the
+    last to the first), each flashed; a pasuq loaded twice has one in
+    each.
   - The phrases are found once the shorashim are in. The Tanakh's index
     is built when the app starts, in the background (a second or two).
 - **The viewer.** A place's link opens the phrase's viewer: on the right,

@@ -399,6 +399,7 @@ async function loadPhrases() {
     const verses = currentVerseData;
     if (phraseViewerClose) phraseViewerClose();  // its phrase is gone
     currentPhrases = null;
+    phraseAt.clear();
     renderPhrasesList();  // "Finding phrases…"
     const result = await api().get_phrases();
     if (verses !== currentVerseData) return;  // other pesuqim were loaded meanwhile
@@ -423,22 +424,86 @@ function renderPhrasesList() {
     paintPhraseList();
 }
 
-// A picked phrase's row, marked in its colour.
+// A picked phrase's row, marked in its colour; with more than one
+// occurrence here, arrows to go from one to the next in the text.
 function paintPhraseList() {
     for (const el of document.querySelectorAll("#phrases-list li.ph")) {
-        const colour = phraseMarks.colours.get(Number(el.dataset.id));
+        const id = Number(el.dataset.id);
+        const colour = phraseMarks.colours.get(id);
         el.classList.toggle("picked", colour !== undefined);
         el.style.borderRightColor = colour === undefined ? "" : ROOT_PALETTE[colour];
+        const n = currentPhrases.phrases[id].spans.length;
+        let nav = el.querySelector(".ph-jump");
+        if (colour === undefined || n < 2) {
+            if (nav) nav.remove();
+            continue;
+        }
+        if (!nav) {
+            nav = document.createElement("span");
+            nav.className = "ph-jump";
+            nav.innerHTML = '<button type="button" data-jump="-1" title="The one before, in the text">‹</button>'
+                + '<span class="ph-pos"></span><button type="button" data-jump="1" title="The next, in the text">›</button>';
+            el.querySelector(".ph-meta").append(nav);
+        }
+        nav.querySelector(".ph-pos").textContent = `${(phraseAt.get(id) || 0) + 1}/${n}`;
     }
 }
 
-// Bring a phrase's first pasuq into view in the text, if it isn't.
-function scrollToPhrase(p) {
+// The occurrence of each picked phrase last shown: an index into its spans.
+const phraseAt = new Map();
+
+// Show a phrase's occurrence ``k`` in the text (from the last, round to
+// the first), and flash it.
+function jumpToPhrase(p, k) {
+    const n = p.spans.length;
+    if (!n) return;
+    k = ((k % n) + n) % n;
+    phraseAt.set(p.id, k);
+    paintPhraseList();
+    const [v, w] = p.spans[k];
     const box = document.getElementById("text-box");
-    const line = p.verses.length ? box.querySelector(`[data-i="${p.verses[0]}"]`) : null;
-    if (!line) return;
-    const b = box.getBoundingClientRect(), r = line.getBoundingClientRect();
-    if (r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - box.clientHeight / 3;
+    // Lines are filled as they near the view and move what's below them:
+    // placed again once they are, then flashed.
+    const place = () => {
+        const line = box.querySelector(`[data-i="${v}"]`);
+        if (!line) return;
+        const target = line.querySelector(`[data-k="${w}"]`) || line;
+        const b = box.getBoundingClientRect(), r = target.getBoundingClientRect();
+        if (r.top < b.top + 4 || r.bottom > b.bottom - 4) box.scrollTop += r.top - b.top - box.clientHeight / 3;
+    };
+    place();
+    setTimeout(place, 60);
+    setTimeout(() => {
+        place();
+        flashSpan(box, p.spans[k]);
+    }, 160);
+}
+
+// The first occurrence of a phrase in view, if one is.
+function phraseInView(p) {
+    const box = document.getElementById("text-box");
+    const b = box.getBoundingClientRect();
+    return p.spans.findIndex(([v]) => {
+        const line = box.querySelector(`[data-i="${v}"]`);
+        const r = line ? line.getBoundingClientRect() : null;
+        return r && r.bottom > b.top && r.top < b.bottom;
+    });
+}
+
+// Briefly highlight words ``[pasuq, word]`` to ``[pasuq2, word2]``, and
+// what's between them.
+function flashSpan(box, [v, k, v2, k2]) {
+    for (const el of box.querySelectorAll(".ph-flash")) el.classList.remove("ph-flash");
+    void box.offsetWidth;  // so the same words flash again
+    for (let i = v; i <= v2; i++) {
+        const line = box.querySelector(`.tv-line[data-i="${i}"]`);
+        if (!line) continue;
+        const from = i === v ? k : -1, to = i === v2 ? k2 : Infinity;
+        for (const el of line.querySelectorAll("[data-k], [data-s]")) {
+            const x = Number(el.dataset.k ?? el.dataset.s);  // a separator: after its word
+            if (x >= from && (el.dataset.k !== undefined ? x <= to : x < to)) el.classList.add("ph-flash");
+        }
+    }
 }
 
 const phraseCalls = {
@@ -1271,7 +1336,9 @@ window.addEventListener("pywebviewready", async () => {
         renderPhrasesList();
         document.getElementById("phrases-list").scrollTop = 0;
     });
-    // A row picks its phrase (underlined in the text); a place opens its viewer.
+    // A row picks its phrase (underlined in the text, and shown: the
+    // first occurrence in view, or else the first); its arrows go from one
+    // occurrence to the next; a place opens its viewer.
     document.getElementById("phrases-list").addEventListener("click", (e) => {
         const item = e.target.closest("li.ph");
         if (!item) return;
@@ -1282,8 +1349,15 @@ window.addEventListener("pywebviewready", async () => {
             openPhraseViewer(p, phraseKind, phraseCalls, Number(place.dataset.place));
             return;
         }
+        const jump = e.target.closest(".ph-jump button");
+        if (jump) {
+            jumpToPhrase(p, (phraseAt.get(p.id) || 0) + Number(jump.dataset.jump));
+            return;
+        }
+        if (e.target.closest(".ph-jump")) return;
         phraseMarks.toggle(p.id);
-        if (phraseMarks.colours.has(p.id)) scrollToPhrase(p);
+        if (phraseMarks.colours.has(p.id)) jumpToPhrase(p, Math.max(phraseInView(p), 0));
+        else phraseAt.delete(p.id);
     });
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("roots-sort"), renderRootsList);

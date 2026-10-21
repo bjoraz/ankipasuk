@@ -547,7 +547,7 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
 
         {"phrases": [{"id", "kinds", "formula", "variant", "text",
                       "here", "total", "elsewhere", "places", "chapters",
-                      "books", "marks", "verses", "children"}, ...],
+                      "books", "marks", "spans", "verses", "children"}, ...],
          "sections": {"refrain": [id, ...], "echo": [...], "idiom": [...],
                       "formula": [[class, [id, ...]], ...]}}
 
@@ -556,9 +556,11 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
     God's names. ``text`` is its first occurrence here, in the loaded
     text; ``marks`` every word of its occurrences here, as ``[pasuq,
     word]`` (indices into the loaded pesuqim and their words, as
-    :func:`ankipasuk.shorashim.passage` has them); ``verses`` the pesuqim
-    it's in. ``places`` are the other pesuqim it's in, ``elsewhere`` of
-    them (``{"ref", "at", "length"}``, the first 30). ``children`` are
+    :func:`ankipasuk.shorashim.passage` has them); ``spans`` each
+    occurrence's first and last word, ``[pasuq, word, pasuq, word]``, in
+    the text's order; ``verses`` the pesuqim it's in. ``places`` are the
+    other pesuqim it's in, ``elsewhere`` of them (``{"ref", "at",
+    "length"}``, the first 30). ``children`` are
     the phrases folded under it, by section. ``thresholds`` are the
     tests'."""
     c = corpus()
@@ -585,6 +587,20 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
                     found[v].add(k)
         return [(v, k) for v, ks in sorted(found.items()) for k in range(min(ks), max(ks) + 1)]
 
+    def spans(occ_marks: list[list[tuple[int, int]]]) -> list[list[int]]:
+        """Each occurrence's first and last word; a pasuq loaded twice
+        gives one in each."""
+        out = set()
+        for ms in occ_marks:
+            runs: list[list[tuple[int, int]]] = []
+            for m in ms:
+                if runs and m[0] - runs[-1][-1][0] <= 1:
+                    runs[-1].append(m)
+                else:
+                    runs.append([m])
+            out.update((*run[0], *run[-1]) for run in runs)
+        return [list(x) for x in sorted(out)]
+
     entries = []
     for i, r in enumerate(rows):
         r["id"] = i
@@ -603,7 +619,7 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
             "variant": r["variant"], "text": text, "here": len(r["here"]), "total": len(r["occurrences"]),
             "elsewhere": len(places), "places": places[:30],
             "chapters": r["chapters"], "books": r["books"],
-            "marks": sorted({m for ms in occ_marks for m in ms}),
+            "marks": sorted({m for ms in occ_marks for m in ms}), "spans": spans(occ_marks),
             "verses": sorted({v for ms in occ_marks for v, _k in ms}), "children": {},
         })
     sections: dict = {}
