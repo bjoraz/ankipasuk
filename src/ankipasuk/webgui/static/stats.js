@@ -236,7 +236,7 @@ async function loadShorashim() {
             const words = r.words.map(([w, gloss]) => `${w} ${gloss}`).join(" · ");
             return `<div class="bar-row sh-row" data-i="${rows.indexOf(r)}" title="${escapeHtml(words)}">
                 <div class="bar-label"><span class="root-label">${escapeHtml(r.display)}</span></div>
-                <div class="sh-gloss">${escapeHtml(r.gloss)}${r.kind === "name" ? " (name)" : ""}</div>
+                <div class="sh-gloss">${escapeHtml(r.gloss)}${r.kind === "name" ? " (proper name)" : ""}</div>
                 <div class="bar-track"><div class="bar-fill" style="width:${(r.count / max) * 100}%"></div></div>
                 <div class="bar-count">${r.count} in ${r.pesuqim}</div></div>`;
         }).join("") || "<div class='muted'>None.</div>";
