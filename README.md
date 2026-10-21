@@ -19,25 +19,41 @@ makes two kinds of cards:
   or the next line. The cloze cards are enough to prepare a reading;
   these are for knowing the sefer's text by heart, 'ammud by 'ammud.
 
-Every pasuq is drawn the way Joshua Jacobson draws them in *Chanting the
-Hebrew Bible*: a bracket over the text each mafsiq closes, ranked and
-coloured, so you can see the whole division at a glance.
+AnkiPasuk is also a set of tools for studying the text, which work without
+Anki at all: load any range of pesuqim and use the preview and the
+statistics window.
+
+- **Diagrams.** Every pasuq is drawn the way Joshua Jacobson draws them in
+  *Chanting the Hebrew Bible*: a bracket over the text for each mafsiq,
+  ranked and coloured, so you see the whole division at a glance. They
+  can be saved as PDF or HTML pages to read or print.
+- **Shorashim.** In the **Text** view, click a word to colour every word
+  of its root, with the passage's roots listed beside the text, their
+  glosses, and a **Key words** order: the roots the passage uses far more
+  than the Tanakh does.
+- **Phrases.** The same view lists the passage's recurring phrases:
+  refrains within it, echoes of a few other places in the Tanakh (each
+  opened in its own chapter), and idioms used across it, with formulas
+  set apart.
+- **Statistics.** A window on whatever is loaded: words, groups and
+  clauses per pasuq, how often each mafsiq occurs, the shorashim and
+  phrases in full tables, and the pesuqim grouped by the shape of their
+  ta'amim, to find pesuqim built alike. Every count opens the pesuqim
+  behind it, and there's a CSV export.
+- **The sefer's columns.** Any 'ammud can be shown, or saved as pages, as
+  it is laid out in the sefer.
 
 ![The main window: Bereshit 1:1–8, each pasuq drawn as its diagram](docs/images/app-cloze.png)
 
-To study the text itself, the **Text** view colours every word of a
-shoresh you click and ranks the passage's key words, and lists its
-recurring phrases: refrains, echoes of other places in the Tanakh, and
-idioms, each a click away from its other places (see
-[Shorashim](#shorashim) and [Phrases](#phrases)).
-
 ![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
 
-There's also a statistics window for whatever you've loaded, including a
-way to find pesuqim that share the same ta'amim structure. Optional tools
-work on your Anki collection directly: they retire a pasuq's clause cards
-once you know the whole pasuq, and tag notes by parasha, 'aliyya and
-holiday. What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md).
+Each part is also a Python function with no GUI or Anki behind it, to use
+from a script or notebook (see [For developers](#for-developers)).
+
+Optional tools work on your Anki collection directly: they retire a
+pasuq's clause cards once you know the whole pasuq, and tag notes by
+parasha, 'aliyya and holiday. What changed in each version is in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## Contents
 
