@@ -9,7 +9,8 @@ sof pasuq), and every request is refused.
 Needs Playwright (``pip install -e ".[ui-test]"``) and a Chromium: the one
 ``python -m playwright install chromium`` installs, or a system one
 (``ANKIPASUK_CHROMIUM``, or the usual paths). Without them these tests
-are skipped.
+are skipped. ``ANKIPASUK_TEST_BROWSER=webkit`` runs them in Playwright's
+WebKit instead, the engine of the app's window on Linux and macOS.
 """
 
 from __future__ import annotations
@@ -64,6 +65,15 @@ def bundled_chapter(book: str, ch: int) -> list[str]:
 @pytest.fixture(scope="session")
 def browser():
     sync_api = pytest.importorskip("playwright.sync_api")
+    if os.environ.get("ANKIPASUK_TEST_BROWSER") == "webkit":
+        with sync_api.sync_playwright() as p:
+            try:
+                b = p.webkit.launch()
+            except Exception as e:  # noqa: BLE001
+                pytest.skip(f"no WebKit (python -m playwright install --with-deps webkit): {e}")
+            yield b
+            b.close()
+        return
     found = (os.environ.get("ANKIPASUK_CHROMIUM"), shutil.which("chromium"),
              shutil.which("chromium-browser"), shutil.which("google-chrome"))
     with sync_api.sync_playwright() as p:
@@ -138,6 +148,14 @@ def load(page: Page, end_ch: int, end_vs: int, pesuqim: int) -> None:
     page.page.select_option(".range-end-vs", str(end_vs))
     page.page.wait_for_function(
         f"document.getElementById('line-count').textContent === '{pesuqim} pesuqim loaded'")
+
+
+def in_view(page: Page, inner: str, box: str) -> bool:
+    """Whether the element ``inner`` lies wholly inside the scrolled ``box``."""
+    return page.page.evaluate(f"""(() => {{
+        const b = document.querySelector({json.dumps(box)}).getBoundingClientRect();
+        const r = document.querySelector({json.dumps(inner)}).getBoundingClientRect();
+        return r.top >= b.top && r.bottom <= b.bottom && r.height > 0; }})()""")
 
 
 def show_phrases(page: Page) -> None:

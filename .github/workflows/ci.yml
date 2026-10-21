@@ -34,3 +34,26 @@ jobs:
         # Headless throughout: the app's pages run in headless Chromium
         # (tests/test_frontend), offline, with a stand-in for pywebview.
         run: pytest -v
+
+  webkit:
+    # The browser tests again in WebKit, the engine of the app's window on
+    # Linux (WebKitGTK) and macOS: layout and scrolling, not just logic.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package with the browser tests' dependencies
+        run: pip install -e ".[dev,ui-test]"
+
+      - name: Install WebKit for the browser tests
+        run: python -m playwright install --with-deps webkit
+
+      - name: Run the browser tests in WebKit
+        env:
+          ANKIPASUK_TEST_BROWSER: webkit
+        run: pytest -v tests/test_frontend

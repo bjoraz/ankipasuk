@@ -3,7 +3,7 @@
 
 import json
 
-from .conftest import load, show_phrases
+from .conftest import in_view, load, show_phrases
 
 
 def test_a_range_loads_and_each_pasuq_is_drawn(main_window):
@@ -48,6 +48,7 @@ def test_phrases_are_listed_by_section_and_a_picked_one_steps_through_the_text(m
     first.locator('[data-jump="1"]').click()
     assert first.locator(".ph-pos").inner_text() == "2/6"
     page.wait_for_function("document.querySelectorAll('#text-box .ph-flash[data-k]').length > 0")
+    assert in_view(main_window, "#text-box .ph-flash[data-k]", "#text-box")
     first.locator('[data-jump="-1"]').click()
     first.locator('[data-jump="-1"]').click()
     assert first.locator(".ph-pos").inner_text() == "6/6"  # round from the first to the last
@@ -106,6 +107,7 @@ def test_an_echo_opens_in_its_chapter(main_window):
     page.wait_for_selector(".ph-vs.hit")
     assert page.locator(".ph-chapter-title").inner_text() == "Yirmeyahu 4"
     assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "23"
+    assert in_view(main_window, ".ph-vs.hit", ".ph-chapter")  # scrolled to it
     assert page.locator(".ph-there .ph-hit").count() >= 1 and page.locator(".ph-here .ph-hit").count() >= 1
     page.keyboard.press("Escape")
     assert page.locator(".ph-viewer").count() == 0

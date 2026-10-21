@@ -1217,17 +1217,21 @@ async function injectTikkunCss() {
 // separate from an Anki card's own -- this window and an Anki card's own
 // webview are different browser contexts that share nothing.
 function makeSizeControl(cssVar, storageKey, unit, { step, min, max, defaultValue }) {
+    let current = defaultValue; // when there's no storage (a private web view), just for now
     const read = () => {
-        const stored = localStorage.getItem(storageKey);
-        return stored ? parseFloat(stored) : defaultValue;
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) current = parseFloat(stored);
+        } catch (e) { /* no storage */ }
+        return current;
     };
     const apply = (value) => {
         document.documentElement.style.setProperty(cssVar, value + unit);
     };
     const adjust = (direction) => {
-        const next = Math.min(max, Math.max(min, read() + direction * step));
-        localStorage.setItem(storageKey, next);
-        apply(next);
+        current = Math.min(max, Math.max(min, read() + direction * step));
+        try { localStorage.setItem(storageKey, current); } catch (e) { /* not kept */ }
+        apply(current);
     };
     return { read, apply, adjust };
 }
