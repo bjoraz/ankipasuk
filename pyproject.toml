@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ankipasuk"
 dynamic = ["version"]
-description = "Anki cards for reading from the Sefer Tora: nested clozes split along the ta'amim, and scroll-accurate tiqqun cards; the text's shorashim and recurring phrases."
+description = "Anki cards for qeriya: nested clozes split along the ta'amim, optional tiqqun cards for memorizing the Tora as laid out in the sefer, and the text's shorashim and recurring phrases."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

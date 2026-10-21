@@ -1,21 +1,23 @@
 # AnkiPasuk
 
-AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for learning to read
-from the sefer. It takes the text and ta'amim from
-[Sefaria](https://www.sefaria.org/) and gives you two kinds of cards, each
-with its own job:
+AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for qeriya:
+reading aloud from the sefer, which has neither niqqud nor ta'amim. It
+takes the text and ta'amim from [Sefaria](https://www.sefaria.org/) and
+makes two kinds of cards:
 
-- **Cloze cards** are for learning the pesuqim and their structure. Each
+- **Cloze cards**, the core, are for learning the reading of the pesuqim
+  you'll read: from the Tora, a haftara, the Nevi'im or the Megillot. Each
   pasuq is taken apart along its own ta'amim: first into its two halves,
   then each half into its clauses, down to the smallest phrases the
-  mafsiqim allow. You learn the reading a piece at a time and see how the
-  ta'amim divide the pasuq as you go. The hidden part shows only its bare
-  letters, the way it's written in the sefer, and you supply the reading.
-- **Tiqqun cards** are for memorizing what you'll actually read: an
-  'ammud at a time, line by line, laid out as in the sefer (the standard
-  layout of 245 'ammudim with 42 lines each). The cloze cards teach you the
-  pesuqim; these make sure you can read them off the column in front of
-  you.
+  mafsiqim allow. A hidden part shows only its bare letters, as in the
+  sefer, and you supply the reading, a piece at a time, then the whole
+  pasuq.
+- **Tiqqun cards** are optional and more ambitious: memorizing the Tora
+  itself, word for word and unpointed, as it stands in the sefer's
+  columns (the standard layout of 245 'ammudim of 42 lines). Each card
+  shows where you are and asks you to recite what follows: the next pasuq,
+  or the next line. The cloze cards are enough to prepare a reading;
+  these are for knowing the sefer's text by heart, 'ammud by 'ammud.
 
 Every pasuq is drawn the way Joshua Jacobson draws them in *Chanting the
 Hebrew Bible*: a bracket over the text each mafsiq closes, ranked and
@@ -32,9 +34,10 @@ idioms, each a click away from its other places (see
 ![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
 
 There's also a statistics window for whatever you've loaded, including a
-way to find pesuqim that share the same ta'amim structure, and a few
-optional tools that work on your Anki collection directly. What changed
-in each version is in [`CHANGELOG.md`](CHANGELOG.md).
+way to find pesuqim that share the same ta'amim structure. Optional tools
+work on your Anki collection directly: they retire a pasuq's clause cards
+once you know the whole pasuq, and tag notes by parasha, 'aliyya and
+holiday. What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Contents
 
@@ -497,7 +500,11 @@ independent of whatever *N* you use for your cards.
 
 ## Tiqqun cards
 
-Tiqqun cards are for memorizing the qeriya itself, an 'ammud at a time.
+Tiqqun cards are an optional, longer-term scheme: memorizing the Tora's
+text verbatim, unpointed, in the sefer's own layout, an 'ammud at a time.
+They don't teach the reading (that's the cloze cards' job); they ask you
+to recite the text from where a card leaves off, the way the
+[AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on drills poetry.
 In the **Tiqqun cards** tab, choose one or more ranges of 'ammudim (1 to
 245), and AnkiPasuk sends their cards straight to Anki, or saves them as
 one CSV to import. Each 'ammud has its own deck, `Ammudim::001` to
