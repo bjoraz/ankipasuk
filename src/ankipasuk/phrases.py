@@ -480,7 +480,7 @@ def ref(c: Corpus, j: int, n: int) -> str:
     """Where tokens ``[j, j + n)`` are, in the app's spelling: "Yirmeyahu
     4:23", "Shemot 20:2-6"."""
     (book, key), (_b2, end) = c.where[j], c.where[j + n - 1]
-    name = BOOK_HEBREW_NAMES.get(book) or OTHER_BOOK_HEBREW_NAMES.get(book, book)
+    name = _name(book)
     if end == key:
         return f"{name} {key}"
     ch, vs = key.split(":")
@@ -503,8 +503,8 @@ def passage(verse_data: list[dict]) -> dict:
     """The loaded pesuqim's phrases, for the Text view and Statistics::
 
         {"phrases": [{"id", "kinds", "formula", "variant", "text",
-                      "here", "total", "places", "chapters", "books",
-                      "marks", "verses", "children"}, ...],
+                      "here", "total", "elsewhere", "places", "chapters",
+                      "books", "marks", "verses", "children"}, ...],
          "sections": {"refrain": [id, ...], "echo": [...], "idiom": [...],
                       "formula": [[class, [id, ...]], ...]}}
 
@@ -514,9 +514,9 @@ def passage(verse_data: list[dict]) -> dict:
     text; ``marks`` every word of its occurrences here, as ``[pasuq,
     word]`` (indices into the loaded pesuqim and their words, as
     :func:`ankipasuk.shorashim.passage` has them); ``verses`` the pesuqim
-    it's in. ``places`` are its other places (``{"ref", "at", "length"}``,
-    all for an echo, the first 30 otherwise). ``children`` are the
-    phrases folded under it, by section."""
+    it's in. ``places`` are the other pesuqim it's in, ``elsewhere`` of
+    them (``{"ref", "at", "length"}``, the first 30). ``children`` are
+    the phrases folded under it, by section."""
     c = corpus()
     segments = _segments(c, verse_data)
     if not segments:
@@ -549,11 +549,15 @@ def passage(verse_data: list[dict]) -> dict:
         text = "".join(lined[v][k][0] + ("" if x == len(first) - 1 else lined[v][k][1] or " ")
                        for x, (v, k) in enumerate(first))
         n = r["length"]
+        places, seen = [], set()  # one a pasuq
+        for j in sorted(r["elsewhere"], key=lambda j: _canonical(c.where[j])):
+            if c.where[j] not in seen:
+                seen.add(c.where[j])
+                places.append({"ref": ref(c, j, n), "at": j, "length": n})
         entries.append({
             "id": i, "kinds": r["kinds"] if not r["formula"] else [], "formula": r["formula"],
             "variant": r["variant"], "text": text, "here": len(r["here"]), "total": len(r["occurrences"]),
-            "places": [{"ref": ref(c, j, n), "at": j, "length": n}
-                       for j in sorted(r["elsewhere"], key=lambda j: _canonical(c.where[j]))[:30]],
+            "elsewhere": len(places), "places": places[:30],
             "chapters": r["chapters"], "books": r["books"],
             "marks": sorted({m for ms in occ_marks for m in ms}),
             "verses": sorted({v for ms in occ_marks for v, _k in ms}), "children": {},
@@ -587,19 +591,54 @@ def passage(verse_data: list[dict]) -> dict:
     return {"phrases": entries, "sections": sections}
 
 
-def other_place(at: int, length: int, text_of) -> list[dict]:
-    """A phrase's occurrence at token ``at`` (from ``places``), as the
-    pesuqim it's in: ``[{"ref", "words": [[text, separator, marked]]}]``,
-    the phrase's words marked. ``text_of(book, ch, vs)`` gives a pasuq's
-    pointed text."""
-    c = corpus()
+def _name(book: str) -> str:
+    return BOOK_HEBREW_NAMES.get(book) or OTHER_BOOK_HEBREW_NAMES.get(book, book)
+
+
+def _marked(words: list, keep) -> list[list]:
+    """``[text, separator, marked]`` for each word, marked from the first
+    word ``keep`` takes to the last, those between too."""
+    hits = [k for k, w in enumerate(words) if keep(k, w)]
+    span = range(min(hits), max(hits) + 1) if hits else range(0)
+    return [[w[0], w[1], int(k in span)] for k, w in enumerate(words)]
+
+
+def here_verses(entry: dict, verse_data: list[dict], words: list[list]) -> list[dict]:
+    """The loaded pesuqim a phrase (an entry of :func:`passage`) is in, for
+    its viewer: ``[{"ref", "words": [[text, separator, marked]]}]``;
+    ``words`` are the loaded pesuqim's words, as :func:`lined_up` or
+    :func:`ankipasuk.shorashim.passage` has them."""
+    marked = {(v, k) for v, k in entry["marks"]}
     out = []
-    for (book, key), idx in sorted(_covered(c, at, length).items(), key=lambda kv: _canonical(kv[0])):
-        ch, vs = (int(x) for x in key.split(":"))
-        ps = pieces(text_of(book, ch, vs))
-        oshb = _book(book).get(key) or []
-        ks = line_up([consonants(t) for t, _s in ps], oshb) if oshb else [None] * len(ps)
-        name = BOOK_HEBREW_NAMES.get(book) or OTHER_BOOK_HEBREW_NAMES.get(book, book)
-        out.append({"ref": f"{name} {key}", "words": [[t, s, int(k is not None and k in idx)]
-                                                      for (t, s), k in zip(ps, ks)]})
+    for v in entry["verses"]:
+        item = verse_data[v]
+        out.append({"ref": f"{_name(item['book'])} {item['ch']}:{item['vs']}",
+                    "words": [[w[0], w[1], int((v, k) in marked)] for k, w in enumerate(words[v])]})
     return out
+
+
+def context(at: int, length: int, chapter_of) -> dict:
+    """One of a phrase's places (``at``, ``length`` as its ``places`` have
+    them) in its chapter, for its viewer::
+
+        {"ref", "title", "verses": [{"vs", "words": [[text, sep, marked]],
+                                     "hit"}]}
+
+    ``hit`` marks the pesuqim the phrase is in, its words ``marked``.
+    ``chapter_of(book, ch)`` gives a chapter's pesuqim, pointed."""
+    c = corpus()
+    covered = _covered(c, at, length)
+    book, key = c.where[at]
+    ch = int(key.split(":")[0])
+    verses = []
+    for vs, text in enumerate(chapter_of(book, ch), 1):
+        ps = pieces(text)
+        idx = covered.get((book, f"{ch}:{vs}"))
+        if idx:
+            oshb = _book(book).get(f"{ch}:{vs}") or []
+            ks = line_up([consonants(t) for t, _s in ps], oshb) if oshb else [None] * len(ps)
+            words = _marked(ps, lambda k, _w, ks=ks, idx=idx: ks[k] is not None and ks[k] in idx)
+        else:
+            words = [[t, s, 0] for t, s in ps]
+        verses.append({"vs": vs, "words": words, "hit": bool(idx)})
+    return {"ref": ref(c, at, length), "title": f"{_name(book)} {ch}", "verses": verses}

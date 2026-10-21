@@ -62,7 +62,6 @@ from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
-from ..phrases import passage as phrases_passage
 from ..qeriya import (
     haftara_label,
     haftara_table,
@@ -98,12 +97,13 @@ from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
 from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards
 from .anki_connect_api import AnkiConnectApi
+from .phrase_api import PhraseApi
 from .stats_api import StatsApi
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
 
-class Api:
+class Api(PhraseApi):
     """Holds the mutable state a session needs (cache, accumulated verse
     data) -- one instance is created per app run and shared by every JS
     call, mirroring how ``AnkiPasukApp`` held this as instance state.
@@ -432,15 +432,9 @@ class Api:
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-    def get_phrases(self) -> dict:
-        """The loaded pesuqim's recurring phrases -- refrains, echoes,
-        idioms, formulas -- for the Text view (see
-        ankipasuk.phrases.passage)."""
-        try:
-            return {"ok": True, **phrases_passage(self._current_verse_data)}
-        except Exception as e:  # noqa: BLE001 -- the text still shows without them
-            traceback.print_exc()
-            return {"ok": False, "error": str(e)}
+    def _phrase_pesuqim(self) -> list[dict]:
+        """The loaded pesuqim, for the Text view's phrases (PhraseApi)."""
+        return self._current_verse_data
 
     # =============================================================
     #  Cloze generation

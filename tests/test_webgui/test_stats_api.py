@@ -110,24 +110,32 @@ def test_shorashim_most_frequent_first_and_their_pesuqim(genesis_1_1, genesis_1_
 
 def test_a_phrases_pesuqim_and_other_places_are_marked(genesis_1_1, genesis_1_2, monkeypatch):
     from ankipasuk.shorashim import consonants
-    from ankipasuk.webgui import stats_api
+    from ankipasuk.webgui import phrase_api
 
     jeremiah_4_23 = "רָאִיתִי אֶת־הָאָרֶץ וְהִנֵּה־תֹהוּ וָבֹהוּ וְאֶל־הַשָּׁמַיִם וְאֵין אוֹרָם׃"
     asked = []
 
-    def fake_text(ref, _version, _cache):
+    def fake_chapter(ref, _version, _cache):
         asked.append(ref)
-        return [jeremiah_4_23 if ref == "Jeremiah 4" else ""] * 30
+        return [f"פָּסוּק {n}" for n in range(1, 23)] + [jeremiah_4_23, "פָּסוּק 24"]
 
-    monkeypatch.setattr(stats_api, "get_text_for_ref", fake_text)
+    monkeypatch.setattr(phrase_api, "get_text_for_ref", fake_chapter)
     sapi = StatsApi(_verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)]), max_leaf_disj=2)
     result = sapi.get_phrases()
     tohu = next(p for p in result["phrases"] if consonants(p["text"]) == "תהוובהו")
     (verse,) = sapi.get_phrase_verses(tohu["id"])
     assert verse["ref"] == "Bereshit 1:2"
-    assert [consonants(w[0]) for w in verse["words"] if w[3]] == ["תהו", "ובהו"]
-    places = sapi.get_phrase_places(tohu["id"])
-    assert asked == ["Jeremiah 4"] and places["ok"] is True
-    (place,) = places["places"]
-    assert place["ref"] == "Yirmeyahu 4:23"
-    assert [consonants(w[0]) for w in place["words"] if w[2]] == ["תהו", "ובהו"]
+    assert [consonants(w[0]) for w in verse["words"] if w[2]] == ["תהו", "ובהו"]
+    # Its other place, in its chapter: the pasuq it's in marked, its words too.
+    there = sapi.get_phrase_context(tohu["id"], 0)
+    assert asked == ["Jeremiah 4"] and there["ok"] is True
+    assert (there["title"], there["ref"]) == ("Yirmeyahu 4", "Yirmeyahu 4:23")
+    assert [v["vs"] for v in there["verses"] if v["hit"]] == [23] and len(there["verses"]) == 24
+    assert [consonants(w[0]) for w in there["verses"][22]["words"] if w[2]] == ["תהו", "ובהו"]
+    # Offline: the place and why.
+    def offline(*_args):
+        raise RuntimeError("no network")
+
+    monkeypatch.setattr(phrase_api, "get_text_for_ref", offline)
+    failed = sapi.get_phrase_context(tohu["id"], 0)
+    assert failed == {"ok": False, "ref": "Yirmeyahu 4:23", "error": "no network"}

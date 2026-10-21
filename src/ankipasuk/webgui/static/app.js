@@ -405,56 +405,43 @@ async function loadPhrases() {
     renderPhrasesList();
 }
 
+let phraseKind = "refrain"; // the section shown
+
 function renderPhrasesList() {
-    const box = document.getElementById("phrases-list");
-    if (!currentPhrases) {
-        box.innerHTML = currentVerseData.length ? '<p class="muted ph-none">Finding phrases…</p>' : "";
+    const els = { tabs: document.getElementById("ph-tabs"), about: document.getElementById("ph-about"),
+                  list: document.getElementById("phrases-list") };
+    if (!currentPhrases || currentPhrases.error) {
+        els.tabs.innerHTML = els.list.innerHTML = "";
+        els.about.textContent = !currentPhrases ? (currentVerseData.length ? "Finding phrases…" : "")
+            : `No phrases: ${currentPhrases.error}`;
         return;
     }
-    if (currentPhrases.error) {
-        box.innerHTML = `<p class="muted ph-none">No phrases: ${diagramEscape(currentPhrases.error)}</p>`;
-        return;
-    }
-    const P = currentPhrases.phrases;
-    const item = (id, kind) => {
-        const p = P[id];
-        const kids = p.children[kind] || [];
-        const also = phraseAlso(p, kind).map((a) => `<span class="ph-tag">${a}</span>`).join("");
-        const place = kind === "echo" && p.places.length
-            ? `<span class="ph-place">${diagramEscape(p.places[0].ref)}${p.places.length > 1 ? ` +${p.places.length - 1}` : ""}</span>`
-            : "";
-        const more = kids.length ? `<button type="button" class="link ph-more" title="Shorter phrases inside it">+${kids.length}</button>` : "";
-        return `<li class="ph" data-id="${id}" title="${diagramEscape(phraseTitle(p))}">`
-            + `<div class="ph-line"><span class="ph-text" dir="rtl">${diagramEscape(phraseShort(p.text))}</span>`
-            + `<span class="ph-count">${p.here}</span></div>`
-            + (place || also || more ? `<div class="ph-meta">${place}${also}${more}</div>` : "")
-            + (kids.length ? `<ol class="ph-children" hidden>${kids.map((k) => item(k, kind)).join("")}</ol>` : "")
-            + "</li>";
-    };
-    let html = "";
-    for (const [kind, name, about] of PHRASE_SECTIONS) {
-        const ids = currentPhrases.sections[kind];
-        html += `<details class="ph-section" open><summary title="${about}">${name} <span class="muted">${ids.length}</span></summary>`
-            + (ids.length ? `<ol class="ph-list">${ids.map((id) => item(id, kind)).join("")}</ol>` : '<p class="muted ph-none">None</p>')
-            + "</details>";
-    }
-    const formulas = currentPhrases.sections.formula;
-    const count = formulas.reduce((n, [, ids]) => n + ids.length, 0);
-    html += '<details class="ph-section"><summary title="Phrases that only frame: who speaks, a name, a number, God\'s names">'
-        + `Formulas <span class="muted">${count}</span></summary>`
-        + formulas.map(([name, ids]) => `<div class="ph-class">${diagramEscape(name)}</div>`
-            + `<ol class="ph-list">${ids.map((id) => item(id, "formula")).join("")}</ol>`).join("")
-        + "</details>";
-    box.innerHTML = html;
+    renderPhrasePane(currentPhrases, phraseKind, els);
     paintPhraseList();
 }
 
-// A picked phrase's text underlined in its colour, in every section it's in.
+// A picked phrase's row, marked in its colour.
 function paintPhraseList() {
     for (const el of document.querySelectorAll("#phrases-list li.ph")) {
-        setPhraseUnderline(el.querySelector(".ph-text"), phraseMarks.colours.get(Number(el.dataset.id)));
+        const colour = phraseMarks.colours.get(Number(el.dataset.id));
+        el.classList.toggle("picked", colour !== undefined);
+        el.style.borderRightColor = colour === undefined ? "" : ROOT_PALETTE[colour];
     }
 }
+
+// Bring a phrase's first pasuq into view in the text, if it isn't.
+function scrollToPhrase(p) {
+    const box = document.getElementById("text-box");
+    const line = p.verses.length ? box.querySelector(`[data-i="${p.verses[0]}"]`) : null;
+    if (!line) return;
+    const b = box.getBoundingClientRect(), r = line.getBoundingClientRect();
+    if (r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - box.clientHeight / 3;
+}
+
+const phraseCalls = {
+    verses: (id) => api().get_phrase_verses(id),
+    context: (id, place) => api().get_phrase_context(id, place),
+};
 
 const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
@@ -1185,16 +1172,26 @@ window.addEventListener("pywebviewready", async () => {
         document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane === "phrases");
         if (btn.dataset.pane === "phrases") renderPhrasesList();
     });
+    document.getElementById("ph-tabs").addEventListener("click", (e) => {
+        const tab = e.target.closest("button[data-kind]");
+        if (!tab) return;
+        phraseKind = tab.dataset.kind;
+        renderPhrasesList();
+        document.getElementById("phrases-list").scrollTop = 0;
+    });
+    // A row picks its phrase (underlined in the text); a place opens its viewer.
     document.getElementById("phrases-list").addEventListener("click", (e) => {
-        const more = e.target.closest(".ph-more");
-        if (more) {
-            const kids = more.closest("li.ph").querySelector(":scope > .ph-children");
-            kids.hidden = !kids.hidden;
-            more.classList.toggle("open", !kids.hidden);
+        const item = e.target.closest("li.ph");
+        if (!item) return;
+        const p = currentPhrases.phrases[Number(item.dataset.id)];
+        const place = e.target.closest(".ph-place");
+        if (place) {
+            e.preventDefault();
+            openPhraseViewer(p, phraseKind, phraseCalls, Number(place.dataset.place));
             return;
         }
-        const item = e.target.closest("li.ph");
-        if (item) phraseMarks.toggle(item.dataset.id);
+        phraseMarks.toggle(p.id);
+        if (phraseMarks.colours.has(p.id)) scrollToPhrase(p);
     });
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("roots-sort"), renderRootsList);

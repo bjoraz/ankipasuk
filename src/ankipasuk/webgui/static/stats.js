@@ -271,74 +271,31 @@ async function loadShorashim() {
 //  Phrases: refrains, echoes, idioms, and formulas (ankipasuk.phrases)
 // =============================================================
 async function loadPhrases() {
-    const container = document.getElementById("phrases-content");
-    container.innerHTML = "<p class='muted'>Finding phrases…</p>";
+    const els = { tabs: document.getElementById("ph-tabs"), about: document.getElementById("ph-about"),
+                  list: document.getElementById("phrases-list") };
+    els.about.textContent = "Finding phrases…";
     const result = await api().get_phrases();
     if (!result.ok) {
-        container.innerHTML = `<p class="muted">No phrases: ${escapeHtml(result.error)}</p>`;
+        els.about.textContent = `No phrases: ${result.error}`;
         return;
     }
-    const P = result.phrases;
-    const row = (id, kind, child) => {
-        const p = P[id];
-        const also = phraseAlso(p, kind).map((a) => ` <span class="ph-tag">${a}</span>`).join("");
-        let info = kind === "echo" ? p.places.map((x) => x.ref).join(", ")
-            : kind === "idiom" ? `in ${p.chapters} chapters of ${p.books} ${p.books === 1 ? "book" : "books"}` : "";
-        if (p.variant) info += (info ? " · " : "") + "a rare wording of God's name";
-        return `<div class="ph-row${child ? " ph-child" : ""}" data-id="${id}" title="${diagramEscape(phraseTitle(p))}">`
-            + `<div class="ph-text">${escapeHtml(phraseShort(p.text, 16))}</div>`
-            + `<div class="ph-count">${p.here} / ${p.total}</div>`
-            + `<div class="ph-info">${escapeHtml(info)}${also}</div></div>`
-            + (child ? "" : (p.children[kind] || []).map((k) => row(k, kind, true)).join(""));
-    };
-    let html = '<div class="muted" style="text-align:right">times here / in the Tanakh</div>';
-    for (const [kind, name, about] of PHRASE_SECTIONS) {
-        const ids = result.sections[kind];
-        html += `<details class="ph-sec" open><summary>${name} <span class="muted">${ids.length} · ${about}</span></summary>`
-            + (ids.map((id) => row(id, kind, false)).join("") || "<div class='muted'>None.</div>") + "</details>";
-    }
-    const formulas = result.sections.formula;
-    const count = formulas.reduce((n, [, ids]) => n + ids.length, 0);
-    html += `<details class="ph-sec"><summary>Formulas <span class="muted">${count} · Phrases that only frame: `
-        + "who speaks, a name, a number, God's names</span></summary>"
-        + formulas.map(([name, ids]) => `<div class="ph-class">${escapeHtml(name)}</div>`
-            + ids.map((id) => row(id, "formula", false)).join("")).join("") + "</details>";
-    container.innerHTML = html;
-    container.addEventListener("click", (e) => {
-        const el = e.target.closest(".ph-row");
-        if (el) showPhrasePopup(P[Number(el.dataset.id)]);
+    let kind = "refrain";
+    const calls = { verses: (id) => api().get_phrase_verses(id), context: (id, place) => api().get_phrase_context(id, place) };
+    renderPhrasePane(result, kind, els);
+    els.tabs.addEventListener("click", (e) => {
+        const tab = e.target.closest("button[data-kind]");
+        if (!tab) return;
+        kind = tab.dataset.kind;
+        renderPhrasePane(result, kind, els);
     });
-}
-
-// A phrase's pesuqim here, its words highlighted; then, once fetched, its
-// other places.
-let phrasePopup = 0;
-async function showPhrasePopup(p) {
-    const mine = ++phrasePopup;
-    const verses = await api().get_phrase_verses(p.id);
-    const elsewhere = p.total - p.here;
-    let html = `<div class="modal-overlay" id="modal-overlay"><div class="modal">`;
-    html += `<h3 class="pasuq-text" dir="rtl">${escapeHtml(phraseShort(p.text, 30))}</h3>`;
-    html += `<div class="muted">${escapeHtml(phraseTitle(p)).replace(/\n/g, "<br>")}</div>`;
-    for (const v of verses) {
-        html += `<div class="verse-ref">${escapeHtml(v.ref)}</div><div class="verse-text pasuq-text">${markedWordsHtml(v.words)}</div>`;
-    }
-    if (elsewhere > 0) html += `<h4>Elsewhere</h4><div id="phrase-places" class="muted">Fetching from Sefaria…</div>`;
-    html += `<button id="modal-close">Close</button></div></div>`;
-    document.getElementById("verse-modal").innerHTML = html;
-    document.getElementById("modal-overlay").addEventListener("click", (e) => {
-        if (e.target.id === "modal-overlay") closeModal();
+    // A row, or one of its places, opens the phrase's viewer.
+    els.list.addEventListener("click", (e) => {
+        const item = e.target.closest("li.ph");
+        if (!item) return;
+        e.preventDefault();
+        const place = e.target.closest(".ph-place");
+        openPhraseViewer(result.phrases[Number(item.dataset.id)], kind, calls, place ? Number(place.dataset.place) : 0);
     });
-    document.getElementById("modal-close").addEventListener("click", closeModal);
-    if (elsewhere <= 0) return;
-    const result = await api().get_phrase_places(p.id);
-    const box = document.getElementById("phrase-places");
-    if (mine !== phrasePopup || !box) return;  // closed, or another opened meanwhile
-    box.classList.remove("muted");
-    box.innerHTML = result.places.map((place) => `<div class="verse-ref">${escapeHtml(place.ref)}</div>`
-        + (place.error ? `<div class="muted">${escapeHtml(place.error)}</div>`
-            : `<div class="verse-text pasuq-text">${markedWordsHtml(place.words)}</div>`)).join("")
-        + (result.more ? `<div class="muted">and ${result.more} more</div>` : "");
 }
 
 // =============================================================

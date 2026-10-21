@@ -423,12 +423,13 @@ In the **Text** view, switch the side panel from **Shorashim** to
   אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
   the wording is exceptional (אל שדי; יהוה אלהים in Bereshit 2–3).
 
-Click a phrase to underline it in the text, in its own colour; it works
-alongside the shorashim's colours. A phrase in several sections is tagged
-with the others, and the shorter phrases inside a longer one are under its
-**+**. The statistics window has the same sections in its **Phrases** tab,
-where a row opens its pesuqim and, fetched from Sefaria, its other places,
-the phrase marked in each.
+One section shows at a time, by its tab. Click a phrase to underline it
+in the text, in its own colour, alongside the shorashim's colours. Under
+each phrase are the places it shares (for an echo) or how many other
+pesuqim have it; click one to open the phrase's viewer: its pesuqim here
+on one side, and on the other the place in its whole chapter, fetched from
+Sefaria, the pasuq tinted and the phrase marked. The statistics window has
+the same sections in its **Phrases** tab, a row opening the same viewer.
 
 Phrases go by dictionary word, so the same words in different forms are
 the same phrase. They can be any length, and are found across the whole

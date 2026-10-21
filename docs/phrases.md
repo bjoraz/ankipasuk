@@ -139,8 +139,9 @@ section is folded under it when it doesn't recur apart from it:
 - for formulas, when none of its occurrences here lie outside it.
 
 The longest phrases are placed first, and a phrase goes under the first
-longer one that holds it. Folded phrases are shown when the longer phrase
-is opened.
+longer one that holds it. A folded phrase isn't listed on its own: it's
+part of the longer one (the data still gives it, as the longer one's
+`children`).
 
 ## Formulas
 
@@ -219,25 +220,29 @@ test):
 ## Display
 
 - **In the Text view.** The side panel switches between Shorashim and
-  Phrases. Phrases has the four sections, each entry in its commonest
-  wording in the passage (in Sefaria's text, via the shorashim's lining-up
-  of words), with its count here and in the Tanakh and its tags.
-  - Long phrases are shortened ("קצות החשן שתי קצות … מעל האפד, 67
-    words").
-  - Clicking an entry underlines its occurrences in the palette's colours
-    (the shorashim's, in click order), so phrases and shoresh colours show
-    together. **Clear colours** clears both. Each underline is one line
-    from a phrase's first word to its last, spaces and maqaf included;
-    where picked phrases share words, each keeps its own depth below the
-    text.
-  - Hovering gives the counts, and for echoes the other places.
+  Phrases. Phrases shows one section at a time, by its tab (each with its
+  count), under a line saying what the section holds.
+  - Each row is the phrase, in its first wording here (Sefaria's text,
+    via the shorashim's lining-up of words; a long one shortened: "קצות
+    החשן שתי קצות … מעל האפד (67 words)"), and under it how often it's
+    here and where else: an echo's places, each a link, or "35
+    elsewhere", a link too (the other pesuqim it's in).
+  - Clicking a row underlines the phrase in the text, in the palette's
+    colours (the shorashim's, in click order), and brings its first pasuq
+    into view; the row is marked in the same colour. **Clear colours**
+    clears roots and phrases. Each underline is one line from a phrase's
+    first word to its last, spaces and maqaf included; where picked
+    phrases share words, each keeps its own depth below the text.
   - The phrases are found once the shorashim are in. The Tanakh's index
     is built when the app starts, in the background (a second or two).
-- **In Statistics.** A Phrases tab has the same sections, the folded
-  phrases shown under theirs. A row opens its pesuqim with the phrase
-  marked, then its first 12 other places, fetched from Sefaria (and
-  cached, like everything fetched), the phrase marked in each. A place
-  that can't be fetched, offline, shows its reference and why.
+- **The viewer.** A place's link opens the phrase's viewer: on the right,
+  its pesuqim here, the phrase marked; on the left, the place in its whole
+  chapter, fetched from Sefaria (and cached, like everything fetched), the
+  pasuq tinted, the phrase marked, scrolled to it. Up to six places are
+  buttons; more, a list to step through (‹ ›), the first 30. A chapter
+  that can't be fetched, offline, shows the place and why. Esc closes it.
+- **In Statistics.** A Phrases tab has the same tabs and rows, a row a
+  line; a row, or one of its places, opens the same viewer.
 
 ## Data
 
