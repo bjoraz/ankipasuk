@@ -354,18 +354,18 @@ in the list too. Particles are left out of the list unless you tick
 **particles** (they're still coloured when you click them in the text).
 The statistics window has the full table.
 
-The roots come from the [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb),
-which gives every word of the Leningrad Codex its lemma, and its
+The roots come from the [Open Scriptures Hebrew
+Bible](https://github.com/openscriptures/morphhb), which gives every word
+of the Leningrad Codex its lemma, and its
 [lexicon](https://github.com/openscriptures/HebrewLexicon), which places
 each lemma in Brown–Driver–Briggs (BDB) under its root. The glosses are
 BDB's too: a shoresh is glossed by its commonest word (כ־ל־ל: "all", for
 כֹּל). BDB's first words are sometimes an etymology rather than a meaning
 (הָיָה "fall out", קֹדֶשׁ "apartness", אַחַר "the hinder"), so for the
-commonest words the app gives the plain meaning instead ("be",
-"holiness", "after"); the list is `GLOSS_FIXES` in `shorashim_build.py`.
-Hovering a
-shoresh in the list shows its words and their glosses. The data is
-bundled with the app, so nothing is looked up as you go.
+commonest words the app gives the plain meaning instead ("be", "holiness",
+"after"); the list is `GLOSS_FIXES` in `shorashim_build.py`. Hovering a
+shoresh in the list shows its words and their glosses. The data is bundled
+with the app, so nothing is looked up as you go.
 
 The app shows Sefaria's text, so each pasuq's words are lined up with
 OSHB's: word by word where both have the same words (nearly every pasuq;
