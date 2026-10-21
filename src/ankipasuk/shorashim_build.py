@@ -20,6 +20,11 @@ Every word gets a *group*, the thing the app counts and colours:
   A name is one group by its spelling, however many people or places BDB
   tells apart under it, and its gloss is the name in the app's spelling
   (מֹשֶׁה: Moshe; see :mod:`ankipasuk.transliterate`);
+- a people (חִתִּי, כְּנַעֲנִי, מוֹאָבִי) likewise, as a name, marked
+  ``people``: a word the lexicon calls one (``Ag``, ``Ng``), or one OSHB's
+  morphology calls one in most of its places -- the lexicon calls
+  כְּנַעֲנִי a noun and מוֹאָבִי an adjective, and OSHB, word by word, is
+  no steadier (:func:`peoples`);
 - a word with no root in BDB: also itself.
 
 Where BDB has two roots, or two words, with the same letters (לחם I
@@ -53,6 +58,7 @@ PARTICLE_POS = {
     "R", "C", "D", "T", "Tj", "Tm", "Ti", "Td", "To", "P", "Pp", "Pd", "Pi", "Pf", "Pr", "R C", "C?",
 }
 NAME_POS = {"Np", "Ag", "Ng"}
+PEOPLE_POS = {"Ag", "Ng"}  # of the names, peoples (gentilics)
 
 # A prefix written as a word of its own (לָהֶם, בָּם, מִמֶּנּוּ): its lemma
 # is just the prefix's code.
@@ -225,6 +231,7 @@ class Group:
     meaning: str = ""
     lemmas: Counter = field(default_factory=Counter)  # (headword, gloss, meaning) -> occurrences
     total: int = 0  # its words in the whole Tanakh
+    people: bool = False  # a name of a people (kind "name")
 
 
 def parse_lexicon(xml_text: str) -> dict[str, Entry]:
@@ -260,8 +267,9 @@ class Grouper:
     groups' totals, and to :attr:`words`, but make no new groups and
     don't count towards a group's words and gloss."""
 
-    def __init__(self, entries: dict[str, Entry]):
+    def __init__(self, entries: dict[str, Entry], peoples: set[str] = frozenset()):
         self.entries = entries
+        self.peoples = set(peoples) | {e.id for e in entries.values() if e.pos in PEOPLE_POS}
         self.by_strong: dict[tuple[str, str | None], str] = {}
         for e in entries.values():
             if e.strong:
@@ -321,10 +329,13 @@ class Grouper:
             return None if g is None else self._count(g, word, gloss)
         if entry.pos in PARTICLE_POS:
             g = self._group(f"w:{entry.id}", entry.word, "particle", entry.gloss, entry.meaning)
-        elif entry.pos in NAME_POS:
+        elif entry.pos in NAME_POS or entry.id in self.peoples:
             spelling = unicodedata.normalize("NFC", entry.word)
             gloss = entry.gloss if entry.strong in NAME_GLOSS else transliterate(entry.word)
-            g = self._group(f"n:{spelling}", entry.word, "name", gloss)
+            people = entry.id in self.peoples
+            g = self._group(f"{'g' if people else 'n'}:{spelling}", entry.word, "name", gloss)
+            if g is not None:
+                self.groups[g].people = people
         else:
             root = self._root(entry)
             if root is None:
@@ -380,9 +391,31 @@ class Grouper:
         for g, number in zip(self.groups, self._numbers()):
             words = [[w, gl, mn] for (w, gl, mn), _n in g.lemmas.most_common()]
             gloss, meaning = next(((gl, mn) for _w, gl, mn in words if gl), (g.gloss, g.meaning))
-            out.append({"label": g.label, "kind": g.kind, "gloss": gloss, "meaning": meaning,
-                        "number": number, "words": words[:8], "total": g.total})
+            row = {"label": g.label, "kind": g.kind, "gloss": gloss, "meaning": meaning,
+                   "number": number, "words": words[:8], "total": g.total}
+            if g.people:
+                row["people"] = True
+            out.append(row)
         return out
+
+
+def peoples(grouper: Grouper, xml_texts) -> set[str]:
+    """The lexicon entries OSHB's morphology calls a people (``Ng``,
+    ``Ag``) in most of their places, over all the books ``xml_texts``:
+    כְּנַעֲנִי and יְבוּסִי, which the lexicon calls nouns, מוֹאָבִי and
+    עַמּוֹנִי, adjectives -- but not בֵּן, a people twice in its 4,940."""
+    tagged: Counter = Counter()
+    seen: Counter = Counter()
+    for xml_text in xml_texts:
+        root = ET.fromstring(xml_text)
+        ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
+        for el in root.iter(ns + "w"):
+            entry = grouper.entry_of(el.get("lemma", ""))
+            if isinstance(entry, Entry):
+                seen[entry.id] += 1
+                if _morph(el.get("morph", ""))[0][:2] in ("Ng", "Ag"):
+                    tagged[entry.id] += 1
+    return {e for e, n in tagged.items() if 2 * n > seen[e]}
 
 
 def book_words(xml_text: str, osis: str, grouper: Grouper) -> dict[str, list[list]]:
@@ -403,7 +436,8 @@ def book_words(xml_text: str, osis: str, grouper: Grouper) -> dict[str, list[lis
 class Lemmas:
     """Every dictionary entry the Tanakh's words have, numbered in the order
     they're met, each as ``[strong, kind]``: kind "p" a particle, "n" a
-    name, "m" a name of two words (בֵּית לֶחֶם), "w" any other word."""
+    name, "m" a name of two words (בֵּית לֶחֶם), "g" a people (as the
+    shorashim have them, :func:`peoples`), "w" any other word."""
 
     def __init__(self, grouper: Grouper):
         self.grouper = grouper
@@ -421,6 +455,8 @@ class Lemmas:
                 row = [None, "p"]
             elif entry.pos in PARTICLE_POS:
                 row = [entry.strong, "p"]
+            elif entry.id in self.grouper.peoples:
+                row = [entry.strong, "g"]
             elif entry.pos in NAME_POS:
                 row = [entry.strong, "m" if " " in entry.word.strip() else "n"]
             else:
@@ -443,7 +479,8 @@ def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list
     in the same order), for the phrases: ``[lemma, flags]``, or ``[lemma,
     flags, form]`` for a word that can be part of a title of God.
 
-    flags: QERE; PROPER (a name), GENTILIC (a people), NUMERAL, CONSTRUCT
+    flags: QERE; PROPER (a name) and GENTILIC (a people), as the word's
+    entry is (:class:`Lemmas`), the same everywhere; NUMERAL, CONSTRUCT
     (without a suffix), SUFFIX, from OSHB's morphology; ETNAHTA and KING
     (a segol, shalshelet, zaqef or tifḥa on it), from its accents. form:
     its letters without the prefixes, and "+" for a suffix in place of
@@ -459,8 +496,9 @@ def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list
         text = "".join(el.itertext())
         accents = set(unicodedata.normalize("NFD", text))
         ns = el.tag[:el.tag.index("}") + 1] if el.tag.startswith("{") else ""
-        flags = ((QERE if _is_qere(v, el, ns) else 0) | (PROPER if main[:2] == "Np" else 0)
-                 | (GENTILIC if main[:2] in ("Ng", "Ag") else 0)
+        kind = lemmas.table[n][1] if n >= 0 else None
+        flags = ((QERE if _is_qere(v, el, ns) else 0) | (PROPER if kind in ("n", "m") else 0)
+                 | (GENTILIC if kind == "g" else 0)
                  | (NUMERAL if main[:2] in ("Ac", "Ao") else 0)
                  | (CONSTRUCT if main[:1] in ("N", "A") and main.endswith("c") and not suffix else 0)
                  | (SUFFIX if suffix else 0) | (ETNAHTA if "\u0591" in accents else 0)

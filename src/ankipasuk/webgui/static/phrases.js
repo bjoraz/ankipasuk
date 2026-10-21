@@ -49,13 +49,16 @@ function markedWordsHtml(words) {
 // Which phrases are underlined, in which colour: as RootColours (click
 // order, the first free colour of the same palette), but marking words
 // -- ``[pasuq, word]`` -- under each line of the text (``.tv-line``,
-// ``data-i`` its pasuq; a word ``[data-k]``).
+// ``data-i`` its pasuq; a word ``[data-k]``, what follows it ``[data-s]``).
+// Each picked phrase keeps one track, the first no phrase sharing a word
+// with it has, so its line stays at one depth from its first word to its
+// last, and runs on between them.
 class PhraseMarks {
     constructor(onChange) {
         this.colours = new Map(); // phrase id -> palette index
         this.clicks = 0;
         this.phrases = [];
-        this.byWord = new Map(); // "pasuq:word" -> [palette index, ...]
+        this.byWord = new Map(); // "pasuq:word" -> phrase ids, by track (sparse)
         this.onChange = onChange;
     }
 
@@ -77,8 +80,9 @@ class PhraseMarks {
             this.colours.set(id, colour);
             this.clicks += 1;
         }
+        const before = [...this.byWord.keys()];
         this._index();
-        this.onChange(this.phrases[id] ? this.phrases[id].marks : []);
+        this.onChange([...new Set([...before, ...this.byWord.keys()])].map((key) => key.split(":").map(Number)));
     }
 
     clear() {
@@ -91,36 +95,58 @@ class PhraseMarks {
 
     _index() {
         this.byWord.clear();
-        for (const [id, colour] of this.colours) {
-            for (const [v, k] of this.phrases[id].marks) {
-                const key = `${v}:${k}`;
-                if (!this.byWord.has(key)) this.byWord.set(key, []);
-                this.byWord.get(key).push(colour);
+        const placed = []; // [track, Set of "pasuq:word"]
+        for (const id of this.colours.keys()) {
+            const words = new Set(this.phrases[id].marks.map(([v, k]) => `${v}:${k}`));
+            let track = 0;
+            while (placed.some(([t, ws]) => t === track && [...words].some((w) => ws.has(w)))) track += 1;
+            placed.push([track, words]);
+            for (const w of words) {
+                if (!this.byWord.has(w)) this.byWord.set(w, []);
+                this.byWord.get(w)[track] = id;
             }
         }
     }
 
-    // Underline ``words`` ([pasuq, word]) under ``root``, as they now are.
+    // Underline the lines with ``words`` ([pasuq, word]) under ``root``.
     paint(root, words) {
-        for (const [v, k] of words) {
-            const el = root.querySelector(`.tv-line[data-i="${v}"] [data-k="${k}"]`);
-            if (el) setPhraseUnderline(el, this.byWord.get(`${v}:${k}`));
+        for (const v of new Set(words.map(([pasuq]) => pasuq))) {
+            const line = root.querySelector(`.tv-line[data-i="${v}"]`);
+            if (line) this.paintLines([line]);
         }
     }
 
-    // Every word of these lines (new lines of a lazily filled view).
+    // Every word of these lines (new lines of a lazily filled view), and
+    // what's between two words of the same phrase.
     paintLines(lines) {
         for (const line of lines) {
             const v = line.dataset.i;
-            for (const el of line.querySelectorAll("[data-k]")) setPhraseUnderline(el, this.byWord.get(`${v}:${el.dataset.k}`));
+            for (const el of line.querySelectorAll("[data-k]")) this._underline(el, this.byWord.get(`${v}:${el.dataset.k}`));
+            for (const el of line.querySelectorAll("[data-s]")) {
+                const k = Number(el.dataset.s);
+                const here = this.byWord.get(`${v}:${k}`), next = this.byWord.get(`${v}:${k + 1}`);
+                this._underline(el, here && next ? here.map((id, t) => (next[t] === id ? id : undefined)) : null);
+            }
         }
+    }
+
+    // A 3px line per track below the element: the phrase's colour where it
+    // has one, the page's white where not (an outer shadow shows only
+    // outside the element's box, and the first is on top).
+    _underline(el, ids) {
+        const tracks = ids ? ids.map((id) => (id === undefined ? undefined : this.colours.get(id))) : [];
+        if (!tracks.some((c) => c !== undefined)) {
+            el.style.boxShadow = "";
+            el.style.borderRadius = "";
+            return;
+        }
+        el.style.boxShadow = Array.from(tracks, (c, t) => `0 ${3 * (t + 1)}px 0 0 ${c === undefined ? "white" : ROOT_PALETTE[c]}`)
+            .join(", ");
+        el.style.borderRadius = "0";
     }
 }
 
-// One underline per phrase, 3px each, stacked below the word (an outer
-// shadow shows only outside the word's box, and the first is on top).
-function setPhraseUnderline(el, colours) {
-    el.style.boxShadow = colours && colours.length
-        ? colours.map((c, i) => `0 ${3 * (i + 1)}px 0 0 ${ROOT_PALETTE[c]}`).join(", ")
-        : "";
+// A phrase's entry in a list, underlined in its colour (or not).
+function setPhraseUnderline(el, colour) {
+    el.style.boxShadow = colour === undefined ? "" : `0 3px 0 0 ${ROOT_PALETTE[colour]}`;
 }

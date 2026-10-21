@@ -207,3 +207,28 @@ def test_the_bundled_data_counts_the_whole_tanakh():
     assert 300_000 < sh.tanakh_words() < 310_000
     shalom = next(g for g in table if g["kind"] == "root" and g["meaning"] == "peace")
     assert shalom["total"] > 400  # Tehillim and Divre haYamim count too
+
+
+def test_a_people_is_one_by_the_lexicon_or_by_most_of_its_places():
+    from ankipasuk.shorashim_build import peoples
+
+    lexicon = f"""<index {NS}><part>
+    <entry id="k"><w>כְּנַעֲנִי</w><pos>N</pos><def>Kenaanite</def><xref strong="3669"/></entry>
+    <entry id="h"><w>חִתִּי</w><pos>Ag</pos><def>Hittite</def><xref strong="2850"/></entry>
+    <entry id="b"><w>בֵּן</w><pos>N</pos><def>son</def><xref strong="1121"/></entry>
+    </part></index>"""
+    book = f"""<osis {NS}><osisText><div type="book" osisID="Gen"><chapter osisID="Gen.1">
+    <verse osisID="Gen.1.1"><w lemma="d/3669" morph="HTd/Ngmsa">הַ/כְּנַעֲנִי</w>
+      <w lemma="3669" morph="HAgmsa">כְּנַעֲנִי</w> <w lemma="3669" morph="HNcmsa">כְּנַעֲנִי</w>
+      <w lemma="2850" morph="HNpm">חִתִּי</w> <w lemma="1121" morph="HNgmsa">בֵּן</w>
+      <w lemma="1121" morph="HNcmsc">בֶּן</w> <w lemma="1121" morph="HNcmsc">בֶּן</w></verse>
+    </chapter></div></osisText></osis>"""
+    entries = parse_lexicon(lexicon)
+    found = peoples(Grouper(entries), [book])
+    assert found == {"k"}  # two places of three; בֵּן only one of three
+    grouper = Grouper(entries, found)
+    table_of = {w[0]: grouper.table()[w[1]] for w in book_words(book, "Gen", grouper)["1:1"]}
+    for word, gloss in (("כנעני", "Kena'ani"), ("חתי", "Ḥitti")):  # the lexicon's noun, and its gentilic
+        assert table_of[word]["kind"] == "name" and table_of[word]["people"] is True
+        assert table_of[word]["gloss"] == gloss
+    assert table_of["בן"]["kind"] == "word" and "people" not in table_of["בן"]

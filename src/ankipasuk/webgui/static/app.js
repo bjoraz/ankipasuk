@@ -353,8 +353,7 @@ function renderRootsList() {
     list.innerHTML = shown.map((g, i) => {
         const info = groups[g];
         const words = info.words.map(([w, gloss, meaning]) => `${w} ${glossText(gloss, meaning)}`).join(" · ");
-        // "proper name", not just "name": a gloss can be "name" (שֵׁם).
-        const kind = info.kind === "name" ? ' <span class="root-kind">proper name</span>' : "";
+        const kind = info.kind === "name" ? ` <span class="root-kind">${nameKind(info)}</span>` : "";
         const ratio = sort === "key" && info.total
             ? `<span class="root-ratio${info.keyness > 0 ? "" : " under"}">${ratioText(info.ratio)}</span>` : "";
         const last = i === coloured.length - 1 && rest.length ? ' class="last-coloured"' : "";
@@ -453,8 +452,7 @@ function renderPhrasesList() {
 // A picked phrase's text underlined in its colour, in every section it's in.
 function paintPhraseList() {
     for (const el of document.querySelectorAll("#phrases-list li.ph")) {
-        const colour = phraseMarks.colours.get(Number(el.dataset.id));
-        setPhraseUnderline(el.querySelector(".ph-text"), colour === undefined ? [] : [colour]);
+        setPhraseUnderline(el.querySelector(".ph-text"), phraseMarks.colours.get(Number(el.dataset.id)));
     }
 }
 

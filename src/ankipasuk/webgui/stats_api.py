@@ -164,13 +164,14 @@ class StatsApi:
     def get_shorashim(self) -> list:
         """Every root (or root-less word) in the loaded pesuqim, the most
         frequent first: ``[{"g", "display", "number", "kind", "gloss",
-        "meaning", "words", "count", "pesuqim", "total", "keyness",
-        "ratio"}]`` (see :func:`ankipasuk.shorashim.passage`)."""
+        "meaning", "words", "people", "count", "pesuqim", "total",
+        "keyness", "ratio"}]`` (see :func:`ankipasuk.shorashim.passage`)."""
         groups = self._shorashim()["groups"]
         return [
             {"g": g, "display": info["display"], "number": info.get("number", 0), "kind": info["kind"],
              "gloss": info["gloss"], "meaning": info.get("meaning", ""), "words": info["words"][:5],
-             "count": info["count"], "pesuqim": len(info["verses"]), "total": info.get("total", 0),
+             "people": info.get("people", False), "count": info["count"], "pesuqim": len(info["verses"]),
+             "total": info.get("total", 0),
              "keyness": info.get("keyness", 0), "ratio": info.get("ratio", 0)}
             for g, info in sorted(groups.items(), key=lambda kv: (-kv[1]["count"], kv[1]["label"]))
         ]

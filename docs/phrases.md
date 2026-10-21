@@ -149,10 +149,13 @@ dates, and says nothing else. A phrase is a formula of a class if it has
 one of the class's **core** words and every other content word is a core
 word or one the class **also** allows.
 
-Names and peoples (gentilics), numerals, construct state and suffixes come
-from OSHB's morphology (`Np`, `Ng`/`Ag`, `Ac`/`Ao`). The lexicon tags
-peoples inconsistently: חִתִּי is a name there, but כְּנַעֲנִי is not. All
-other words go by Strong's number.
+Names and peoples (gentilics) are as the shorashim have them, decided
+once for each dictionary word: a people is a word the lexicon calls one,
+or one OSHB's morphology calls one in most of its places. Neither alone is
+steady: the lexicon calls כְּנַעֲנִי a noun and מוֹאָבִי an adjective, and
+OSHB tags בֵּן a people twice in its 4,940 places. Numerals, construct
+state and suffixes come from OSHB's morphology (`Ac`/`Ao`), word by word;
+all other words go by Strong's number.
 
 | Class | Core | Also | Formulas | Not formulas |
 |---|---|---|---|---|
@@ -223,7 +226,10 @@ test):
     words").
   - Clicking an entry underlines its occurrences in the palette's colours
     (the shorashim's, in click order), so phrases and shoresh colours show
-    together. **Clear colours** clears both.
+    together. **Clear colours** clears both. Each underline is one line
+    from a phrase's first word to its last, spaces and maqaf included;
+    where picked phrases share words, each keeps its own depth below the
+    text.
   - Hovering gives the counts, and for echoes the other places.
   - The phrases are found once the shorashim are in. The Tanakh's index
     is built when the app starts, in the background (a second or two).
@@ -285,6 +291,3 @@ second, a whole book about one.
   passage's own accents.
 - **A whole book loaded** makes its own common titles concentrated, so for
   all of Devarim, יהוה אלהיך counts as exceptional.
-- **Peoples in the Shorashim list.** The phrases go by OSHB's morphology
-  for peoples; the Shorashim list still follows the lexicon, where some
-  are names and some aren't.

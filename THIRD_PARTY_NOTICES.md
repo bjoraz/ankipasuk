@@ -75,9 +75,11 @@ word of the Tanakh's dictionary entry (numbered, with its Strong's number
 and part of speech), a few facts from its morphology and accents (a name,
 a people, a numeral, construct state, a suffix, an etnaḥta or other
 mafsiq on it, a qere), and, for God's names and the words of their
-titles, its letters without prefixes. The Name's gloss was changed from "Jehovah" to "the Name", and the other
-names' English glosses to the names in AnkiPasuk's own spelling. Some common
-words, whose BDB gloss is more an etymology than a meaning, also have a
-plain meaning added beside it (`MEANINGS` in
+titles, its letters without prefixes.
+
+The Name's gloss was changed from "Jehovah" to "the Name", and the other
+names' English glosses, peoples' included, to the names in AnkiPasuk's
+own spelling. Some common words, whose BDB gloss is more an etymology
+than a meaning, also have a plain meaning added beside it (`MEANINGS` in
 `src/ankipasuk/shorashim_build.py`); their BDB gloss is kept.
 

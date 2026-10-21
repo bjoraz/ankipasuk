@@ -347,6 +347,10 @@ Every word of the Tora, the Nevi'im and the Megillot has its shoresh:
 - A name is glossed in the app's own spelling (Moshe, Ya'aqov, Noaḥ), by
   the rules in [`docs/transliteration.md`](docs/transliteration.md), and
   is one name however many people or places share it.
+- So is a people (Kena'ani, Ḥitti, Mo'avi), tagged "name of a people": a
+  word the lexicon calls one, or OSHB's morphology does in most of its
+  places, since neither alone is consistent (the lexicon calls כְּנַעֲנִי a
+  noun and מוֹאָבִי an adjective).
 
 In the **Text** view, click a word: every word with its shoresh in the
 passage gets a colour. Click another, and its shoresh gets the next

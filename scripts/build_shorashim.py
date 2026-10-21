@@ -28,6 +28,7 @@ from ankipasuk.shorashim_build import (
     book_lemmas,
     book_words,
     parse_lexicon,
+    peoples,
 )
 
 MORPHHB = "https://raw.githubusercontent.com/openscriptures/morphhb/master/wlc/{}.xml"
@@ -57,7 +58,10 @@ def main() -> int:
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as tmp:
         src = args.source or Path(tmp)
-        grouper = Grouper(parse_lexicon(fetch(LEXICON, src / "LexicalIndex.xml")))
+        books = [*OSIS_BOOKS.items(), *REFERENCE_BOOKS.items()]
+        xml = {osis: fetch(MORPHHB.format(osis), src / f"{osis}.xml") for _book, osis in books}
+        entries = parse_lexicon(fetch(LEXICON, src / "LexicalIndex.xml"))
+        grouper = Grouper(entries, peoples(Grouper(entries), xml.values()))
         lemmas = Lemmas(grouper)
         OUT.mkdir(parents=True, exist_ok=True)
         PHRASES.mkdir(parents=True, exist_ok=True)
@@ -65,12 +69,11 @@ def main() -> int:
         # The app's books first: they make the groups. Then the rest of the
         # Tanakh, only counted (each group's total; a word of a group they
         # don't have has none).
-        for book, osis in [*OSIS_BOOKS.items(), *REFERENCE_BOOKS.items()]:
+        for book, osis in books:
             grouper.reference = book in REFERENCE_BOOKS
-            xml = fetch(MORPHHB.format(osis), src / f"{osis}.xml")
-            verses = book_words(xml, osis, grouper)
+            verses = book_words(xml[osis], osis, grouper)
             write_gz(OUT / f"{osis}.json.gz", verses)
-            write_gz(PHRASES / f"{osis}.json.gz", book_lemmas(xml, osis, lemmas))
+            write_gz(PHRASES / f"{osis}.json.gz", book_lemmas(xml[osis], osis, lemmas))
             n = sum(len(w) for w in verses.values())
             words += n
             print(f"{book}: {len(verses)} pesuqim, {n} words")

@@ -246,7 +246,7 @@ async function loadShorashim() {
             return `<div class="bar-row sh-row" data-i="${rows.indexOf(r)}"
                 title="${escapeHtml(`${words}\n${rootCountsText(r)}`)}">
                 <div class="bar-label"><span class="root-label">${rootLabelHtml(r)}</span></div>
-                <div class="sh-gloss">${glossHtml(r.gloss, r.meaning)}${r.kind === "name" ? " (proper name)" : ""}</div>
+                <div class="sh-gloss">${glossHtml(r.gloss, r.meaning)}${r.kind === "name" ? ` (${nameKind(r)})` : ""}</div>
                 <div class="bar-track"><div class="bar-fill" style="width:${(size(r) / max) * 100}%"></div></div>
                 <div class="bar-count">${r.count} in ${r.pesuqim}${ratio}</div></div>`;
         }).join("") || "<div class='muted'>None.</div>";

@@ -31,6 +31,12 @@ function rootLabelHtml(info) {
     return diagramEscape(info.display) + n;
 }
 
+// What a name is: a people's (חִתִּי, מוֹאָבִי), or a proper name -- not
+// just "name" or "people", which are glosses too (שֵׁם, עַם).
+function nameKind(info) {
+    return info.people ? "name of a people" : "proper name";
+}
+
 // A gloss: BDB's, and for some common words a plain meaning beside it
 // (shorashim_build.MEANINGS). The meaning comes first and BDB's follows,
 // muted -- unless the meaning already says it ("do, make" for "do").
@@ -74,7 +80,7 @@ function rootCountsText(info) {
 // the list: the root, its number, then the gloss.)
 function rootTitle(info) {
     const n = info.number ? ` ${ROMAN[info.number] || info.number}` : "";
-    const kind = info.kind === "name" ? " (proper name)" : "";
+    const kind = info.kind === "name" ? ` (${nameKind(info)})` : "";
     return `\u200e${info.display}${n} \u00b7 ${glossText(info.gloss, info.meaning)}${kind}\n${rootCountsText(info)}`;
 }
 
@@ -93,18 +99,20 @@ function stripPointing(text) {
     return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
 }
 
-// One pasuq's words as HTML: each word a span with its index (``data-k``,
-// for the phrases' underlines), a clickable one where it has a group
-// (``.w``, ``data-g``); maqaf kept between words, or a space for letters
-// only.
+// One pasuq's words as HTML: each word a span with its index (``data-k``),
+// a clickable one where it has a group (``.w``, ``data-g``), and what
+// follows it a span too (``data-s``, the word it follows), so a phrase's
+// underline can run on between its words; maqaf kept between words, or a
+// space for letters only.
 function rootWordsHtml(words, plain) {
     return words.map(([text, sep, g], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
-        if (!shown.trim()) return shown + after;
+        const between = after ? `<span data-s="${k}">${after}</span>` : "";
+        if (!shown.trim()) return shown + between;
         const word = g === null || g === undefined
             ? `<span data-k="${k}">${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}">${shown}</span>`;
-        return word + after;
+        return word + between;
     }).join("");
 }
 

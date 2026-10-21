@@ -531,11 +531,15 @@ def passage(verse_data: list[dict]) -> dict:
                 words_at[(item["book"], at[0], at[1])].append((v, k))
 
     def marks(j: int, n: int) -> list[tuple[int, int]]:
-        out = []
+        """The loaded words of an occurrence: in each pasuq, from its first
+        to its last, those between too (a paseq, a word that didn't line
+        up), so its underline runs unbroken."""
+        found: dict[int, set[int]] = defaultdict(set)
         for (book, key), idx in _covered(c, j, n).items():
             for x in idx:
-                out.extend(words_at.get((book, key, x), ()))
-        return sorted(set(out))
+                for v, k in words_at.get((book, key, x), ()):
+                    found[v].add(k)
+        return [(v, k) for v, ks in sorted(found.items()) for k in range(min(ks), max(ks) + 1)]
 
     entries = []
     for i, r in enumerate(rows):

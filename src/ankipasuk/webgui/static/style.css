@@ -250,7 +250,6 @@ body.sidebar-collapsed .sidebar { display: none; }
 .ph-children .ph { border-top: none; padding: 2px 4px; }
 .ph-class { padding: 4px 8px 1px; font-size: 11px; color: #78909c; font-style: italic; }
 .ph-none { padding: 0 8px; margin: 2px 0 6px; }
-#text-box [data-k] { border-radius: 2px; }
 
 /* The diagrams' save dialog: options on the left, the page on the right. */
 .dialog-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.45);
