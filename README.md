@@ -95,8 +95,6 @@ or `PYWEBVIEW_GUI=qt` forces one.
 - **Sending cards straight to Anki**, and the collection tools, need Anki
   open with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159)
   add-on. Without it you can still save CSV files to import.
-- The old Tk interface (`ankipasuk-tk-legacy`) needs tkinter (`python3-tk`
-  on Debian/Ubuntu). It isn't maintained any more.
 
 ## Using the app
 
@@ -677,21 +675,20 @@ src/ankipasuk/
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
 ├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
-├── webgui/              the app: pywebview bridges (api.py, stats_api.py, …)
-│   └── static/          its pages, styles and scripts (diagram.js draws the diagrams)
-└── gui/                 the old tkinter app, no longer maintained
+└── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
+    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, app.js)
 scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
 docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
 ```
 
-Only `webgui/` and `gui/` touch anything graphical. The AnkiConnect client
+Only `webgui/` touches anything graphical. The AnkiConnect client
 is plain standard library. Everything from `config.py` to `verse_cards.py`
 can be used from a script or a notebook.
 
 The first version of the app used tkinter, which doesn't handle
 right-to-left text properly; long pointed pesuqim came out with words
-scrambled, especially on Windows. The current app shows its interface in a
-web view, where Hebrew just works.
+scrambled, especially on Windows. The app now shows its interface in a web
+view, where Hebrew just works; the tkinter version was removed in 0.2.0.
 
 ### Development
 

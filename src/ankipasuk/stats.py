@@ -1,7 +1,7 @@
 """Corpus-level statistics over a fetched range of verses.
 
-This module has no tkinter dependency, so it can be unit tested (and used
-from a script or notebook) without a display.
+It needs no display, so it can be unit tested, and used from a script or
+notebook.
 """
 
 from __future__ import annotations

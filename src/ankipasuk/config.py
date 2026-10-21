@@ -1,7 +1,7 @@
 """Static configuration and constants shared across the package.
 
-Nothing in this module performs I/O or depends on tkinter/requests, so it is
-safe to import from anywhere (including tests) with no side effects.
+Nothing in this module performs I/O or depends on requests, so it is safe
+to import from anywhere (including tests) with no side effects.
 """
 
 # =============================================================
@@ -330,37 +330,3 @@ TROPE_HEBREW_NAMES = {
 MAKEF = "\u05BE"
 MUNACH = "\u05A3"
 PASEQ = "\u05C0"
-
-# --- Bidi helpers (force RTL rendering of Hebrew inside tk.Text widgets) ---
-RLE = "\u202B"
-PDF = "\u202C"
-
-# Fonts that render the ta'amim (cantillation combining marks) well, most
-# to least capable. Proper ta'am stacking is a much narrower font
-# requirement than plain Hebrew support -- most system-default fonts (and
-# Tk's silent substitute when none of these are installed) will show
-# niqqud/ta'amim crowding or overlap. See gui.fonts.pick_hebrew_font, which
-# picks the first of these actually installed, falling back to Tk's
-# default if none are. For the best rendering, install one of the first
-# three (all free): SBL Hebrew, Ezra SIL, or a Taamey Torah font from
-# https://www.keyman.com/keyboards/taameyfrankcn or https://software.sil.org/ezra/.
-HEBREW_FONT_CANDIDATES = [
-    "SBL Hebrew",
-    "Ezra SIL",
-    "Taamey Frank CLM",
-    "Taamey Ashkenaz",
-    "Cardo",
-    "Noto Serif Hebrew",
-    "Noto Sans Hebrew",
-    "Times New Roman",
-    "David",
-    "Arial",
-]
-
-# =============================================================
-#  VISUALIZATION
-# =============================================================
-INDENT_SPACES_PER_LEVEL = 2
-GUIDE_BG = "#eceff1"
-UNIT_COLORS = ["#fff9c4", "#bbdefb", "#c8e6c9", "#f8bbd0", "#e1bee7"]
-INDENT_UNIT_PX = 14

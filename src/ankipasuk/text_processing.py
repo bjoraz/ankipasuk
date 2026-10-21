@@ -138,14 +138,6 @@ def disj_count(units) -> int:
     return sum(1 for u in units if 1 <= u["level"] <= 4)
 
 
-def format_units(units) -> str:
-    out = []
-    for i, u in enumerate(units):
-        text = " ".join(sub["text"] for sub in u["subs"])
-        out.append(f"{i}: L{u['level']} | {text}")
-    return "\n".join(out)
-
-
 # =============================================================
 #  SPLITTING
 # =============================================================
