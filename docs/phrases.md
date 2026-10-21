@@ -68,29 +68,38 @@ For each word of the passage:
    two words at once.
 2. **Closed.** Keep a phrase only if it can't be extended at either end
    without losing an occurrence. Each phrase is therefore as long as its
-   occurrences allow, with no length limit. The princes' offering in
-   Bamidbar 7 is a single phrase of 55 words, occurring 12 times. The
-   Decalogue in Devarim 5 comes out in long pieces (74, 20 and 16 words),
-   split where its wording differs from Shemot 20.
-3. **Cut at the ta'amim** of the passage's occurrence. A phrase may cross:
-   - a sof pasuq only if it contains a whole pasuq;
-   - an etnaḥta only if it contains a whole half-pasuq;
-   - a segol, shalshelet, zaqef qatan, zaqef gadol or tifḥa only if it
-     contains a whole unit between two such breaks (or an etnaḥta or sof
-     pasuq).
+   occurrences allow, with no length limit, before step 3 divides it.
+3. **Divided as the ta'amim divide** the passage's occurrence. The breaks
+   are, from the strongest: sof pasuq; etnaḥta; segol, shalshelet, zaqef
+   qatan, zaqef gadol and tifḥa. A phrase may cross a break only if it
+   starts and ends on breaks at least as strong as the strongest one it
+   crosses, so it is made of whole units of that level: whole pesuqim
+   across a sof pasuq, whole halves across an etnaḥta, whole units across
+   a zaqef or tifḥa. Particles between a phrase's end and the break don't
+   count (אל ארץ זבת חלב ודבש starts on the zaqef before אל).
 
-   Otherwise it's cut there into pieces. Long parallels cross freely,
-   while a phrase that only joins the end of one pasuq or half to the
-   start of the next doesn't: וירא אלהים כי טוב | ויהי ערב ויהי בקר יום,
-   ויהי כן | ויעש אלהים.
+   Otherwise the part-unit at either end is cut off at the strongest
+   break, and each piece is divided the same way. So ויהי ערב ויהי בקר
+   יום, which runs past the tifḥa into יום אחד, is ויהי ערב ויהי בקר; and
+   Yeḥezqel's ויהי דבר יהוה אלי לאמר no longer runs on into the next
+   pasuq's בן אדם. The princes' offering in Bamidbar 7 comes out as its
+   four whole pesuqim (41 words), 12 times: the fifth ends with each
+   prince's name. The Decalogue in Devarim 5 comes out in a long piece of
+   whole pesuqim (72 words) and shorter ones at the commandments, where
+   its wording differs from Shemot 20.
 4. **Trim.** Particles come off both ends, except לֹא and אַל. At the end,
    כֹּל and a verb of saying (אמר, דבר, ענה) come off too, because what
-   was said follows: וישא משלו ויאמר becomes וישא משלו.
+   was said follows: וישא משלו ויאמר becomes וישא משלו. A trimmed piece
+   whose new ends no longer stand on its breaks is divided again.
 5. **At least two content words.**
 
 A piece made by steps 3 and 4 keeps the occurrences of the phrase it came
 from. If it also occurs elsewhere on its own, step 2 finds it separately,
 with all its occurrences.
+
+The rule follows the ta'amim's own division, so a fixed expression they
+divide is divided too: מארץ מצרים מבית עבדים in Devarim 5:6, where a
+tifḥa ends אשר הוצאתיך מארץ מצרים, comes out as its two halves.
 
 ## The tests
 

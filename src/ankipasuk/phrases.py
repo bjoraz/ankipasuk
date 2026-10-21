@@ -11,8 +11,8 @@ this follows it section by section. In short:
   into the next.
 - From each token of the passage, a phrase is followed through all its
   occurrences in the Tanakh while two or more remain, and kept where it
-  can't be extended without losing one (*closed*); then cut at the
-  ta'amim and trimmed (:func:`_find`).
+  can't be extended without losing one (*closed*); then cut where the
+  ta'amim divide it and trimmed (:func:`_find`).
 - Each is then tested (:func:`_classify`): a refrain, an echo, an idiom,
   any or all of them, unless it's a formula (:func:`formula_class`).
 """
@@ -136,7 +136,7 @@ FORMULA_CLASSES = [TITLES, *CLASSES]
 _CONTENT, _NEG, _LIGHT, _AFTER_ET = 1, 2, 4, 8
 # Breaks after a token: an etnaḥta, a sof pasuq, a segol/shalshelet/zaqef/tifḥa.
 _ETNAHTA, _SOF, _KING = 1, 2, 3
-_PASUQ, _HALF, _UNIT = {_SOF}, {_ETNAHTA, _SOF}, {_ETNAHTA, _SOF, _KING}
+_STRENGTH = {_SOF: 3, _ETNAHTA: 2, _KING: 1}  # how strong a break is
 
 
 class Corpus:
@@ -258,28 +258,44 @@ def warm() -> None:
 
 
 # --- finding a passage's phrases --------------------------------------------
-def _holds_whole(c: Corpus, i: int, end: int, levels: set[int]) -> bool:
-    """Whether tokens ``[i, end]`` hold a whole unit between breaks of
-    ``levels`` (a pasuq, a half, ...)."""
-    started = i == 0 or c.brk[i - 1] in levels
-    for k in range(i, end + 1):
-        if c.brk[k] in levels:
-            if started:
-                return True
-            started = True
-    return False
+def _edge(c: Corpus, j: int, step: int) -> int:
+    """How strong a break the phrase edge at token ``j`` stands on: the
+    break before it (``step`` -1) or after it (+1), past any particles
+    between; 0 when a content word comes first. A book's ends are a sof
+    pasuq."""
+    k = j - 1 if step < 0 else j
+    while 0 <= k < len(c.lem):
+        if c.brk[k]:
+            return _STRENGTH[c.brk[k]]
+        beyond = k if step < 0 else k + 1
+        if beyond >= len(c.lem) or c.lem[beyond] < 0 or c.bits[beyond] & _CONTENT:
+            return 0
+        k += step
+    return _STRENGTH[_SOF]
 
 
 def _cut(c: Corpus, i: int, n: int) -> list[tuple[int, int]]:
-    """Tokens ``[i, i + n)`` cut where they cross a sof pasuq without a
-    whole pasuq in them, an etnaḥta without a whole half, or a segol,
-    shalshelet, zaqef or tifḥa without a whole unit between such breaks."""
+    """Tokens ``[i, i + n)`` as the ta'amim divide them: a phrase may cross
+    a break only if it starts and ends on breaks at least as strong as
+    the strongest it crosses. Otherwise a part-unit at either end is cut
+    off at that break, and each piece is divided the same way."""
     end = i + n - 1
-    whole = {_SOF: _holds_whole(c, i, end, _PASUQ), _ETNAHTA: _holds_whole(c, i, end, _HALF),
-             _KING: _holds_whole(c, i, end, _UNIT)}
-    cuts = [k for k in range(i, end) if c.brk[k] and not whole[c.brk[k]]]
-    bounds = [i, *(k + 1 for k in cuts), end + 1]
-    return [(bounds[x], bounds[x + 1] - bounds[x]) for x in range(len(bounds) - 1)]
+    inside = [k for k in range(i, end) if c.brk[k]]
+    if not inside:
+        return [(i, n)]
+    top = max(_STRENGTH[c.brk[k]] for k in inside)
+    tops = [k for k in inside if _STRENGTH[c.brk[k]] == top]
+    start_ok, end_ok = _edge(c, i, -1) >= top, _edge(c, end, 1) >= top
+    if start_ok and end_ok:
+        return [(i, n)]
+    head, tail, lo, hi = [], [], i, end
+    if not start_ok:
+        head = _cut(c, i, tops[0] - i + 1)
+        lo = tops[0] + 1
+    if not end_ok and tops[-1] >= lo:
+        tail = _cut(c, tops[-1] + 1, end - tops[-1])
+        hi = tops[-1]
+    return head + (_cut(c, lo, hi - lo + 1) if lo <= hi else []) + tail
 
 
 def _trim(c: Corpus, s: int, n: int) -> tuple[int, int]:
@@ -294,6 +310,22 @@ def _trim(c: Corpus, s: int, n: int) -> tuple[int, int]:
 
 def _content_words(c: Corpus, s: int, n: int) -> int:
     return sum(1 for j in range(s, s + n) if c.bits[j] & _CONTENT)
+
+
+def _pieces(c: Corpus, i: int, n: int) -> list[tuple[int, int]]:
+    """Tokens ``[i, i + n)`` cut at the ta'amim and trimmed; a trimmed piece
+    is cut again if its new ends no longer stand on its breaks."""
+    out, todo = [], _cut(c, i, n)
+    while todo:
+        s, m = _trim(c, *todo.pop())
+        if m < 2:
+            continue
+        again = _cut(c, s, m)
+        if len(again) > 1:
+            todo.extend(again)
+        else:
+            out.append((s, m))
+    return out
 
 
 def _find(c: Corpus, segments: list[tuple[int, int]], content_words: int = DEFAULTS.content_words,
@@ -324,9 +356,8 @@ def _find(c: Corpus, segments: list[tuple[int, int]], content_words: int = DEFAU
                 occ, n = nxt, n + 1
     out: dict[tuple, tuple[int, int, list[int]]] = {}
     for i, n, occ in raw:
-        for s, m in _cut(c, i, n):
-            s, m = _trim(c, s, m)
-            if m < 2 or _content_words(c, s, m) < content_words:
+        for s, m in _pieces(c, i, n):
+            if _content_words(c, s, m) < content_words:
                 continue
             key = tuple(lem[s:s + m])
             shifted = [j + s - i for j in occ]

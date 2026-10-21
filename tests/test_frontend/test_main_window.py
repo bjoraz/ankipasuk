@@ -55,7 +55,7 @@ def test_phrases_are_listed_by_section_and_a_picked_one_steps_through_the_text(m
     # Underlined in the text: its words have the line.
     underlined = page.evaluate(
         "[...document.querySelectorAll('#text-box [data-k]')].filter(e => e.style.boxShadow).length")
-    assert underlined >= 6 * 5
+    assert underlined >= 6 * 4  # ויהי ערב ויהי בקר, six times
 
 
 def test_a_long_section_shows_its_first_twelve_then_all(main_window):

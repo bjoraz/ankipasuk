@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Phrases follow the ta'amim's division strictly: a phrase that crosses a
+  break (sof pasuq, etnaḥta, or a segol, zaqef or tifḥa) starts and ends
+  on breaks at least as strong, so it is made of whole units. Before, it
+  only had to contain one whole unit, and could begin or end in the
+  middle of the next: ויהי ערב ויהי בקר יום is now ויהי ערב ויהי בקר, and
+  ויהי דבר יהוה אלי לאמר no longer runs on into בן אדם.
+- A picked phrase's underline takes the palette's colours in click order
+  again, as the shorashim do, without skipping theirs (0.2.0's change).
+
+### Fixed
+
+- Trimming a phrase's end could leave it crossing a break it no longer
+  stood on.
+
 ## 0.2.0 — 2026-10-21
 
 The app now studies the text as well as making cards: the shorashim and

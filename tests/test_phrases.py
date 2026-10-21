@@ -5,7 +5,7 @@ import pytest
 
 from ankipasuk import phrases as ph
 from ankipasuk import shorashim as sh
-from ankipasuk.shorashim_build import CONSTRUCT, PROPER, QERE
+from ankipasuk.shorashim_build import CONSTRUCT, ETNAHTA, KING, PROPER, QERE
 
 # A made-up dictionary: words a..h, fillers x1..x9, and a few real ones by
 # their Strong's numbers (אֵת, לֹא, אָמַר, a preposition, a name, God's names).
@@ -46,13 +46,30 @@ def test_the_object_marker_is_left_out_and_a_qere_read_for_its_ketiv():
     assert keys(c, 1) == {("a", "b"): 3}
 
 
-def test_a_sof_pasuq_is_crossed_only_by_a_phrase_holding_a_whole_pasuq():
-    # The end of one pasuq and the start of the next: cut there.
+def test_a_phrase_crosses_a_break_only_from_and_to_breaks_as_strong():
+    # The end of one pasuq and the start of the next: cut at the sof pasuq.
     c = made_up(w("x1", "a", "b"), w("c", "d", "x2"), w("x3", "a", "b"), w("c", "d", "x4"))
     assert keys(c, 1, 2) == {("a", "b"): 2, ("c", "d"): 2}
-    # With a whole pasuq in it, one phrase.
+    # A whole pasuq with part of the next (or the last word of the one
+    # before): only the whole pasuq.
     c = made_up(w("x1", "a", "b"), w("c", "d"), w("e", "x2"), w("x3", "a", "b"), w("c", "d"), w("e", "x4"))
-    assert ("a", "b", "c", "d", "e") in keys(c, 1, 2, 3)
+    assert keys(c, 1, 2, 3) == {("a", "b"): 2, ("c", "d"): 2}
+    # Whole pesuqim, one phrase.
+    c = made_up(w("x1"), w("a", "b"), w("c", "d"), w("x2"), w("a", "b"), w("c", "d"))
+    assert ("a", "b", "c", "d") in keys(c, 2, 3)
+    # An etnaḥta: a whole half, or nothing across it.
+    half = {"b": ETNAHTA}
+    c = made_up(w("x1", "a", "b", "c", "d", flags=half), w("x2", "a", "b", "c", "d", flags=half))
+    assert keys(c, 1) == {("a", "b"): 2, ("c", "d"): 2}
+    c = made_up(w("a", "b", "c", "d", flags=half), w("a", "b", "c", "d", flags=half))
+    assert keys(c, 1) == {("a", "b", "c", "d"): 2}
+    # A king (zaqef, tifḥa...) the same; particles at the edges don't count.
+    king = {"x1": KING, "x2": KING, "b": KING}
+    c = made_up(w("x1", "in", "a", "b", "c", "d", flags=king), w("x2", "in", "a", "b", "c", "d", flags=king))
+    assert keys(c, 1) == {("a", "b", "c", "d"): 2}
+    king = {"b": KING}
+    c = made_up(w("x1", "a", "b", "c", "d", flags=king), w("x2", "a", "b", "c", "d", flags=king))
+    assert keys(c, 1) == {("a", "b"): 2, ("c", "d"): 2}
 
 
 def test_particles_and_a_final_verb_of_saying_come_off_the_ends():
@@ -116,7 +133,7 @@ def find(c, found, *texts):
 
 def test_bereshit_1_has_its_refrains_an_echo_and_formulas(tanakh):
     found = rows(tanakh, "Genesis", (1, 1), (2, 3))
-    evening = find(tanakh, found, "ויהי ערב ויהי בקר יום")
+    evening = find(tanakh, found, "ויהי ערב ויהי בקר")  # not יום: יום אחד is the next unit
     assert evening["kinds"] == ["refrain"] and len(evening["here"]) == 6 and not evening["formula"]
     tohu = find(tanakh, found, "תהו ובהו")
     assert "echo" in tohu["kinds"] and tohu["places"] == [("Jeremiah", "4:23")]
@@ -127,8 +144,8 @@ def test_the_thresholds_change_what_is_listed(tanakh):
     def texts(**changed):
         found = rows(tanakh, "Genesis", (1, 1), (2, 3), ph.Thresholds(**changed))
         return {letters(tanakh, r): r["kinds"] for r in found}
-    assert "refrain" in texts()["ויהי ערב ויהי בקר יום"]  # six times
-    assert "refrain" not in texts(refrain_here=7).get("ויהי ערב ויהי בקר יום", [])
+    assert "refrain" in texts()["ויהי ערב ויהי בקר"]  # six times
+    assert "refrain" not in texts(refrain_here=7).get("ויהי ערב ויהי בקר", [])
     assert "תהו ובהו" not in texts(content_words=3)
     echoes = sum("echo" in kinds for kinds in texts().values())
     assert sum("echo" in kinds for kinds in texts(echo_places=6).values()) > echoes
@@ -146,8 +163,8 @@ def test_gods_name_is_no_persons_name_in_the_formula_classes(tanakh):
 
 def test_idioms_and_lists(tanakh):
     found = rows(tanakh, "Exodus", (3, 1), (4, 31))
-    assert "idiom" in find(tanakh, found, "זבת חלב ודבש")["kinds"]
-    nations = find(tanakh, found, "הכנעני והחתי והאמרי והפרזי והחוי והיבוסי")
+    assert "idiom" in find(tanakh, found, "ארץ זבת חלב ודבש")["kinds"]
+    nations = find(tanakh, found, "והאמרי והפרזי והחוי והיבוסי")  # after מקום הכנעני והחתי's zaqef
     assert nations["formula"] is None  # a list, not a formula
 
 
@@ -177,11 +194,24 @@ def test_spans_are_each_occurrence_in_the_texts_order(tanakh):
 
 
 def test_long_phrases_whole(tanakh):
-    # The princes' offering, twelve times; the Decalogue, as in Shemot 20.
+    # The princes' offering, twelve times: its four whole pesuqim (the
+    # fifth ends with each prince's name); the Decalogue, as in Shemot 20.
     offering = max(rows(tanakh, "Numbers", (7, 1), (7, 89)), key=lambda r: r["length"])
-    assert offering["length"] >= 50 and len(offering["here"]) == 12 and "refrain" in offering["kinds"]
+    assert offering["length"] >= 40 and len(offering["here"]) == 12 and "refrain" in offering["kinds"]
+    assert letters(tanakh, offering).startswith("וקרבנו") and letters(tanakh, offering).endswith("לחטאת")
     decalogue = max(rows(tanakh, "Deuteronomy", (5, 1), (6, 25)), key=lambda r: r["length"])
-    assert decalogue["length"] >= 70 and decalogue["places"][0] == ("Exodus", "20:1")
+    assert decalogue["length"] >= 70 and decalogue["places"][0] == ("Exodus", "20:2")
+
+
+def test_no_phrase_crosses_a_break_from_or_to_a_weaker_one(tanakh):
+    passages = [("Genesis", (1, 1), (3, 24)), ("Numbers", (22, 2), (25, 9)), ("Deuteronomy", (5, 1), (6, 25)),
+                ("Ezekiel", (6, 1), (7, 27)), ("Ruth", (1, 1), (4, 22))]
+    for book, first, last in passages:
+        for r in rows(tanakh, book, first, last):
+            assert ph._cut(tanakh, r["start"], r["length"]) == [(r["start"], r["length"])], letters(tanakh, r)
+    # Yeḥezqel's ויהי דבר יהוה אלי לאמר runs on into the next pasuq no more.
+    texts = {letters(tanakh, r) for r in rows(tanakh, "Ezekiel", (6, 1), (7, 27))}
+    assert not any("לאמר בן אדם" in t for t in texts) and "בן אדם" in texts
 
 
 def test_passage_marks_the_loaded_words(genesis_1_1, genesis_1_2):
