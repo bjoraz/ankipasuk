@@ -50,6 +50,45 @@ function glossText(gloss, meaning) {
     return bdb ? `${main} (BDB: ${bdb})` : main;
 }
 
+// The orders a list of groups goes in: the most used first, or the key
+// words first -- those the passage uses far more than the Tanakh as a
+// whole (ankipasuk.shorashim.keyness).
+const ROOT_ORDERS = {
+    count: (a, b) => b.count - a.count || a.display.localeCompare(b.display),
+    key: (a, b) => b.keyness - a.keyness || b.count - a.count,
+};
+
+// How many times as often as in the Tanakh: "×5.2", "×190".
+function ratioText(ratio) {
+    return `×${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}`;
+}
+
+function rootCountsText(info) {
+    const here = `${info.count} ${info.count === 1 ? "time" : "times"} here`;
+    if (!info.total) return here;
+    return `${here}, ${info.total} in the Tanakh: ${ratioText(info.ratio)} its rate there`;
+}
+
+// A word's tooltip: its root (or word) and gloss, and how often it's here
+// and in the Tanakh. (A left-to-right mark first, so the line reads as in
+// the list: the root, its number, then the gloss.)
+function rootTitle(info) {
+    const n = info.number ? ` ${ROMAN[info.number] || info.number}` : "";
+    const kind = info.kind === "name" ? " (proper name)" : "";
+    return `\u200e${info.display}${n} \u00b7 ${glossText(info.gloss, info.meaning)}${kind}\n${rootCountsText(info)}`;
+}
+
+// Words get their tooltip when first pointed at, rather than one written
+// out for each of a passage's thousands. ``lookup`` gives a group's info.
+function addRootTooltips(container, lookup) {
+    container.addEventListener("mouseover", (e) => {
+        const word = e.target.closest(".w");
+        if (!word || word.title) return;
+        const info = lookup(word.dataset.g);
+        if (info) word.title = rootTitle(info);
+    });
+}
+
 function stripPointing(text) {
     return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
 }
@@ -68,10 +107,11 @@ function rootWordsHtml(words, plain) {
 
 // Which roots are coloured, and with which colour: in the order they're
 // clicked, each taking the first colour no coloured root has; with all
-// twenty in use, the colours go round again.
+// twenty in use, the colours go round again. ``onChange`` gets the groups
+// that changed.
 class RootColours {
     constructor(onChange) {
-        this.colours = new Map(); // group -> palette index
+        this.colours = new Map(); // group -> palette index, in the order clicked
         this.clicks = 0;
         this.onChange = onChange;
     }
@@ -87,14 +127,14 @@ class RootColours {
             this.colours.set(g, colour);
             this.clicks += 1;
         }
-        this.onChange(g);
+        this.onChange([g]);
     }
 
     clear() {
         const was = [...this.colours.keys()];
         this.colours.clear();
         this.clicks = 0;
-        for (const g of was) this.onChange(g);
+        this.onChange(was);
     }
 
     // Colour (or uncolour) every element of group ``g`` under ``root``.

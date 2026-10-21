@@ -19,12 +19,16 @@ pasuq's words are lined up with OSHB's here:
   own, so its whole chapter is lined up at once instead.
 
 A word joined by maqaf is two words here, as in OSHB.
+
+A passage's *key words* (Buber's Leitwörter) are the groups it uses far
+more than the Tanakh as a whole: see :func:`keyness`.
 """
 
 from __future__ import annotations
 
 import gzip
 import json
+import math
 import re
 from collections import Counter
 from difflib import SequenceMatcher
@@ -39,10 +43,40 @@ _FINALS = str.maketrans("ךםןףץ", "כמנפצ")
 
 
 @cache
-def groups() -> list[dict]:
-    """Every group: ``{"label", "kind", "gloss", "words"}`` -- see
-    :meth:`ankipasuk.shorashim_build.Grouper.table`."""
+def _table() -> dict:
     return json.loads(gzip.decompress((DATA_DIR / "groups.json.gz").read_bytes()))
+
+
+def groups() -> list[dict]:
+    """Every group: ``{"label", "kind", "gloss", "meaning", "number",
+    "words", "total"}`` -- see
+    :meth:`ankipasuk.shorashim_build.Grouper.table`."""
+    return _table()["groups"]
+
+
+def tanakh_words() -> int:
+    """The Tanakh's words that have a group: what each group's ``total``
+    is out of."""
+    return _table()["words"]
+
+
+def keyness(count: int, words: int, total: int, tanakh: int) -> float:
+    """How much more a passage of ``words`` words uses a group, ``count``
+    times, than the rest of the Tanakh does (the group ``total`` times in
+    ``tanakh`` words, the passage's among them); below 0, how much less.
+
+    Dunning's log-likelihood (G²), as corpus linguists rank key words by:
+    it weighs how much more often against how sure that is, so a root used
+    twelve times where the Tanakh's rate would give two ranks above a rare
+    word that's there once."""
+    rest, rest_words = max(total - count, 0), max(tanakh - words, 0)
+    if not count or not words or not rest_words:
+        return 0.0
+    expected = words * (count + rest) / (words + rest_words)
+    g2 = count * math.log(count / expected)
+    if rest:
+        g2 += rest * math.log(rest / (rest_words * (count + rest) / (words + rest_words)))
+    return 2 * g2 if count / words > rest / rest_words else -2 * g2
 
 
 @cache
@@ -149,7 +183,9 @@ def passage(verse_data: list[dict]) -> dict:
 
         {"verses": [[[text, sep, group], ...], ...],
          "groups": {group: {"label", "display", "kind", "gloss", "words",
-                            "count", "verses"}}}
+                            "count", "verses", "keyness", "ratio"}}}
+
+    ``ratio`` is how many times as often as in the whole Tanakh.
     """
     table = groups()
     counts: Counter = Counter()
@@ -165,10 +201,18 @@ def passage(verse_data: list[dict]) -> dict:
             refs = where.setdefault(g, [])
             if not refs or refs[-1] != label:
                 refs.append(label)
+    words = sum(counts.values())
+    tanakh = tanakh_words()
+
+    def key(g: int, n: int) -> dict:
+        total = table[g].get("total", 0)
+        return {"keyness": round(keyness(n, words, total, tanakh), 2),
+                "ratio": round(n / words / (total / tanakh), 2) if total else 0}
+
     return {
         "verses": verses,
         "groups": {
-            g: {**table[g], "display": display(table[g]), "count": n, "verses": where[g]}
+            g: {**table[g], "display": display(table[g]), "count": n, "verses": where[g], **key(g, n)}
             for g, n in counts.items()
         },
     }

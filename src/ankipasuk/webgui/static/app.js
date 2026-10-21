@@ -333,30 +333,49 @@ function renderTextBox() {
     renderRootsList();
 }
 
-// The passage's roots, the most frequent first; particles only if asked.
+// The passage's roots: the coloured ones first, in the order they were
+// coloured, then the rest, the most used or the key words first;
+// particles only if asked (or coloured).
 function renderRootsList() {
     const list = document.getElementById("roots-list");
-    const groups = currentShorashim ? Object.entries(currentShorashim.groups) : [];
+    const groups = currentShorashim ? currentShorashim.groups : {};
     const withParticles = document.getElementById("roots-particles").checked;
-    const shown = groups.filter(([_g, info]) => withParticles || info.kind !== "particle")
-        .sort((a, b) => b[1].count - a[1].count || a[1].label.localeCompare(b[1].label));
-    list.innerHTML = shown.map(([g, info]) => {
+    const sort = document.querySelector("#roots-sort .active").dataset.sort;
+    const coloured = [...rootColours.colours.keys()].filter((g) => g in groups);
+    const rest = Object.keys(groups)
+        .filter((g) => !rootColours.colours.has(g) && (withParticles || groups[g].kind !== "particle"))
+        .sort((a, b) => ROOT_ORDERS[sort](groups[a], groups[b]));
+    const shown = [...coloured, ...rest];
+    list.innerHTML = shown.map((g, i) => {
+        const info = groups[g];
         const words = info.words.map(([w, gloss, meaning]) => `${w} ${glossText(gloss, meaning)}`).join(" · ");
         // "proper name", not just "name": a gloss can be "name" (שֵׁם).
         const kind = info.kind === "name" ? ' <span class="root-kind">proper name</span>' : "";
-        return `<li data-root="${g}" title="${diagramEscape(words)}">`
+        const ratio = sort === "key" && info.total
+            ? `<span class="root-ratio${info.keyness > 0 ? "" : " under"}">${ratioText(info.ratio)}</span>` : "";
+        const last = i === coloured.length - 1 && rest.length ? ' class="last-coloured"' : "";
+        return `<li data-root="${g}"${last} title="${diagramEscape(`${words}\n${rootCountsText(info)}`)}">`
             + `<span class="root-label" data-g="${g}">${rootLabelHtml(info)}</span>`
             + `<span class="root-gloss">${glossHtml(info.gloss, info.meaning)}${kind}</span>`
-            + `<span class="root-count">${info.count}</span></li>`;
+            + `<span class="root-count">${info.count}</span>${ratio}</li>`;
     }).join("");
     rootColours.paintAll(list);
     document.getElementById("roots-count").textContent = shown.length ? `(${shown.length})` : "";
 }
 
-// Colouring a root colours its words in the text and its entry in the list.
-const rootColours = new RootColours((g) => {
-    rootColours.paint(document.getElementById("text-box"), g);
-    rootColours.paint(document.getElementById("roots-list"), g);
+// Colouring a root colours its words in the text, and brings its entry in
+// the list up to the top, scrolling to it there.
+const rootColours = new RootColours((changed) => {
+    for (const g of changed) rootColours.paint(document.getElementById("text-box"), g);
+    renderRootsList();
+    const list = document.getElementById("roots-list");
+    const item = changed.length === 1 && rootColours.colours.has(changed[0])
+        ? list.querySelector(`li[data-root="${changed[0]}"]`) : null;
+    if (item) {
+        const l = list.getBoundingClientRect(), r = item.getBoundingClientRect();
+        if (r.top < l.top) list.scrollTop -= l.top - r.top;
+        else if (r.bottom > l.bottom) list.scrollTop += r.bottom - l.bottom;
+    }
 });
 
 async function loadShorashim() {
@@ -1078,8 +1097,10 @@ window.addEventListener("pywebviewready", async () => {
         const item = e.target.closest("li[data-root]");
         if (item) rootColours.toggle(item.dataset.root);
     });
+    addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g]);
     document.getElementById("btn-clear-roots").addEventListener("click", () => rootColours.clear());
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
+    segmented(document.getElementById("roots-sort"), renderRootsList);
     segmented(document.getElementById("tikkun-kind"), renderVerseBoxes);
 
     document.getElementById("btn-add-range").addEventListener("click", addRangeRow);

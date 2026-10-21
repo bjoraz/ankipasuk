@@ -357,8 +357,25 @@ no coloured shoresh has, and round again once all twenty are in use.
 Beside the text is the passage's list of shorashim, the most frequent
 first, each with a short gloss and how often it occurs. Clicking one
 colours it just like clicking a word, and a coloured shoresh is coloured
-in the list too. Particles are left out of the list unless you tick
-**particles** (they're still coloured when you click them in the text).
+in the list too, and moves up to the top: the coloured ones come first,
+in the order you coloured them, above a line. Particles are left out of
+the list unless you tick **particles** (one you colour in the text still
+comes up to the top). Hover over a word in the text to see its shoresh
+and gloss, and how often it occurs here and in the Tanakh.
+
+**Key words** sorts the list by how much more the passage uses each
+shoresh than the Tanakh as a whole does: Buber's *Leitwörter*. Counting
+alone puts א־מ־ר and ה־י־ה near the top of almost any passage; key words
+bring up what the passage is about: מ־י־נ (each after its kind), ר־ק־ע
+(the firmament) and א־ו־ר (light) in Bereshit 1; Bil'am, Balaq, the
+she-ass and ק־ב־ב (cursing) in Balaq; No'omi, Bo'az, ג־א־ל (redeeming)
+and ל־ק־ט (gleaning) in Ruth. Each also shows its rate against the
+Tanakh's (×42: 42 times as often). The ranking is Dunning's
+log-likelihood, which corpus linguists use for key words: it weighs how
+much more often against how sure that is, so a root used often stands
+above a rare word that happens to be there once. The Tanakh here is all
+of it, including the Ketuvim the app has no readings from.
+
 The statistics window has the full table.
 
 The roots come from the [Open Scriptures Hebrew
@@ -399,9 +416,9 @@ diagram. There's also a per-pasuq CSV export.
   Hebrew names and colours.
 - **Structure**: the pesuqim grouped by their shape (below).
 - **Shorashim**: every shoresh in the loaded pesuqim (see above), the most
-  frequent first, with its gloss and how many times it occurs, in how many
-  pesuqim. Particles and names can be shown or hidden. Click a row to see
-  its pesuqim, with its words highlighted.
+  frequent first or the key words first, with its gloss and how many times
+  it occurs, in how many pesuqim. Particles and names can be shown or
+  hidden. Click a row to see its pesuqim, with its words highlighted.
 
 ### Pesuqim with the same shape
 

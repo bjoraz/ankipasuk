@@ -25,6 +25,11 @@ Every word gets a *group*, the thing the app counts and colours:
 Where BDB has two roots, or two words, with the same letters (לחם I
 "bread", לחם II "battle"), they stay apart, numbered in BDB's order.
 
+Each group also has its count in the whole Tanakh -- the books the app
+reads from, and the rest of the Ketuvim (REFERENCE_BOOKS), which are only
+counted -- so that a passage's key words can be told: the roots it uses
+far more than the Tanakh does (:func:`ankipasuk.shorashim.keyness`).
+
 This runs once, when the data is made (``scripts/build_shorashim.py``);
 the app only reads what it writes.
 """
@@ -137,6 +142,9 @@ OSIS_BOOKS = {
     "Habakkuk": "Hab", "Zephaniah": "Zeph", "Haggai": "Hag", "Zechariah": "Zech", "Malachi": "Mal",
     "Song of Songs": "Song", "Ruth": "Ruth", "Lamentations": "Lam", "Ecclesiastes": "Eccl", "Esther": "Esth",
 }
+# The rest of the Tanakh, which the app has no readings from: only counted,
+# for each group's count in the whole Tanakh.
+REFERENCE_BOOKS = ("Ps", "Prov", "Job", "Dan", "Ezra", "Neh", "1Chr", "2Chr")
 
 
 def consonants(text: str) -> str:
@@ -167,6 +175,7 @@ class Group:
     gloss: str
     meaning: str = ""
     lemmas: Counter = field(default_factory=Counter)  # (headword, gloss, meaning) -> occurrences
+    total: int = 0  # its words in the whole Tanakh
 
 
 def parse_lexicon(xml_text: str) -> dict[str, Entry]:
@@ -196,7 +205,11 @@ def parse_lexicon(xml_text: str) -> dict[str, Entry]:
 
 class Grouper:
     """Each lemma's group (see the module docstring), built as the books
-    are read, so the table holds only groups that occur."""
+    are read, so the table holds only groups that occur.
+
+    With ``reference`` set, a book is only counted: its words add to their
+    groups' totals, and to :attr:`words`, but make no new groups and
+    don't count towards a group's words and gloss."""
 
     def __init__(self, entries: dict[str, Entry]):
         self.entries = entries
@@ -212,9 +225,14 @@ class Grouper:
                 self.by_strong[(e.strong, None)] = self.by_strong.get((e.strong, "a"), e.id)
         self.groups: list[Group] = []
         self._index: dict[str, int] = {}
+        self.reference = False
+        self.words = 0  # words with a group, in the whole Tanakh
 
-    def _group(self, key: str, label: str, kind: str, gloss: str, meaning: str = "") -> int:
+    def _group(self, key: str, label: str, kind: str, gloss: str, meaning: str = "") -> int | None:
         if key not in self._index:
+            if self.reference:
+                self.words += 1  # a word of the Tanakh, just not of the app's books
+                return None
             self._index[key] = len(self.groups)
             self.groups.append(Group(key, label, kind, gloss, meaning))
         return self._index[key]
@@ -242,7 +260,8 @@ class Grouper:
             code = parts[-1] if parts else ""
             if code in PREFIX_WORDS:
                 word, gloss = PREFIX_WORDS[code]
-                return self._count(self._group(f"p:{code}", word, "particle", gloss), word, gloss)
+                g = self._group(f"p:{code}", word, "particle", gloss)
+                return None if g is None else self._count(g, word, gloss)
             return None
         m = _LEMMA.match(main)
         entry_id = self.by_strong.get((m.group(1), m.group(2))) or self.by_strong.get((m.group(1), None))
@@ -262,9 +281,13 @@ class Grouper:
             else:
                 letters = root.etym_root or consonants(root.word)
                 g = self._group(f"r:{root.id}", letters, "root", root.gloss, root.meaning)
-        return self._count(g, entry.word, entry.gloss, entry.meaning)
+        return None if g is None else self._count(g, entry.word, entry.gloss, entry.meaning)
 
     def _count(self, g: int, word: str, gloss: str, meaning: str = "") -> int:
+        self.groups[g].total += 1
+        self.words += 1
+        if self.reference:
+            return g
         if self.groups[g].kind == "name":
             gloss, meaning = self.groups[g].gloss, ""  # the name as the app spells it, not OSHB's English
         self.groups[g].lemmas[(word, gloss, meaning)] += 1
@@ -297,16 +320,17 @@ class Grouper:
 
     def table(self) -> list[dict]:
         """The groups, for the app: label, kind, gloss (BDB's) and plain
-        meaning (where there's one), and the words in each, most used
-        first, as ``[word, gloss, meaning]``. A group's gloss is its
-        commonest word's (כלל: "the whole", for כֹּל, not the root's
-        "complete"), or the root's own where that's all there is."""
+        meaning (where there's one), the words in each, most used first,
+        as ``[word, gloss, meaning]``, and its count in the Tanakh
+        (``total``). A group's gloss is its commonest word's (כלל: "the
+        whole", for כֹּל, not the root's "complete"), or the root's own
+        where that's all there is."""
         out = []
         for g, number in zip(self.groups, self._numbers()):
             words = [[w, gl, mn] for (w, gl, mn), _n in g.lemmas.most_common()]
             gloss, meaning = next(((gl, mn) for _w, gl, mn in words if gl), (g.gloss, g.meaning))
             out.append({"label": g.label, "kind": g.kind, "gloss": gloss, "meaning": meaning,
-                        "number": number, "words": words[:8]})
+                        "number": number, "words": words[:8], "total": g.total})
         return out
 
 

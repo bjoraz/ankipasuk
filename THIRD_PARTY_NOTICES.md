@@ -69,8 +69,8 @@ from two Open Scriptures projects:
   Brown–Driver–Briggs (a public-domain work, 1906), from the same project.
 
 What's bundled is derived from them: each word's letters and the group
-(root, or the word itself) it belongs to, and each group's label, gloss
-and words. The Name's gloss was changed from "Jehovah" to "the Name", and the other
+(root, or the word itself) it belongs to, and each group's label, gloss,
+words, and count in the whole of OSHB's Tanakh. The Name's gloss was changed from "Jehovah" to "the Name", and the other
 names' English glosses to the names in AnkiPasuk's own spelling. Some common
 words, whose BDB gloss is more an etymology than a meaning, also have a
 plain meaning added beside it (`MEANINGS` in

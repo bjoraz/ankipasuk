@@ -171,3 +171,39 @@ def test_homonymous_roots_are_numbered_in_bdbs_order_and_names_merge_by_spelling
     assert (table[bread]["number"], table[battle]["number"]) == (1, 2)
     assert one == other and table[one]["number"] == 0
     assert table[one]["gloss"] == "'Azarya"  # the app's spelling, not "Azariah"
+
+
+def test_the_rest_of_the_tanakh_is_only_counted(built):
+    grouper, _verses = built
+    before = len(grouper.groups)
+    psalm = f"""<osis {NS}><osisText><div type="book" osisID="Ps"><chapter osisID="Ps.1">
+    <verse osisID="Ps.1.1"><w lemma="7218">רֹאשׁ</w> <w lemma="4325">מַיִם</w> <w lemma="1254 b">בָּרָא</w></verse>
+    </chapter></div></osisText></osis>"""
+    grouper.reference = True
+    book_words(psalm, "Ps", grouper)
+    table = grouper.table()
+    root = next(g for g in table if g["label"] == "ראשׁ")
+    water = next(g for g in table if g["label"] == "מַיִם")
+    # Totals go up; no new group for בָּרָא "be fat", and no word or gloss changes.
+    assert (root["total"], water["total"]) == (3, 3)
+    assert len(grouper.groups) == before
+    assert {w for w, _gloss, _meaning in root["words"]} == {"רֵאשִׁית", "רֹאשׁ"}
+    assert grouper.words == 8 + 3  # בָּרָא "be fat" a word of the Tanakh all the same
+
+
+def test_key_words_are_those_used_far_more_than_in_the_tanakh():
+    # Twelve times in 400 words, where the Tanakh's rate would give 2.
+    often = sh.keyness(12, 400, 1500, 300_000)
+    once_rare = sh.keyness(1, 400, 10, 300_000)
+    as_usual = sh.keyness(2, 400, 1500, 300_000)
+    assert often > once_rare > 0
+    assert abs(as_usual) < 0.1
+    assert sh.keyness(1, 400, 30_000, 300_000) < 0  # אֵת, once: far less than usual
+    assert sh.keyness(0, 400, 10, 300_000) == 0 and sh.keyness(5, 400, 5, 400) == 0
+
+
+def test_the_bundled_data_counts_the_whole_tanakh():
+    table = sh.groups()
+    assert 300_000 < sh.tanakh_words() < 310_000
+    shalom = next(g for g in table if g["kind"] == "root" and g["meaning"] == "peace")
+    assert shalom["total"] > 400  # Tehillim and Divre haYamim count too

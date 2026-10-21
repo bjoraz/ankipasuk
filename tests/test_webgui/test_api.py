@@ -875,3 +875,7 @@ def test_get_shorashim_gives_each_loaded_word_its_root(genesis_1_1):
     (words,) = result["verses"]
     assert [display(result["groups"][g]) for _t, _s, g in words][:2] == ["ר־א־שׁ", "ב־ר־א"]
     assert all(info["count"] >= 1 and info["verses"] == ["Genesis 1:1"] for info in result["groups"].values())
+    # Against the whole Tanakh: בָּרָא, rare, is a key word here; אֵת isn't.
+    create = result["groups"][words[1][2]]
+    accusative = result["groups"][words[3][2]]
+    assert create["keyness"] > 0 and create["ratio"] > 10 and accusative["keyness"] < create["keyness"]

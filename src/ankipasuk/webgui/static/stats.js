@@ -58,7 +58,8 @@ async function showRootPopup(row) {
     const verses = await api().get_shorashim_verses(Number(row.g));
     let html = `<div class="modal-overlay" id="modal-overlay"><div class="modal">`;
     html += `<h3 dir="auto">${rootLabelHtml(row)} <span class="muted">${glossHtml(row.gloss, row.meaning)}</span></h3>`;
-    html += `<div class="muted">${row.count} time(s), in ${verses.length} pasuq/pesuqim</div>`;
+    html += `<div class="muted">${row.count} time(s), in ${verses.length} pasuq/pesuqim`
+        + `${row.total ? `; ${row.total} in the Tanakh, ${ratioText(row.ratio)} its rate there` : ""}</div>`;
     for (const v of verses) {
         html += `<div class="verse-ref">${escapeHtml(v.ref)}</div><div class="verse-text pasuq-text">${rootWordsHtml(v.words, false)}</div>`;
     }
@@ -222,26 +223,36 @@ async function loadStructure() {
 }
 
 // =============================================================
-//  Shorashim: every root in the loaded pesuqim, by frequency
+//  Shorashim: every root in the loaded pesuqim, the most used or the key
+//  words first
 // =============================================================
 async function loadShorashim() {
     const rows = await api().get_shorashim();
+    const byGroup = new Map(rows.map((r) => [String(r.g), r]));
     const container = document.getElementById("shorashim-content");
     const render = () => {
         const particles = document.getElementById("sh-particles").checked;
         const names = document.getElementById("sh-names").checked;
-        const shown = rows.filter((r) => (particles || r.kind !== "particle") && (names || r.kind !== "name"));
-        const max = Math.max(...shown.map((r) => r.count), 1);
-        container.innerHTML = shown.map((r, i) => {
+        const byKey = document.getElementById("sh-sort").value === "key";
+        const shown = rows.filter((r) => (particles || r.kind !== "particle") && (names || r.kind !== "name"))
+            .sort(ROOT_ORDERS[byKey ? "key" : "count"]);
+        // The bar: how often, or how key (none for a word used less than in the Tanakh).
+        const size = (r) => (byKey ? Math.max(r.keyness, 0) : r.count);
+        const max = Math.max(...shown.map(size), 1);
+        container.innerHTML = shown.map((r) => {
             const words = r.words.map(([w, gloss, meaning]) => `${w} ${glossText(gloss, meaning)}`).join(" · ");
-            return `<div class="bar-row sh-row" data-i="${rows.indexOf(r)}" title="${escapeHtml(words)}">
+            const ratio = byKey && r.total
+                ? ` · <span class="ratio${r.keyness > 0 ? "" : " under"}">${ratioText(r.ratio)}</span>` : "";
+            return `<div class="bar-row sh-row" data-i="${rows.indexOf(r)}"
+                title="${escapeHtml(`${words}\n${rootCountsText(r)}`)}">
                 <div class="bar-label"><span class="root-label">${rootLabelHtml(r)}</span></div>
                 <div class="sh-gloss">${glossHtml(r.gloss, r.meaning)}${r.kind === "name" ? " (proper name)" : ""}</div>
-                <div class="bar-track"><div class="bar-fill" style="width:${(r.count / max) * 100}%"></div></div>
-                <div class="bar-count">${r.count} in ${r.pesuqim}</div></div>`;
+                <div class="bar-track"><div class="bar-fill" style="width:${(size(r) / max) * 100}%"></div></div>
+                <div class="bar-count">${r.count} in ${r.pesuqim}${ratio}</div></div>`;
         }).join("") || "<div class='muted'>None.</div>";
         if (shown.length) {
-            container.innerHTML = `<div class="muted" style="text-align:right">${shown.length} shown · times in pesuqim</div>`
+            const legend = byKey ? "times in pesuqim · × the Tanakh's rate" : "times in pesuqim";
+            container.innerHTML = `<div class="muted" style="text-align:right">${shown.length} shown · ${legend}</div>`
                 + container.innerHTML;
         }
     };
@@ -252,6 +263,8 @@ async function loadShorashim() {
     });
     document.getElementById("sh-particles").addEventListener("change", render);
     document.getElementById("sh-names").addEventListener("change", render);
+    document.getElementById("sh-sort").addEventListener("change", render);
+    addRootTooltips(document.getElementById("verse-modal"), (g) => byGroup.get(g));
 }
 
 // =============================================================

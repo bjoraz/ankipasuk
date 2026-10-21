@@ -102,6 +102,7 @@ def test_shorashim_most_frequent_first_and_their_pesuqim(genesis_1_1, genesis_1_
     assert counts == sorted(counts, reverse=True)
     earth = next(r for r in rows if r["display"] == "א־ר־צ")  # הָאָרֶץ, in both pesuqim
     assert (earth["count"], earth["pesuqim"]) == (2, 2)
+    assert earth["total"] > 2000 and earth["ratio"] > 1 and "keyness" in earth
     verses = sapi.get_shorashim_verses(earth["g"])
     assert [v["ref"] for v in verses] == ["Bereshit 1:1", "Bereshit 1:2"]
     assert any(w[2] == earth["g"] for w in verses[0]["words"])
