@@ -58,6 +58,15 @@ lowercased, with ḥ written h, apostrophes dropped, and spaces as `_`:
 Ḥayye Sara becomes `hayye_sara`, Shemini 'Atseret becomes
 `shemini_atseret`.
 
+## Names in the shorashim data
+
+The shorashim lists gloss every name (Moshe, Ya'aqov, Yisra'el, Mitsrayim)
+by these rules, worked out from its pointed form by
+`ankipasuk.transliterate` rather than written by hand. It spells the
+parashiyyot below just as the table does, and its tests hold it to them.
+Only the qamats qatan needs the pointing to say so (מׇרְדֳּכַי:
+Mordokhai), which BDB's headwords do.
+
 ## What isn't transliterated
 
 - English book names where the app uses them as keys and labels (the book

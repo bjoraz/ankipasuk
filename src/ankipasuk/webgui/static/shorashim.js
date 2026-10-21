@@ -23,6 +23,14 @@ const ROOT_PALETTE_DARK = new Set([0, 3, 5, 10, 12, 14, 16, 18]);
     document.head.appendChild(style);
 })();
 
+// A group's name: its letters (א־מ־ר) or word, and where BDB has more
+// than one with the same letters, its number, in BDB's order (ל־ח־מ II).
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+function rootLabelHtml(info) {
+    const n = info.number ? ` <span class="root-n">${ROMAN[info.number] || info.number}</span>` : "";
+    return diagramEscape(info.display) + n;
+}
+
 // A gloss: BDB's, and for some common words a plain meaning beside it
 // (shorashim_build.MEANINGS). The meaning comes first and BDB's follows,
 // muted -- unless the meaning already says it ("do, make" for "do").

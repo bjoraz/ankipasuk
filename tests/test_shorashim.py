@@ -150,3 +150,24 @@ def test_a_plain_meaning_goes_beside_bdbs_gloss_only_where_it_is_the_one_named()
     assert (entries["a"].gloss, entries["a"].meaning) == ("do", "do, make")
     assert (entries["b"].gloss, entries["b"].meaning) == ("press", "")
     assert (entries["c"].gloss, entries["c"].meaning) == ("the Name", "")
+
+
+def test_homonymous_roots_are_numbered_in_bdbs_order_and_names_merge_by_spelling():
+    lexicon = f"""<index {NS}><part>
+    <entry id="b"><w>לחם</w><xref bdb="l.ab.aa"/><etym root="לחם" type="main">b2</etym></entry>
+    <entry id="b2"><w>מִלְחָמָה</w><pos>N</pos><def>battle</def><xref strong="4421"/>
+      <etym type="sub">b</etym></entry>
+    <entry id="a"><w>לחם</w><xref bdb="l.aa.aa"/><etym root="לחם" type="main">a2</etym></entry>
+    <entry id="a2"><w>לֶחֶם</w><pos>N</pos><def>bread</def><xref strong="3899"/>
+      <etym type="sub">a</etym></entry>
+    <entry id="p1"><w>עֲזַרְיָה</w><pos>Np</pos><def>Azariah</def><xref strong="5838" aug="a"/></entry>
+    <entry id="p2"><w>עֲזַרְיָה</w><pos>Np</pos><def>Azariah</def><xref strong="5838" aug="b"/></entry>
+    </part></index>"""
+    grouper = Grouper(parse_lexicon(lexicon))
+    battle, bread = grouper.group_of("4421"), grouper.group_of("3899")
+    one, other = grouper.group_of("5838 a"), grouper.group_of("5838 b")
+    table = grouper.table()
+    # Listed second, but first in BDB (l.aa before l.ab): bread is לחם I.
+    assert (table[bread]["number"], table[battle]["number"]) == (1, 2)
+    assert one == other and table[one]["number"] == 0
+    assert table[one]["gloss"] == "'Azarya"  # the app's spelling, not "Azariah"

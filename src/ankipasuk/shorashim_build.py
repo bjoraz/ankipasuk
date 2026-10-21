@@ -16,8 +16,14 @@ Every word gets a *group*, the thing the app counts and colours:
 - a word filed under a root: the root (רֵאשִׁית, רִאשׁוֹן -> ראשׁ);
 - a particle (prepositions, conjunctions, pronouns, אֵת, אֲשֶׁר, ...) or a
   name: just that word, in all its forms -- BDB derives some of them from
-  roots (אֵת from אות, אַבְרָהָם from אבה), which would only be noise here;
+  roots (אֵת from אות, אַבְרָהָם from אבה), which would only be noise here.
+  A name is one group by its spelling, however many people or places BDB
+  tells apart under it, and its gloss is the name in the app's spelling
+  (מֹשֶׁה: Moshe; see :mod:`ankipasuk.transliterate`);
 - a word with no root in BDB: also itself.
+
+Where BDB has two roots, or two words, with the same letters (לחם I
+"bread", לחם II "battle"), they stay apart, numbered in BDB's order.
 
 This runs once, when the data is made (``scripts/build_shorashim.py``);
 the app only reads what it writes.
@@ -26,9 +32,12 @@ the app only reads what it writes.
 from __future__ import annotations
 
 import re
+import unicodedata
 import xml.etree.ElementTree as ET
 from collections import Counter
 from dataclasses import dataclass, field
+
+from .transliterate import transliterate
 
 # Lexicon parts of speech: particles and names are their own group.
 PARTICLE_POS = {
@@ -117,6 +126,7 @@ MEANINGS = {
 LETTER = re.compile(r"[\u05d0-\u05ea]")
 _LEMMA = re.compile(r"(\d+)\s*([a-z])?")
 _STRESS = "\u05ab"  # BDB's stress mark on headwords (אֶ֫רֶץ)
+_FINALS = str.maketrans("ךםןףץ", "כמנפצ")
 
 # OSHB's file and osisID for each book, by the name the app uses.
 OSIS_BOOKS = {
@@ -146,6 +156,7 @@ class Entry:
     etym_root: str | None
     etym_ref: str | None
     meaning: str = ""  # a plain meaning beside it, for some (MEANINGS)
+    bdb: str = ""  # its place in BDB ("v.dv.ab"), which sorts in BDB's order
 
 
 @dataclass
@@ -174,6 +185,7 @@ def parse_lexicon(xml_text: str) -> dict[str, Entry]:
         entries[e.get("id")] = Entry(
             id=e.get("id"), word=text("w").replace(_STRESS, ""), pos=text("pos"),
             gloss=NAME_GLOSS.get(strong, bdb), meaning=MEANINGS.get((strong, bdb), ""), strong=strong,
+            bdb=xref.get("bdb", "") if xref is not None else "",
             aug=xref.get("aug") if xref is not None else None,
             etym_type=etym.get("type") if etym is not None else None,
             etym_root=etym.get("root") if etym is not None else None,
@@ -240,7 +252,9 @@ class Grouper:
         if entry.pos in PARTICLE_POS:
             g = self._group(f"w:{entry.id}", entry.word, "particle", entry.gloss, entry.meaning)
         elif entry.pos in NAME_POS:
-            g = self._group(f"w:{entry.id}", entry.word, "name", entry.gloss, entry.meaning)
+            spelling = unicodedata.normalize("NFC", entry.word)
+            gloss = entry.gloss if entry.strong in NAME_GLOSS else transliterate(entry.word)
+            g = self._group(f"n:{spelling}", entry.word, "name", gloss)
         else:
             root = self._root(entry)
             if root is None:
@@ -251,8 +265,35 @@ class Grouper:
         return self._count(g, entry.word, entry.gloss, entry.meaning)
 
     def _count(self, g: int, word: str, gloss: str, meaning: str = "") -> int:
+        if self.groups[g].kind == "name":
+            gloss, meaning = self.groups[g].gloss, ""  # the name as the app spells it, not OSHB's English
         self.groups[g].lemmas[(word, gloss, meaning)] += 1
         return g
+
+    def _numbers(self) -> list[int]:
+        """Each group's number among the groups of its kind written the
+        same (BDB's homonyms: לחם I, לחם II; shin and sin told apart), in
+        BDB's order; 0 for a group that's the only one."""
+        def place(g: Group) -> str:
+            entry = self.entries.get(g.key.split(":", 1)[1])
+            return entry.bdb if entry is not None else ""
+
+        same: dict[tuple[str, str], list[int]] = {}
+        for i, g in enumerate(self.groups):
+            if g.kind == "name":
+                continue  # one group per spelling already
+            if g.kind == "root":
+                written = "".join(re.findall("[\u05d0-\u05ea][\u05c1\u05c2]?", g.label)).translate(_FINALS)
+            else:
+                written = unicodedata.normalize("NFC", g.label)
+            same.setdefault((g.kind, written), []).append(i)
+        numbers = [0] * len(self.groups)
+        for members in same.values():
+            if len(members) > 1:
+                members.sort(key=lambda i: place(self.groups[i]))
+                for n, i in enumerate(members, 1):
+                    numbers[i] = n
+        return numbers
 
     def table(self) -> list[dict]:
         """The groups, for the app: label, kind, gloss (BDB's) and plain
@@ -261,11 +302,11 @@ class Grouper:
         commonest word's (כלל: "the whole", for כֹּל, not the root's
         "complete"), or the root's own where that's all there is."""
         out = []
-        for g in self.groups:
+        for g, number in zip(self.groups, self._numbers()):
             words = [[w, gl, mn] for (w, gl, mn), _n in g.lemmas.most_common()]
             gloss, meaning = next(((gl, mn) for _w, gl, mn in words if gl), (g.gloss, g.meaning))
             out.append({"label": g.label, "kind": g.kind, "gloss": gloss, "meaning": meaning,
-                        "words": words[:8]})
+                        "number": number, "words": words[:8]})
         return out
 
 

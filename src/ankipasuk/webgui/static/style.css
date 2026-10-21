@@ -217,6 +217,7 @@ body.sidebar-collapsed .sidebar { display: none; }
 .root-count { color: #888; font-variant-numeric: tabular-nums; }
 .root-kind { font-size: 10px; color: #999; }
 .bdb { font-style: italic; color: #9e9e9e; }
+.root-n { font-family: Georgia, serif; font-size: 10px; color: inherit; opacity: 0.75; }
 
 /* The diagrams' save dialog: options on the left, the page on the right. */
 .dialog-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.45);

@@ -339,6 +339,13 @@ Every word of the Tora, the Nevi'im and the Megillot has its shoresh:
 - A particle (אֵת, אֲשֶׁר, כִּי, עַל, the pronouns, ...), a name, or a
   word with no root in BDB is itself, in all its forms. That includes
   words with a prefix or suffix, like וְאֵת or לָכֶם.
+- Where BDB has two roots with the same letters, they stay apart and are
+  numbered in BDB's order: ל־ח־מ I "bread" (לֶחֶם), ל־ח־מ II "battle"
+  (מִלְחָמָה); ש־נ־ה I "year", III "two". The same goes for two particles
+  or words written alike (אֵת I, the object marker; אֵת II, "with").
+- A name is glossed in the app's own spelling (Moshe, Ya'aqov, Noaḥ), by
+  the rules in [`docs/transliteration.md`](docs/transliteration.md), and
+  is one name however many people or places share it.
 
 In the **Text** view, click a word: every word with its shoresh in the
 passage gets a colour. Click another, and its shoresh gets the next
@@ -595,6 +602,7 @@ src/ankipasuk/
 ├── diagram_pages.py     the diagram view as HTML/PDF pages
 ├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
 ├── shorashim_build.py   making that data from OSHB (scripts/build_shorashim.py)
+├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both
