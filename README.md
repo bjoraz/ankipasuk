@@ -422,7 +422,8 @@ In the **Text** view, switch the side panel from **Shorashim** to
   ויחר אף יהוה, וטמא עד הערב.
 - **Formulas**, collapsed: phrases that only frame. Who speaks (ויאמר
   אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
-  the wording is exceptional (אל שדי; יהוה אלהים in Bereshit 2–3).
+  the title is rare (אל שדי, 8 times in the Tanakh) or mostly in the
+  passage (אדני יהוה in all of Yeḥezqel).
 
 One section shows at a time, by its tab. Click a phrase to underline it
 in the text, in its own colour, alongside the shorashim's colours; one
@@ -442,8 +443,8 @@ found and tested, with every threshold, is in
 
 **Settings**, in the top bar, sets those thresholds: how many words a
 phrase needs, how often a refrain must repeat, how many other pesuqim an
-echo may have, how widely an idiom must be used, and when a wording of
-God's names counts as exceptional rather than a formula. Each shows its
+echo may have, how widely an idiom must be used, and when a title of
+God counts as exceptional rather than a formula. Each shows its
 default; a changed one is marked, and **Reset to defaults** puts them all
 back. Saving finds the phrases again, in the statistics window too.
 

@@ -66,7 +66,7 @@ class Thresholds:
     idiom_chapters: int = 3
     idiom_chance: float = 1e-3  # of the G² at each split
     idiom_bound: float = 0.1
-    rare_wording: int = 10  # places in the Tanakh
+    rare_title: int = 10  # places in the Tanakh
     concentrated: float = 1 / 3  # of a wording's places, in the passage
 
     @property
@@ -94,7 +94,7 @@ LIMITS = {
     "content_words": (2, 6), "refrain_here": (2, 10), "refrain_chance": (1e-9, 0.05),
     "echo_places": (1, 10), "echo_chance": (1e-9, 0.05), "idiom_occurrences": (3, 50),
     "idiom_chapters": (2, 30), "idiom_chance": (1e-9, 0.05), "idiom_bound": (0.01, 1.0),
-    "rare_wording": (0, 100), "concentrated": (0.05, 1.0),
+    "rare_title": (0, 100), "concentrated": (0.05, 1.0),
 }
 DEFAULTS = Thresholds()
 
@@ -142,7 +142,7 @@ _PASUQ, _HALF, _UNIT = {_SOF}, {_ETNAHTA, _SOF}, {_ETNAHTA, _SOF, _KING}
 class Corpus:
     """The Tanakh as tokens, in parallel arrays, from ``lemmas`` (the
     dictionary words, ``[strong, kind]``) and ``books`` (``[(name,
-    {"ch:vs": [[lemma, flags(, form)], ...]})]``, as the data has them).
+    {"ch:vs": [[lemma, flags], ...]})]``, as the data has them).
     A token of -1 is a barrier: a word without a dictionary word, or the
     end of a book."""
 
@@ -153,7 +153,6 @@ class Corpus:
         self.flags = bytearray()  # the data's (shorashim_build: PROPER, ...)
         self.brk = bytearray()
         self.strong: list[str | None] = []
-        self.form: list[str] = []
         self.where: list[tuple[str, str]] = []  # (book, ch:vs)
         self.first, self.last = array("h"), array("h")  # its OSHB words in the pasuq
         self.verses: dict[tuple[str, str], tuple[int, int]] = {}
@@ -162,7 +161,7 @@ class Corpus:
                 start = len(self.lem)
                 self._add_verse(lemmas, (book, key), words)
                 self.verses[(book, key)] = (start, len(self.lem))
-            self._add(-1, None, None, 0, "", (book, ""), 0, 0, False, _SOF)
+            self._add(-1, None, None, 0, (book, ""), 0, 0, False, _SOF)
         self.n = sum(1 for x in self.lem if x >= 0)
         self.freq = Counter(x for x in self.lem if x >= 0)
         self.pairs: dict[int, list[int]] = defaultdict(list)
@@ -173,29 +172,28 @@ class Corpus:
         self._counts: dict[tuple, int] = {}
 
     def _add_verse(self, lemmas, where, words) -> None:
-        toks: list[list] = []  # [lemma, strong, kind, flags, form, first, last, after_et]
+        toks: list[list] = []  # [lemma, strong, kind, flags, first, last, after_et]
         after_et = False
         for k, w in enumerate(words):
-            n, flags = w[0], w[1]
-            form = w[2] if len(w) > 2 else ""
+            n, flags = w
             first = k
-            if flags & QERE and toks and toks[-1][6] == k - 1:
-                first = toks.pop()[5]  # the qere is read, its ketiv not
+            if flags & QERE and toks and toks[-1][5] == k - 1:
+                first = toks.pop()[4]  # the qere is read, its ketiv not
             strong, kind = lemmas[n] if n >= 0 else (None, None)
             if strong == OBJECT_MARKER:
                 after_et = True
                 continue
             if toks and kind == "m" and toks[-1][0] == n:
-                toks[-1][6], toks[-1][4] = k, f"{toks[-1][4]} {form}"  # בֵּית לֶחֶם, one name
+                toks[-1][5] = k  # בֵּית לֶחֶם, one name
                 continue
-            toks.append([n, strong, kind, flags, form, first, k, after_et])
+            toks.append([n, strong, kind, flags, first, k, after_et])
             after_et = False
         last_x = len(toks) - 1
-        for x, (n, strong, kind, flags, form, first, last, et) in enumerate(toks):
+        for x, (n, strong, kind, flags, first, last, et) in enumerate(toks):
             brk = _SOF if x == last_x else _ETNAHTA if flags & ETNAHTA else _KING if flags & KING else 0
-            self._add(n, strong, kind, flags, form, where, first, last, et, brk)
+            self._add(n, strong, kind, flags, where, first, last, et, brk)
 
-    def _add(self, n, strong, kind, flags, form, where, first, last, after_et, brk) -> None:
+    def _add(self, n, strong, kind, flags, where, first, last, after_et, brk) -> None:
         bits = _AFTER_ET if after_et else 0
         if n >= 0:
             bits |= _LIGHT if strong in NOT_CONTENT else _CONTENT if kind != "p" else 0
@@ -208,7 +206,6 @@ class Corpus:
         self.flags.append(flags)
         self.brk.append(brk)
         self.strong.append(strong)
-        self.form.append(form)
         self.where.append(where)
         self.first.append(first)
         self.last.append(last)
@@ -383,13 +380,15 @@ def formula_class(c: Corpus, s: int, n: int) -> str | None:
     return None
 
 
-def _exceptional(c: Corpus, s: int, n: int, occ: list[int], inside, t: Thresholds = DEFAULTS) -> bool:
-    """Whether a title's wording (its words' forms) is rare in the Tanakh,
-    or mostly here."""
-    wording = c.form[s:s + n]
-    same = [j for j in occ if c.form[j:j + n] == wording]
-    here = [j for j in same if inside(j, n)]
-    return len(same) <= t.rare_wording or (len(here) >= 2 and len(here) >= t.concentrated * len(same))
+def _exceptional(total: int, here: int, t: Thresholds = DEFAULTS) -> str | None:
+    """Why a title of God, ``total`` times in the Tanakh and ``here`` times
+    in the passage, is no formula: it's "rare" in the Tanakh, or "here",
+    mostly in the passage; or None."""
+    if total <= t.rare_title:
+        return "rare"
+    if here >= 2 and here >= t.concentrated * total:
+        return "here"
+    return None
 
 
 # --- the tests --------------------------------------------------------------
@@ -440,8 +439,8 @@ def _classify(c: Corpus, segments: list[tuple[int, int]], t: Thresholds = DEFAUL
             continue
         elsewhere = [j for j in occ if not inside(j, n)]
         formula = formula_class(c, s, n)
-        variant = formula == TITLES and _exceptional(c, s, n, occ, inside, t)
-        if variant:
+        exceptional = _exceptional(len(occ), len(here), t) if formula == TITLES else None
+        if exceptional:
             formula = None
         kinds = []
         chance_here = _chance(len(here), words * math.prod(here_freq[x] / words for x in key))
@@ -463,7 +462,8 @@ def _classify(c: Corpus, segments: list[tuple[int, int]], t: Thresholds = DEFAUL
             rows.append({"key": key, "start": s, "length": n, "occurrences": occ, "here": here,
                          "elsewhere": elsewhere, "places": places, "chapters": len(chapters),
                          "books": len({b for b, _ch in chapters}), "kinds": kinds, "formula": formula,
-                         "variant": variant, "chance_here": chance_here, "chance": chance, "bound": bound})
+                         "exceptional": exceptional, "chance_here": chance_here, "chance": chance,
+                         "bound": bound})
     return rows
 
 
@@ -545,15 +545,15 @@ def _covered(c: Corpus, j: int, n: int) -> dict[tuple[str, str], set[int]]:
 def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
     """The loaded pesuqim's phrases, for the Text view and Statistics::
 
-        {"phrases": [{"id", "kinds", "formula", "variant", "text",
+        {"phrases": [{"id", "kinds", "formula", "exceptional", "text",
                       "here", "total", "elsewhere", "places", "chapters",
                       "books", "marks", "spans", "verses", "children"}, ...],
          "sections": {"refrain": [id, ...], "echo": [...], "idiom": [...],
                       "formula": [[class, [id, ...]], ...]}}
 
     ``kinds`` are the sections a phrase is in (none for a formula,
-    ``formula`` naming its class); ``variant``, an exceptional wording of
-    God's names. ``text`` is its first occurrence here, in the loaded
+    ``formula`` naming its class); ``exceptional``, why a title of God
+    isn't one ("rare", "here": :func:`_exceptional`). ``text`` is its first occurrence here, in the loaded
     text; ``marks`` every word of its occurrences here, as ``[pasuq,
     word]`` (indices into the loaded pesuqim and their words, as
     :func:`ankipasuk.shorashim.passage` has them); ``spans`` each
@@ -616,7 +616,8 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
                 places.append({"ref": ref(c, j, n), "at": j, "length": n})
         entries.append({
             "id": i, "kinds": r["kinds"] if not r["formula"] else [], "formula": r["formula"],
-            "variant": r["variant"], "text": text, "here": len(r["here"]), "total": len(r["occurrences"]),
+            "exceptional": r["exceptional"], "text": text, "here": len(r["here"]),
+            "total": len(r["occurrences"]),
             "elsewhere": len(places), "places": places[:30],
             "chapters": r["chapters"], "books": r["books"],
             "marks": sorted({m for ms in occ_marks for m in ms}), "spans": spans(occ_marks),

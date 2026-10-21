@@ -3,7 +3,7 @@
 //  in sections -- refrains, echoes, idioms, and formulas set apart.
 //  Shared by the main window's Text view and the statistics window: the
 //  section tabs and lists (renderPhrasePane), and a phrase's viewer
-//  (openPhraseViewer). A phrase is {id, kinds, formula, variant, text,
+//  (openPhraseViewer). A phrase is {id, kinds, formula, exceptional, text,
 //  here, total, places: [{ref}], chapters, books, marks: [[pasuq, word]],
 //  verses}.
 // =============================================================
@@ -47,8 +47,14 @@ function phraseSummary(p, kind) {
     if (kind === "idiom") parts.push(`in ${plural(p.chapters, "chapter")} of ${plural(p.books, "book")}`);
     const also = p.kinds.filter((k) => k !== kind).map((k) => PHRASE_KIND_NAMES[k]);
     if (also.length) parts.push(`also ${also.join(" and ")}`);
-    if (p.variant) parts.push("a rare wording of God's name");
+    if (p.exceptional) parts.push(exceptionalTitle(p).replace(/^A/, "a"));
     return parts.join(" · ");
+}
+
+// Why a title of God is listed, not set apart as a formula.
+function exceptionalTitle(p) {
+    return p.exceptional === "rare" ? `A title of God found only ${plural(p.total, "time")} in the Tanakh`
+        : `A title of God mostly here: ${p.here} of its ${p.total} times in the Tanakh`;
 }
 
 // A phrase in a list: its text, then how often here and where else (a
@@ -62,7 +68,8 @@ function phraseRowHtml(p, kind) {
         where = '<a href="#" class="ph-place" data-place="0" title="The other pesuqim it\'s in, each in its chapter">'
             + `${p.elsewhere} elsewhere</a>`;
     }
-    const rare = p.variant ? ' <span class="ph-rare" title="A rare wording of God\'s name">rare</span>' : "";
+    const rare = p.exceptional ? ` <span class="ph-rare" title="${diagramEscape(exceptionalTitle(p))}">`
+        + `${p.exceptional === "rare" ? "rare" : "mostly here"}</span>` : "";
     return `<li class="ph" data-id="${p.id}">`
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
         + `<div class="ph-meta"><span class="ph-n" title="Times in these pesuqim">${p.here}×</span>`

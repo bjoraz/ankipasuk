@@ -161,13 +161,11 @@ REFERENCE_BOOKS = {
 }
 
 # Names of God (Strong's numbers): יהוה, אֱלֹהִים, אֲדֹנָי, אֵל, אֱלוֹהַּ, שַׁדַּי,
-# עֶלְיוֹן, and צְבָאוֹת. Their words, and those that go with them in a title
-# (אָב; פְּנֵי, עֵינֵי), keep their exact form in the phrase data.
+# עֶלְיוֹן, and צְבָאוֹת.
 GOD_NAMES = {"3068", "3069", "430", "136", "410", "433", "7706", "5945", "6635"}
-TITLE_WORDS = {"1", "6440", "5869"}
 
 # A word's flags in the phrase data (book_lemmas).
-QERE, PROPER, GENTILIC, NUMERAL, CONSTRUCT, SUFFIX, ETNAHTA, KING = (1 << i for i in range(8))
+QERE, PROPER, GENTILIC, NUMERAL, CONSTRUCT, ETNAHTA, KING = (1 << i for i in range(7))
 _KINGS = set("\u0592\u0593\u0594\u0595\u0596")  # segol, shalshelet, zaqef qatan, zaqef gadol, tifḥa
 
 
@@ -476,17 +474,14 @@ def _morph(morph: str) -> tuple[str, bool]:
 
 def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list]]:
     """Each pasuq's words, as :func:`book_words` has them (the same words
-    in the same order), for the phrases: ``[lemma, flags]``, or ``[lemma,
-    flags, form]`` for a word that can be part of a title of God.
+    in the same order), for the phrases: ``[lemma, flags]``.
 
     flags: QERE; PROPER (a name) and GENTILIC (a people), as the word's
-    entry is (:class:`Lemmas`), the same everywhere; NUMERAL, CONSTRUCT
-    (without a suffix), SUFFIX, from OSHB's morphology; ETNAHTA and KING
-    (a segol, shalshelet, zaqef or tifḥa on it), from its accents. form:
-    its letters without the prefixes, and "+" for a suffix in place of
-    the suffix's letters (אלהי+ for אֱלֹהֶיךָ and אֱלֹהֵינוּ alike)."""
+    entry is (:class:`Lemmas`), the same everywhere; NUMERAL and
+    CONSTRUCT (without a suffix), from OSHB's morphology; ETNAHTA and KING
+    (a segol, shalshelet, zaqef or tifḥa on it), from its accents."""
     verses: dict[str, list[list]] = {}
-    for key, v, el, letters in _verse_words(xml_text, osis):
+    for key, v, el, _letters in _verse_words(xml_text, osis):
         words = verses.setdefault(key, [])
         if el is None:
             continue
@@ -501,16 +496,8 @@ def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list
                  | (GENTILIC if kind == "g" else 0)
                  | (NUMERAL if main[:2] in ("Ac", "Ao") else 0)
                  | (CONSTRUCT if main[:1] in ("N", "A") and main.endswith("c") and not suffix else 0)
-                 | (SUFFIX if suffix else 0) | (ETNAHTA if "\u0591" in accents else 0)
-                 | (KING if accents & _KINGS else 0))
-        word = [n, flags]
-        strong = lemmas.table[n][0] if n >= 0 else None
-        if strong in GOD_NAMES or strong in TITLE_WORDS or flags & (PROPER | GENTILIC):
-            _m, _code, before = _parse_lemma(lemma)
-            segments = text.split("/")
-            form = consonants("".join(segments[before:before + 1] if suffix else segments[before:]))
-            word.append((form + "+" if suffix else form) or letters)
-        words.append(word)
+                 | (ETNAHTA if "\u0591" in accents else 0) | (KING if accents & _KINGS else 0))
+        words.append([n, flags])
     return verses
 
 

@@ -45,6 +45,10 @@ words in different forms make the same phrase:
   one word.
 - **One book only.** A phrase never runs from one book into the next.
 
+Every count and every test goes by these dictionary words, the one for
+God's names included ([Formulas](#formulas)): nothing looks at a word's
+exact form.
+
 Phrases go by dictionary word, not root: מַלְאָךְ and מְלָאכָה share
 ל־א־כ, but they're different words.
 
@@ -189,18 +193,20 @@ word (כֹּל aside) is one of:
 There may be no particle in it, and no left-out אֵת inside. So צוה יהוה
 את משה contains no title "יהוה משה", and יהוה אל משה is a name formula.
 
-**An exceptional wording of God's names is not a formula.** The wording is
-the letters of the words without their prefixes, keeping whether a word
-has a suffix but not which one. A wording is exceptional if either:
-- it occurs in at most 10 places in the Tanakh: אל שדי (8), אל עליון (5),
-  יהוה יהוה (7, Shemot 34), אלהי העברים, and אלהי אברהם אלהי יצחק ואלהי
-  יעקב;
-- it occurs at least twice in the passage, and the passage has at least a
-  third of its occurrences: יהוה אלהים in Bereshit 2–3 (20 of 49).
+**An exceptional title of God is not a formula.** It's counted like every
+phrase, by its dictionary words, so in all its forms: יהוה אלהים, יהוה
+אלהיך and יהוה אלהינו are one title, 903 times in the Tanakh. A title is
+exceptional if either:
+- it's **rare**, at most 10 times in the Tanakh: אל שדי (8), אל עליון (5),
+  יהוה יהוה (7, Shemot 34), אלהי העברים (6), and אלהי אברהם אלהי יצחק
+  ואלהי יעקב (3);
+- it's **mostly here**, at least twice in the passage and at least a
+  third of all its times: Yeḥezqel's אדני יהוה (217 of 301), Yirmeyahu's
+  יהוה צבאות אלהי ישראל (32 of 37).
 
-יהוה אלהינו in Devarim 5–6 stays a formula: the wording יהוה + אלהי with
-a suffix has 610 places, 29 of them here. So do יהוה אלהי אבתיכם (18
-places) and לפני יהוה אלהינו (32).
+So יהוה אלהים in Bereshit 2–3 is a formula (20 of 903), as is יהוה אלהינו
+in Devarim 5–6. The row of an exceptional title is badged "rare" or
+"mostly here", with its counts.
 
 **Lists are not formulas.** A phrase with three or more names or peoples,
 with or without other words, is tested like any other phrase: הכנעני
@@ -258,9 +264,8 @@ test):
   another word).
 - `data/phrases/<book>.json.gz`, for all 39 books: each pasuq's words, as
   OSHB has them (the same words in the same order as the shorashim's),
-  each `[word, flags]`, or `[word, flags, form]` for God's names and the
-  words of their titles. The flags are the qere, a name, a people, a
-  numeral, construct state, a suffix, an etnaḥta, and a segol,
+  each `[word, flags]`. The flags are the qere, a name, a people, a
+  numeral, construct state (without a suffix), an etnaḥta, and a segol,
   shalshelet, zaqef or tifḥa (`shorashim_build.book_lemmas`).
 - the shorashim's data (letters and groups) for the eight books the app
   has no readings from, so a phrase can be marked in them.
@@ -287,8 +292,8 @@ later change of a default still applies to the rest
 | Idiom: occurrences / chapters | ≥ 4 / ≥ 3 | 3–50 / 2–30 | used widely, not one passage's repetition |
 | Idiom: chance of the G² at every split | < 0.001 (G² ≥ 10.83) | | one degree of freedom |
 | Idiom: bound at the weakest split | ≥ 0.1 | 0.01–1 | calibrated: drops ויקח שני and ישראל באה, keeps ככוכבי השמים and מלאך יהוה |
-| God's names: rare wording | ≤ 10 places | 0–100 | calibrated: אל שדי (8) in, אלהי יעקב (15) out |
-| God's names: concentrated wording | ≥ 2 here and ≥ ⅓ of all | ¼–¾ | יהוה אלהים in Bereshit 2–3 (20 of 49) in, יהוה אלהינו in Devarim 5–6 out |
+| God's names: rare title | ≤ 10 times | 0–100 | calibrated: אל שדי (8) in, אלהי יעקב (15) out |
+| God's names: title mostly here | ≥ 2 here and ≥ ⅓ of all | ¼–¾ | a book's own titles: Yeḥezqel's אדני יהוה (217 of 301) |
 
 The chances are offered from 1/100 to 1/1,000,000. The refrains' fold
 follows their times here: a shorter refrain stays listed on its own when
@@ -309,5 +314,5 @@ it recurs that often apart from the longer one.
   Sefaria's here and there. The poetic books' accents work differently,
   but the app has no readings from them, and the cut uses only the
   passage's own accents.
-- **A whole book loaded** makes its own common titles concentrated, so for
-  all of Devarim, יהוה אלהיך counts as exceptional.
+- **A whole book loaded** makes its own common titles mostly here, so for
+  all of Devarim, יהוה אלהיך counts as exceptional (316 of its 903 times).

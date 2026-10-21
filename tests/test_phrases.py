@@ -82,9 +82,9 @@ def test_chance():
 
 def test_thresholds_from_settings_stay_within_their_limits():
     t = ph.Thresholds.from_settings({"echo_places": 5.4, "refrain_chance": 7, "idiom_bound": "x",
-                                     "rare_wording": True, "content_words": float("nan"), "other": 1})
+                                     "rare_title": True, "content_words": float("nan"), "other": 1})
     assert (t.echo_places, t.refrain_chance) == (5, 0.05)  # rounded; at most its limit
-    assert (t.idiom_bound, t.rare_wording, t.content_words) == (0.1, 10, 2)  # not numbers: the defaults
+    assert (t.idiom_bound, t.rare_title, t.content_words) == (0.1, 10, 2)  # not numbers: the defaults
     assert ph.Thresholds.from_settings(None) == ph.DEFAULTS
     assert ph.DEFAULTS.idiom_g2 == pytest.approx(10.83, abs=0.005)
 
@@ -141,14 +141,18 @@ def test_idioms_and_lists(tanakh):
     assert nations["formula"] is None  # a list, not a formula
 
 
-def test_gods_names_are_formulas_unless_their_wording_is_exceptional(tanakh):
+def test_gods_names_are_formulas_unless_rare_or_mostly_here(tanakh):
+    # Counted as dictionary words, like every phrase: in all their forms.
     shaddai = find(tanakh, rows(tanakh, "Genesis", (17, 1), (17, 27)), "אל שדי")
-    assert shaddai["variant"] and shaddai["formula"] is None  # 8 places in the Tanakh
+    assert shaddai["exceptional"] == "rare" and shaddai["formula"] is None  # 8 times in the Tanakh
     eden = find(tanakh, rows(tanakh, "Genesis", (2, 4), (3, 24)), "יהוה אלהים")
-    assert eden["variant"]  # 20 of its 49 places here
+    assert eden["formula"] == ph.TITLES and not eden["exceptional"]  # 20 of its 903 times here
     devarim = rows(tanakh, "Deuteronomy", (5, 1), (6, 25))
     ours = find(tanakh, devarim, "יהוה אלהינו", "יהוה אלהיך", "יהוה אלהיכם")
-    assert ours["formula"] == ph.TITLES and not ours["variant"]
+    assert ours["formula"] == ph.TITLES and not ours["exceptional"]
+    ezekiel = find(tanakh, rows(tanakh, "Ezekiel", (1, 1), (48, 35)), "אדני יהוה")
+    assert ezekiel["exceptional"] == "here" and ezekiel["formula"] is None  # 217 of its 301
+    assert (ph._exceptional(10, 0), ph._exceptional(30, 10), ph._exceptional(30, 9)) == ("rare", "here", None)
 
 
 def test_spans_are_each_occurrence_in_the_texts_order(tanakh):
