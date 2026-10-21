@@ -103,13 +103,12 @@ or `PYWEBVIEW_GUI=qt` forces one.
 The window has a tab for each kind of card, **Cloze cards** and **Tiqqun
 cards**. Each has its settings on the left, in three numbered steps, and a
 preview on the right that follows them as you go: there's nothing to fetch
-or generate by hand. The bar at the top also opens **Statistics**,
-**Anki tools** and **Settings** (the phrases' thresholds), and shows
-whether Anki is open with AnkiConnect, which sending cards needs. The
-note types are loaded as soon as it is. The ◀ at the top of the preview
-folds the settings away, to see the preview on its own across the whole
-window; **▶ Settings** brings them back, and the app remembers which you
-left it on.
+or generate by hand. The bar at the top also opens **Statistics** and
+**Anki tools**, and shows whether Anki is open with AnkiConnect, which
+sending cards needs. The note types are loaded as soon as it is. The ◀
+at the top of the preview folds the settings away, to see the preview on
+its own across the whole window; **▶ Settings** brings them back, and the
+app remembers which you left it on.
 
 ### The Cloze cards tab
 
@@ -425,7 +424,9 @@ In the **Text** view, switch the side panel from **Shorashim** to
   the title is rare (אל שדי, 8 times in the Tanakh) or mostly in the
   passage (אדני יהוה in all of Yeḥezqel).
 
-One section shows at a time, by its tab. Click a phrase to underline it
+One section shows at a time, by its tab, with its 12 strongest phrases
+first; **Show all** lists the rest, and the app remembers which sections
+you opened in full. Click a phrase to underline it
 in the text, in its own colour, alongside the shorashim's colours; one
 that's here more than once gets arrows, ‹ 2/6 ›, to go from one
 occurrence to the next, each brought into view and flashed. Under
@@ -441,7 +442,7 @@ Tanakh, the books the app has no readings from included. How they're
 found and tested, with every threshold, is in
 [`docs/phrases.md`](docs/phrases.md).
 
-**Settings**, in the top bar, sets those thresholds: how many words a
+**Settings…**, in the Phrases pane, sets those thresholds: how many words a
 phrase needs, how often a refrain must repeat, how many other pesuqim an
 echo may have, how widely an idiom must be used, and when a title of
 God counts as exceptional rather than a formula. Each shows its

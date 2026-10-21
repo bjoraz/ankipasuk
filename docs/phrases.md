@@ -232,7 +232,9 @@ test):
 
 - **In the Text view.** The side panel switches between Shorashim and
   Phrases. Phrases shows one section at a time, by its tab (each with its
-  count), under a line saying what the section holds.
+  count), under a line saying what the section holds. A section lists its
+  first 12 phrases, in its ranking; **Show all** lists every one, and is
+  remembered per section. The Statistics window lists them the same way.
   - Each row is the phrase, in its first wording here (Sefaria's text,
     via the shorashim's lining-up of words; a long one shortened: "קצות
     החשן שתי קצות … מעל האפד (67 words)"), and under it how often it's
@@ -281,7 +283,7 @@ second, a whole book about one.
 
 ## Thresholds
 
-These are the defaults. **Settings**, in the main window's top bar, changes
+These are the defaults. **Settings…**, in the Text view's Phrases pane, changes
 any of them, within the limits shown; the phrases are found again at once,
 in an open statistics window too. Only the changed ones are saved, so a
 later change of a default still applies to the rest

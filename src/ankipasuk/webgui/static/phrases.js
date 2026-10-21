@@ -76,20 +76,46 @@ function phraseRowHtml(p, kind) {
         + (where ? ` · ${where}` : "") + rare + "</div></li>";
 }
 
+// A section shows its first few phrases (the strongest: each is ranked),
+// and all of them when asked; which sections show all is remembered.
+const PHRASES_SHOWN = 12;
+const PHRASES_ALL_KEY = "ankipasuk_phrases_all";
+const phrasesAll = new Set((() => {
+    try { return JSON.parse(localStorage.getItem(PHRASES_ALL_KEY) || "[]"); } catch (e) { return []; }
+})());
+
+function togglePhrasesAll(kind) {
+    if (phrasesAll.has(kind)) phrasesAll.delete(kind);
+    else phrasesAll.add(kind);
+    try { localStorage.setItem(PHRASES_ALL_KEY, JSON.stringify([...phrasesAll])); } catch (e) { /* not kept */ }
+}
+
 // The tabs, the picked section's line, and its list, into ``els`` ({tabs,
-// about, list}), from ``result`` (the bridge's get_phrases).
+// about, list}), from ``result`` (the bridge's get_phrases). A click on
+// the list's last row (.ph-more) is for togglePhrasesAll.
 function renderPhrasePane(result, kind, els) {
     els.tabs.innerHTML = PHRASE_SECTIONS.map(([k, name]) =>
         `<button type="button" data-kind="${k}"${k === kind ? ' class="active"' : ""}>${name}`
         + `<span class="ph-tab-n">${phraseCount(result, k)}</span></button>`).join("");
     const [, , about] = PHRASE_SECTIONS.find(([k]) => k === kind);
-    els.about.textContent = about(phraseCount(result, kind), result.thresholds);
+    const n = phraseCount(result, kind);
+    els.about.textContent = about(n, result.thresholds);
     const P = result.phrases;
+    let room = phrasesAll.has(kind) ? Infinity : PHRASES_SHOWN;
+    const take = (ids) => {
+        const shown = ids.slice(0, Math.max(room, 0));
+        room -= shown.length;
+        return shown;
+    };
     const rows = kind === "formula"
-        ? result.sections.formula.map(([name, ids]) => `<li class="ph-class">${diagramEscape(name)}</li>`
-            + ids.map((id) => phraseRowHtml(P[id], kind)).join("")).join("")
-        : result.sections[kind].map((id) => phraseRowHtml(P[id], kind)).join("");
-    els.list.innerHTML = rows || '<li class="ph-none">None here.</li>';
+        ? result.sections.formula.map(([name, ids]) => [name, take(ids)]).filter(([, ids]) => ids.length)
+            .map(([name, ids]) => `<li class="ph-class">${diagramEscape(name)}</li>`
+                + ids.map((id) => phraseRowHtml(P[id], kind)).join("")).join("")
+        : take(result.sections[kind]).map((id) => phraseRowHtml(P[id], kind)).join("");
+    const more = n <= PHRASES_SHOWN ? ""
+        : `<li class="ph-more"><button type="button" class="link">${phrasesAll.has(kind)
+            ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n}`}</button></li>`;
+    els.list.innerHTML = (rows || '<li class="ph-none">None here.</li>') + more;
 }
 
 // Words ([text, separator, (group,) marked]) as HTML, each run of marked

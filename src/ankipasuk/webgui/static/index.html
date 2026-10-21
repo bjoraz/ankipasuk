@@ -17,7 +17,6 @@
   <span class="spacer"></span>
   <button id="btn-stats" class="ghost" title="Statistics on the loaded pesuqim, in a window of its own">Statistics</button>
   <button id="btn-anki-tools" class="ghost" title="Tools that work on your Anki collection, in a window of its own">Anki tools</button>
-  <button id="btn-settings" class="ghost" title="What a phrase needs to be listed as a refrain, an echo or an idiom">Settings</button>
   <span id="anki-status" class="status-pill" title="AnkiConnect, for sending cards straight to Anki">Anki not running</span>
 </header>
 
@@ -111,7 +110,11 @@
             </div>
             <div class="panel-pane" data-pane="phrases" hidden>
               <div class="ph-tabs" id="ph-tabs"></div>
-              <p class="ph-about" id="ph-about"></p>
+              <div class="ph-head">
+                <p class="ph-about" id="ph-about"></p>
+                <button type="button" id="btn-settings" class="link"
+                  title="What a phrase needs to be listed as a refrain, an echo or an idiom">Settings…</button>
+              </div>
               <ol class="ph-list" id="phrases-list"></ol>
             </div>
           </aside>
@@ -207,15 +210,14 @@
   <button id="btn-clear-cache" class="link">Clear cache</button>
 </footer>
 
-<!-- ============ Settings: the phrase tests' thresholds (docs/phrases.md) ============ -->
+<!-- ============ Phrase settings: the tests' thresholds (docs/phrases.md) ============ -->
 <div id="settings-dialog" class="dialog-overlay" hidden>
   <form id="settings-form" class="settings" role="dialog" aria-modal="true" aria-labelledby="st-title">
     <header class="settings-head">
-      <h3 id="st-title">Settings</h3>
+      <h3 id="st-title">Phrase settings</h3>
       <button type="button" class="ph-viewer-close" data-close title="Close (Esc)">×</button>
     </header>
     <div class="settings-body">
-      <h4>Phrases</h4>
       <p class="muted">What a phrase needs to be listed. A chance is how likely it would be if the words
         fell at random: the lower, the stricter.</p>
       <div class="st-group">

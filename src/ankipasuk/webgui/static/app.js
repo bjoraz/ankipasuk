@@ -602,7 +602,7 @@ async function saveSettings() {
     if (!result.ok) return showToast(result.error, true);
     closeSettings();
     if (!changed) return;
-    showToast("Settings saved.");
+    showToast("Phrase settings saved.");
     if (currentVerseData.length) loadPhrases();
 }
 
@@ -1344,6 +1344,11 @@ window.addEventListener("pywebviewready", async () => {
     // first occurrence in view, or else the first); its arrows go from one
     // occurrence to the next; a place opens its viewer.
     document.getElementById("phrases-list").addEventListener("click", (e) => {
+        if (e.target.closest(".ph-more button")) {
+            togglePhrasesAll(phraseKind);
+            renderPhrasesList();
+            return;
+        }
         const item = e.target.closest("li.ph");
         if (!item) return;
         const p = currentPhrases.phrases[Number(item.dataset.id)];

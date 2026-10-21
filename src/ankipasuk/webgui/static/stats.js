@@ -302,6 +302,11 @@ function wirePhrases() {
     });
     // A row, or one of its places, opens the phrase's viewer.
     els.list.addEventListener("click", (e) => {
+        if (e.target.closest(".ph-more button") && phraseResult) {
+            togglePhrasesAll(phraseKind);
+            renderPhrasePane(phraseResult, phraseKind, els);
+            return;
+        }
         const item = e.target.closest("li.ph");
         if (!item || !phraseResult) return;
         e.preventDefault();
