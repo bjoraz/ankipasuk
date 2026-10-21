@@ -1,0 +1,111 @@
+"""The main window, offline, on Bereshit 1-3 made from the bundled data
+(see conftest)."""
+
+import json
+
+from .conftest import load, show_phrases
+
+
+def test_a_range_loads_and_each_pasuq_is_drawn(main_window):
+    load(main_window, 1, 5, 5)
+    page = main_window.page
+    page.wait_for_function("document.querySelectorAll('#viz-box .dg-pasuq').length === 5")
+    assert main_window.texts("#viz-box .dg-ref")[:2] == ["Bereshit 1:1", "Bereshit 1:2"]
+    assert page.locator("#btn-export-cloze-anki").inner_text() == "Send 5 pesuqim to Anki"
+
+
+def test_a_range_that_cant_be_fetched_says_why(main_window):
+    load(main_window, 3, 24, 80)
+    main_window.page.select_option(".range-end-ch", "4")  # not in the cache, and offline
+    main_window.page.wait_for_function("document.getElementById('toast').textContent.includes('Sefaria')")
+    toast = main_window.page.locator("#toast").inner_text()
+    assert "Couldn't reach Sefaria. Check the internet connection" in toast
+    assert "HTTPSConnectionPool" not in toast
+
+
+def test_a_clicked_word_colours_its_shoresh_and_tops_the_list(main_window):
+    load(main_window, 1, 5, 5)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    word = page.locator("#text-box .tv-line .w").nth(1)  # ברא
+    word.click()
+    group = word.get_attribute("data-g")
+    assert "hl-0" in (word.get_attribute("class") or "")
+    assert page.locator("#roots-list li").first.get_attribute("data-root") == group
+
+
+def test_phrases_are_listed_by_section_and_a_picked_one_steps_through_the_text(main_window):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    tabs = main_window.texts("#ph-tabs button")
+    assert [t.split("\n")[0] for t in tabs] == ["Refrains", "Echoes", "Idioms", "Formulas"]
+    first = page.locator("#phrases-list li.ph").first
+    assert first.locator(".ph-n").inner_text() == "6×"  # ויהי ערב ויהי בקר יום
+    first.locator(".ph-text").click()
+    assert "picked" in first.get_attribute("class")
+    assert first.locator(".ph-pos").inner_text() == "1/6"
+    first.locator('[data-jump="1"]').click()
+    assert first.locator(".ph-pos").inner_text() == "2/6"
+    page.wait_for_function("document.querySelectorAll('#text-box .ph-flash[data-k]').length > 0")
+    first.locator('[data-jump="-1"]').click()
+    first.locator('[data-jump="-1"]').click()
+    assert first.locator(".ph-pos").inner_text() == "6/6"  # round from the first to the last
+    # Underlined in the text: its words have the line.
+    underlined = page.evaluate(
+        "[...document.querySelectorAll('#text-box [data-k]')].filter(e => e.style.boxShadow).length")
+    assert underlined >= 6 * 5
+
+
+def test_a_long_section_shows_its_first_twelve_then_all(main_window):
+    load(main_window, 3, 24, 80)
+    show_phrases(main_window)
+    page = main_window.page
+    total = int(page.locator('#ph-tabs [data-kind="refrain"] .ph-tab-n').inner_text())
+    assert total > 12 and page.locator("#phrases-list li.ph").count() == 12
+    page.click(".ph-more button")
+    assert page.locator("#phrases-list li.ph").count() == total
+    assert page.locator(".ph-more").inner_text() == "Show the first 12"
+
+
+def test_phrase_settings_find_the_phrases_again_and_keep_only_whats_changed(main_window, offline):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    count = "Number(document.querySelector('#ph-tabs [data-kind=\"echo\"] .ph-tab-n')?.textContent)"
+    before = page.evaluate(count)
+    page.click("#btn-settings")
+    assert page.locator('[data-setting="echo_places"]').input_value() == "3"
+    page.fill('[data-setting="echo_places"]', "6")
+    assert page.locator(".changed").count() == 1
+    page.click("#settings-form button[type=submit]")
+    page.wait_for_function(f"{count} > {before}")
+    page.click('#ph-tabs [data-kind="echo"]')
+    assert "one to six other pesuqim" in page.locator("#ph-about").inner_text()
+    saved = json.loads((offline / "settings.json").read_text())
+    assert saved["phrases"] == {"echo_places": 6}
+    # Out of its limits, it isn't saved.
+    page.click("#btn-settings")
+    page.fill('[data-setting="content_words"]', "99")
+    page.click("#settings-form button[type=submit]")
+    assert page.locator("#settings-dialog").is_visible()
+    page.click("#st-reset")
+    page.click("#settings-form button[type=submit]")
+    page.wait_for_function(f"{count} === {before}")
+    assert json.loads((offline / "settings.json").read_text())["phrases"] == {}
+
+
+def test_an_echo_opens_in_its_chapter(main_window):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    page.click('#ph-tabs [data-kind="echo"]')
+    if page.locator(".ph-more").count() and "all" in page.locator(".ph-more").inner_text():
+        page.click(".ph-more button")  # תהו ובהו may be further down
+    page.locator("#phrases-list .ph-place", has_text="Yirmeyahu 4:23").first.click()
+    page.wait_for_selector(".ph-vs.hit")
+    assert page.locator(".ph-chapter-title").inner_text() == "Yirmeyahu 4"
+    assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "23"
+    assert page.locator(".ph-there .ph-hit").count() >= 1 and page.locator(".ph-here .ph-hit").count() >= 1
+    page.keyboard.press("Escape")
+    assert page.locator(".ph-viewer").count() == 0

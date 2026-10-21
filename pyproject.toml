@@ -42,6 +42,11 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+# The browser tests of the app's pages (tests/test_frontend), which also
+# need a Chromium: python -m playwright install chromium.
+ui-test = [
+    "playwright>=1.40",
+]
 
 [project.scripts]
 ankipasuk = "ankipasuk.webgui:main"

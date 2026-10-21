@@ -705,6 +705,20 @@ The tests don't touch the network. They use hand-built pesuqim with real
 ta'am characters, fake tikkun.io pages (including lines shared between
 pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 
+`tests/test_frontend` drives the app's pages in headless Chromium, the
+way a user would: loading pesuqim, colouring a shoresh, picking and
+stepping through phrases, the phrase settings, the viewer, the statistics
+window. A stand-in for pywebview's bridge calls the real backend, on
+Bereshit 1–3 made from the bundled data, with the network and Anki
+refused. They need Playwright and its Chromium, and are skipped without
+them:
+
+```bash
+pip install -e ".[dev,ui-test]"
+python -m playwright install chromium   # or ANKIPASUK_CHROMIUM=/path/to/chromium
+pytest tests/test_frontend
+```
+
 ## Credits
 
 - Text and ta'amim from the [Sefaria API](https://www.sefaria.org/).
