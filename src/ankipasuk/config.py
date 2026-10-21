@@ -72,7 +72,7 @@ TORAH_BOOKS = {book: len(verses) for book, verses in TORAH_VERSE_COUNTS.items()}
 #
 # All of these use the standard 21-book cantillation system (the same
 # TROPE_UNICODE table below applies unchanged) -- this deliberately
-# excludes Tehillim, Mishle and Iyov, which use the distinct "three
+# excludes Tehillim, Mishle and Iyyov, which use the distinct "three
 # books" (Sifre Emet) cantillation system with a different ta'amim
 # hierarchy entirely, not supported here.
 NEVIIM_BOOKS = [
@@ -144,6 +144,19 @@ BOOK_HEBREW_NAMES = {
     "Lamentations": "Ekha",
     "Ecclesiastes": "Qohelet",
     "Esther": "Ester",
+}
+
+# The rest of the Tanakh, which the app has no readings from, as it names
+# them where they come up: a phrase's other places (ankipasuk.phrases).
+OTHER_BOOK_HEBREW_NAMES = {
+    "Psalms": "Tehillim",
+    "Proverbs": "Mishle",
+    "Job": "Iyyov",
+    "Daniel": "Daniyyel",
+    "Ezra": "'Ezra",
+    "Nehemiah": "Neḥemya",
+    "I Chronicles": "Divre haYamim Alef",
+    "II Chronicles": "Divre haYamim Bet",
 }
 
 # The same books in Hebrew script, shown next to the transliteration in

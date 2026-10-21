@@ -30,6 +30,10 @@ reads from, and the rest of the Ketuvim (REFERENCE_BOOKS), which are only
 counted -- so that a passage's key words can be told: the roots it uses
 far more than the Tanakh does (:func:`ankipasuk.shorashim.keyness`).
 
+For the phrases (:mod:`ankipasuk.phrases`), every word of the whole
+Tanakh also gets its dictionary entry, numbered (:class:`Lemmas`), and a
+few things OSHB's morphology and accents tell about it (:func:`book_lemmas`).
+
 This runs once, when the data is made (``scripts/build_shorashim.py``);
 the app only reads what it writes.
 """
@@ -142,9 +146,54 @@ OSIS_BOOKS = {
     "Habakkuk": "Hab", "Zephaniah": "Zeph", "Haggai": "Hag", "Zechariah": "Zech", "Malachi": "Mal",
     "Song of Songs": "Song", "Ruth": "Ruth", "Lamentations": "Lam", "Ecclesiastes": "Eccl", "Esther": "Esth",
 }
-# The rest of the Tanakh, which the app has no readings from: only counted,
-# for each group's count in the whole Tanakh.
-REFERENCE_BOOKS = ("Ps", "Prov", "Job", "Dan", "Ezra", "Neh", "1Chr", "2Chr")
+# The rest of the Tanakh, which the app has no readings from: counted, for
+# each group's count in the whole Tanakh, and searched for the phrases'
+# other places. By Sefaria's name, as OSIS_BOOKS.
+REFERENCE_BOOKS = {
+    "Psalms": "Ps", "Proverbs": "Prov", "Job": "Job", "Daniel": "Dan", "Ezra": "Ezra", "Nehemiah": "Neh",
+    "I Chronicles": "1Chr", "II Chronicles": "2Chr",
+}
+
+# Names of God (Strong's numbers): יהוה, אֱלֹהִים, אֲדֹנָי, אֵל, אֱלוֹהַּ, שַׁדַּי,
+# עֶלְיוֹן, and צְבָאוֹת. Their words, and those that go with them in a title
+# (אָב; פְּנֵי, עֵינֵי), keep their exact form in the phrase data.
+GOD_NAMES = {"3068", "3069", "430", "136", "410", "433", "7706", "5945", "6635"}
+TITLE_WORDS = {"1", "6440", "5869"}
+
+# A word's flags in the phrase data (book_lemmas).
+QERE, PROPER, GENTILIC, NUMERAL, CONSTRUCT, SUFFIX, ETNAHTA, KING = (1 << i for i in range(8))
+_KINGS = set("\u0592\u0593\u0594\u0595\u0596")  # segol, shalshelet, zaqef qatan, zaqef gadol, tifḥa
+
+
+def _verse_words(xml_text: str, osis: str):
+    """OSHB's words, as ``(chapter:verse, verse, word, letters)``: every
+    ``<w>`` with letters, a qere included (it follows its ketiv)."""
+    root = ET.fromstring(xml_text)
+    ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
+    for v in root.iter(ns + "verse"):
+        book, ch, vs = v.get("osisID").split(".")
+        if book != osis:
+            continue
+        key = f"{ch}:{vs}"
+        yield key, None, None, ""  # the pasuq, even with no words
+        for el in v.iter():
+            if el.tag != ns + "w":
+                continue
+            letters = consonants("".join(el.itertext()))
+            if letters:
+                yield key, v, el, letters
+
+
+def _parse_lemma(lemma: str) -> tuple[re.Match | None, str, int]:
+    """A lemma (``c/d/776``) as its Strong's number (a match of _LEMMA, or
+    None for a prefix written as a word), the prefix code, and how many
+    prefixes come before it."""
+    parts = [p.strip() for p in lemma.split("/") if p.strip()]
+    for k, part in enumerate(parts):
+        m = _LEMMA.match(part)
+        if m:
+            return m, "", k
+    return None, parts[-1] if parts else "", len(parts)
 
 
 def consonants(text: str) -> str:
@@ -251,23 +300,25 @@ class Grouper:
             return None
         return None
 
+    def entry_of(self, lemma: str) -> Entry | str | None:
+        """An OSHB lemma's (``c/d/776``) lexicon entry; the prefix code for a
+        prefix written as a word (``l``, for לָכֶם); None if it can't be read."""
+        m, code, _k = _parse_lemma(lemma)
+        if m is None:
+            return code if code in PREFIX_WORDS else None
+        entry_id = self.by_strong.get((m.group(1), m.group(2))) or self.by_strong.get((m.group(1), None))
+        return self.entries[entry_id] if entry_id is not None else None
+
     def group_of(self, lemma: str) -> int | None:
         """The group index for an OSHB lemma (``c/d/776``), or None if it
         can't be read."""
-        parts = [p.strip() for p in lemma.split("/") if p.strip()]
-        main = next((p for p in reversed(parts) if _LEMMA.match(p)), None)
-        if main is None:
-            code = parts[-1] if parts else ""
-            if code in PREFIX_WORDS:
-                word, gloss = PREFIX_WORDS[code]
-                g = self._group(f"p:{code}", word, "particle", gloss)
-                return None if g is None else self._count(g, word, gloss)
+        entry = self.entry_of(lemma)
+        if entry is None:
             return None
-        m = _LEMMA.match(main)
-        entry_id = self.by_strong.get((m.group(1), m.group(2))) or self.by_strong.get((m.group(1), None))
-        if entry_id is None:
-            return None
-        entry = self.entries[entry_id]
+        if isinstance(entry, str):
+            word, gloss = PREFIX_WORDS[entry]
+            g = self._group(f"p:{entry}", word, "particle", gloss)
+            return None if g is None else self._count(g, word, gloss)
         if entry.pos in PARTICLE_POS:
             g = self._group(f"w:{entry.id}", entry.word, "particle", entry.gloss, entry.meaning)
         elif entry.pos in NAME_POS:
@@ -338,23 +389,90 @@ def book_words(xml_text: str, osis: str, grouper: Grouper) -> dict[str, list[lis
     """Each pasuq's words, in order, as ``[letters, group]``, or ``[letters,
     group, 1]`` for a qere (which follows its ketiv, as in Sefaria's
     "(ketiv) [qere]"), keyed "chapter:verse"."""
-    root = ET.fromstring(xml_text)
-    ns = root.tag.split("}")[0] + "}" if root.tag.startswith("{") else ""
-    verses = {}
-    for v in root.iter(ns + "verse"):
-        book, ch, vs = v.get("osisID").split(".")
-        if book != osis:
+    verses: dict[str, list[list]] = {}
+    for key, v, el, letters in _verse_words(xml_text, osis):
+        words = verses.setdefault(key, [])
+        if el is None:
             continue
-        words = []
-        for el in v.iter():
-            if el.tag != ns + "w":
-                continue
-            letters = consonants("".join(el.itertext()))
-            if not letters:
-                continue
-            g = grouper.group_of(el.get("lemma", ""))
-            words.append([letters, g, 1] if _is_qere(v, el, ns) else [letters, g])
-        verses[f"{ch}:{vs}"] = words
+        g = grouper.group_of(el.get("lemma", ""))
+        ns = el.tag[:el.tag.index("}") + 1] if el.tag.startswith("{") else ""
+        words.append([letters, g, 1] if _is_qere(v, el, ns) else [letters, g])
+    return verses
+
+
+class Lemmas:
+    """Every dictionary entry the Tanakh's words have, numbered in the order
+    they're met, each as ``[strong, kind]``: kind "p" a particle, "n" a
+    name, "m" a name of two words (בֵּית לֶחֶם), "w" any other word."""
+
+    def __init__(self, grouper: Grouper):
+        self.grouper = grouper
+        self.table: list[list] = []
+        self._index: dict[str, int] = {}
+
+    def of(self, lemma: str) -> int:
+        """A lemma's number, or -1 if it can't be read."""
+        entry = self.grouper.entry_of(lemma)
+        if entry is None:
+            return -1
+        key = f"p:{entry}" if isinstance(entry, str) else entry.id
+        if key not in self._index:
+            if isinstance(entry, str):
+                row = [None, "p"]
+            elif entry.pos in PARTICLE_POS:
+                row = [entry.strong, "p"]
+            elif entry.pos in NAME_POS:
+                row = [entry.strong, "m" if " " in entry.word.strip() else "n"]
+            else:
+                row = [entry.strong, "w"]
+            self._index[key] = len(self.table)
+            self.table.append(row)
+        return self._index[key]
+
+
+def _morph(morph: str) -> tuple[str, bool]:
+    """OSHB's morphology code (``HC/Vqw3ms``) as its main word's part
+    (``Vqw3ms``), and whether there's a suffix (``/Sp3ms``)."""
+    segments = morph[1:].split("/") if morph else []
+    main = [x for x in segments if not x.startswith("S")]
+    return (main[-1] if main else ""), any(x.startswith("S") for x in segments)
+
+
+def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list]]:
+    """Each pasuq's words, as :func:`book_words` has them (the same words
+    in the same order), for the phrases: ``[lemma, flags]``, or ``[lemma,
+    flags, form]`` for a word that can be part of a title of God.
+
+    flags: QERE; PROPER (a name), GENTILIC (a people), NUMERAL, CONSTRUCT
+    (without a suffix), SUFFIX, from OSHB's morphology; ETNAHTA and KING
+    (a segol, shalshelet, zaqef or tifḥa on it), from its accents. form:
+    its letters without the prefixes, and "+" for a suffix in place of
+    the suffix's letters (אלהי+ for אֱלֹהֶיךָ and אֱלֹהֵינוּ alike)."""
+    verses: dict[str, list[list]] = {}
+    for key, v, el, letters in _verse_words(xml_text, osis):
+        words = verses.setdefault(key, [])
+        if el is None:
+            continue
+        lemma = el.get("lemma", "")
+        n = lemmas.of(lemma)
+        main, suffix = _morph(el.get("morph", ""))
+        text = "".join(el.itertext())
+        accents = set(unicodedata.normalize("NFD", text))
+        ns = el.tag[:el.tag.index("}") + 1] if el.tag.startswith("{") else ""
+        flags = ((QERE if _is_qere(v, el, ns) else 0) | (PROPER if main[:2] == "Np" else 0)
+                 | (GENTILIC if main[:2] in ("Ng", "Ag") else 0)
+                 | (NUMERAL if main[:2] in ("Ac", "Ao") else 0)
+                 | (CONSTRUCT if main[:1] in ("N", "A") and main.endswith("c") and not suffix else 0)
+                 | (SUFFIX if suffix else 0) | (ETNAHTA if "\u0591" in accents else 0)
+                 | (KING if accents & _KINGS else 0))
+        word = [n, flags]
+        strong = lemmas.table[n][0] if n >= 0 else None
+        if strong in GOD_NAMES or strong in TITLE_WORDS or flags & (PROPER | GENTILIC):
+            _m, _code, before = _parse_lemma(lemma)
+            segments = text.split("/")
+            form = consonants("".join(segments[before:before + 1] if suffix else segments[before:]))
+            word.append((form + "+" if suffix else form) or letters)
+        words.append(word)
     return verses
 
 

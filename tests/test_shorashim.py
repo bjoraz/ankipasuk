@@ -124,7 +124,7 @@ def test_the_bundled_data_knows_bereshit_1_1():
 
 
 def test_a_book_without_data_just_has_its_words():
-    assert sh.verse_words("Psalms", 1, 1, "אַשְׁרֵי הָאִישׁ") == [["אַשְׁרֵי", " ", None], ["הָאִישׁ", "", None]]
+    assert sh.verse_words("Sirach", 1, 1, "אַשְׁרֵי הָאִישׁ") == [["אַשְׁרֵי", " ", None], ["הָאִישׁ", "", None]]
 
 
 def test_a_lemma_without_its_letter_is_the_numbers_first_sense():

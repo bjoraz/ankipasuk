@@ -59,7 +59,7 @@ Homepage = "https://github.com/bjoraz/ankipasuk"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"ankipasuk.data" = ["*.json", "shorashim/*.json.gz"]
+"ankipasuk.data" = ["*.json", "shorashim/*.json.gz", "phrases/*.json.gz"]
 "ankipasuk.webgui" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]

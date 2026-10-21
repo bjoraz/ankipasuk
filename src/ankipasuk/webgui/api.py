@@ -62,6 +62,7 @@ from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
+from ..phrases import passage as phrases_passage
 from ..qeriya import (
     haftara_label,
     haftara_table,
@@ -427,6 +428,16 @@ class Api:
         occur, for the Text view (see ankipasuk.shorashim.passage)."""
         try:
             return {"ok": True, **shorashim_passage(self._current_verse_data)}
+        except Exception as e:  # noqa: BLE001 -- the text still shows without them
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
+
+    def get_phrases(self) -> dict:
+        """The loaded pesuqim's recurring phrases -- refrains, echoes,
+        idioms, formulas -- for the Text view (see
+        ankipasuk.phrases.passage)."""
+        try:
+            return {"ok": True, **phrases_passage(self._current_verse_data)}
         except Exception as e:  # noqa: BLE001 -- the text still shows without them
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
@@ -897,7 +908,8 @@ class Api:
         if not self._current_verse_data:
             return {"ok": False, "error": "Choose some pesuqim first."}
         font = self.get_tikkun_font_css()
-        stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "")
+        stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "",
+                             cache=self._cache)
         window = webview.create_window(
             "Statistics",
             str(_STATIC_DIR / "stats.html"),

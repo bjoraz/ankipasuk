@@ -18,6 +18,7 @@ from pathlib import Path
 
 import webview
 
+from .. import phrases
 from ..cache import default_cache_dir
 from .api import Api
 from .backend import NoWebViewBackendError, choose_backend
@@ -93,6 +94,7 @@ def main() -> int:
         return 1
 
     api = Api()
+    phrases.warm()
     window = webview.create_window(
         "Nested Anki Cloze Generator",
         str(_STATIC_DIR / "index.html"),

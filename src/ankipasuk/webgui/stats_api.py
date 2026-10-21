@@ -10,8 +10,12 @@ from __future__ import annotations
 
 import webview
 
-from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, TROPE_HEBREW_NAMES, TROPE_UNICODE
+from ..cache import SefariaCache
+from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, POINTED_VERSION, TROPE_HEBREW_NAMES, TROPE_UNICODE
 from ..diagram import pasuq_diagram
+from ..phrases import other_place
+from ..phrases import passage as phrases_passage
+from ..sefaria import get_text_for_ref
 from ..shorashim import passage as shorashim_passage
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
 from ..structure import (
@@ -51,7 +55,8 @@ def _our_spelling(label: str) -> str:
 
 
 class StatsApi:
-    def __init__(self, verse_data: list[dict], max_leaf_disj: int, font_css: str = "") -> None:
+    def __init__(self, verse_data: list[dict], max_leaf_disj: int, font_css: str = "",
+                 cache: SefariaCache | None = None) -> None:
         self._window: webview.Window | None = None
         self.verse_data = verse_data
         self.max_leaf_disj = max_leaf_disj
@@ -59,6 +64,8 @@ class StatsApi:
         self.stats = compute_corpus_stats(verse_data, max_leaf_disj)
         self._diagrams: dict[str, dict] = {}
         self._roots: dict | None = None  # ankipasuk.shorashim.passage, made when first asked for
+        self._phrases: dict | None = None  # ankipasuk.phrases.passage, likewise
+        self._cache = cache  # for a phrase's other places, fetched from Sefaria
 
     def get_font_css(self) -> str:
         return self.font_css
@@ -177,6 +184,55 @@ class StatsApi:
             for item, words in zip(self.verse_data, data["verses"])
             if any(w[2] == g for w in words)
         ]
+
+    def _phrase_data(self) -> dict:
+        if self._phrases is None:
+            self._phrases = phrases_passage(self.verse_data)
+        return self._phrases
+
+    def get_phrases(self) -> dict:
+        """The loaded pesuqim's phrases, by section (see
+        ankipasuk.phrases.passage)."""
+        try:
+            return {"ok": True, **self._phrase_data()}
+        except Exception as e:  # noqa: BLE001 -- shown as a message in the tab
+            return {"ok": False, "error": str(e)}
+
+    def get_phrase_verses(self, pid: int) -> list:
+        """The loaded pesuqim phrase ``pid`` occurs in, for its pop-up:
+        ``[{"ref", "words"}]``, a word as ``[text, separator, group,
+        marked]``."""
+        entry = self._phrase_data()["phrases"][pid]
+        marked = {(v, k) for v, k in entry["marks"]}
+        verses = self._shorashim()["verses"]
+        out = []
+        for v in entry["verses"]:
+            item = self.verse_data[v]
+            out.append({"ref": _our_spelling(f"{item['book']} {item['ch']}:{item['vs']}"),
+                        "words": [[t, s, g, int((v, k) in marked)] for k, (t, s, g) in enumerate(verses[v])]})
+        return out
+
+    def get_phrase_places(self, pid: int, limit: int = 12) -> dict:
+        """Phrase ``pid``'s other places (the first ``limit``), fetched from
+        Sefaria, the phrase marked: ``{"ok", "places": [{"ref", "words"}],
+        "more"}``, a place's words as ``[text, separator, marked]``; a
+        place that can't be fetched has an ``error`` in place of its
+        words."""
+        entry = self._phrase_data()["phrases"][pid]
+        if self._cache is None:
+            self._cache = SefariaCache()
+
+        def text_of(book: str, ch: int, vs: int) -> str:
+            return get_text_for_ref(f"{book} {ch}", POINTED_VERSION, self._cache)[vs - 1]
+
+        places = []
+        for place in entry["places"][:limit]:
+            try:
+                for verse in other_place(place["at"], place["length"], text_of):
+                    places.append(verse)
+            except Exception as e:  # noqa: BLE001 -- offline, or Sefaria has no such pasuq
+                places.append({"ref": place["ref"], "error": str(e)})
+        return {"ok": True, "places": places, "more": max(0, entry["total"] - entry["here"] - limit)}
 
     def get_structure_summary(self) -> list:
         summary = sorted(

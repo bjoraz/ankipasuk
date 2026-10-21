@@ -93,14 +93,17 @@ function stripPointing(text) {
     return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
 }
 
-// One pasuq's words as HTML: each word with a group a clickable span
-// (``data-g``); maqaf kept between words, or a space for letters only.
+// One pasuq's words as HTML: each word a span with its index (``data-k``,
+// for the phrases' underlines), a clickable one where it has a group
+// (``.w``, ``data-g``); maqaf kept between words, or a space for letters
+// only.
 function rootWordsHtml(words, plain) {
-    return words.map(([text, sep, g]) => {
+    return words.map(([text, sep, g], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
-        const word = g === null || g === undefined || !shown.trim()
-            ? shown : `<span class="w" data-g="${g}">${shown}</span>`;
+        if (!shown.trim()) return shown + after;
+        const word = g === null || g === undefined
+            ? `<span data-k="${k}">${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}">${shown}</span>`;
         return word + after;
     }).join("");
 }

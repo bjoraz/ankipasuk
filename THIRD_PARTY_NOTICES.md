@@ -55,8 +55,8 @@ standard reading per occasion, independent of the year (see
 
 ## Shorashim
 
-`src/ankipasuk/data/shorashim/` was made by `scripts/build_shorashim.py`
-from two Open Scriptures projects:
+`src/ankipasuk/data/shorashim/` and `src/ankipasuk/data/phrases/` were made
+by `scripts/build_shorashim.py` from two Open Scriptures projects:
 
 - the [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb)
   (`wlc/*.xml`): each word's lemma. The text is the Westminster Leningrad
@@ -70,7 +70,12 @@ from two Open Scriptures projects:
 
 What's bundled is derived from them: each word's letters and the group
 (root, or the word itself) it belongs to, and each group's label, gloss,
-words, and count in the whole of OSHB's Tanakh. The Name's gloss was changed from "Jehovah" to "the Name", and the other
+words, and count in the whole of OSHB's Tanakh; and, for the phrases, each
+word of the Tanakh's dictionary entry (numbered, with its Strong's number
+and part of speech), a few facts from its morphology and accents (a name,
+a people, a numeral, construct state, a suffix, an etnaḥta or other
+mafsiq on it, a qere), and, for God's names and the words of their
+titles, its letters without prefixes. The Name's gloss was changed from "Jehovah" to "the Name", and the other
 names' English glosses to the names in AnkiPasuk's own spelling. Some common
 words, whose BDB gloss is more an etymology than a meaning, also have a
 plain meaning added beside it (`MEANINGS` in

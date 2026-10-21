@@ -32,10 +32,10 @@ import math
 import re
 from collections import Counter
 from difflib import SequenceMatcher
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 
-from .shorashim_build import OSIS_BOOKS, consonants
+from .shorashim_build import OSIS_BOOKS, REFERENCE_BOOKS, consonants
 
 DATA_DIR = Path(__file__).parent / "data" / "shorashim"
 MAQAF = "\u05be"
@@ -81,7 +81,7 @@ def keyness(count: int, words: int, total: int, tanakh: int) -> float:
 
 @cache
 def _book(book: str) -> dict[str, list[list]]:
-    osis = OSIS_BOOKS.get(book)
+    osis = OSIS_BOOKS.get(book) or REFERENCE_BOOKS.get(book)
     path = DATA_DIR / f"{osis}.json.gz"
     if osis is None or not path.exists():
         return {}
@@ -112,46 +112,64 @@ def pieces(pointed: str) -> list[list[str]]:
 
 def _match(letters: list[str], oshb_words: list[list]) -> list[int | None]:
     """Line up by letters: runs that match, and runs that differ only in
-    spelling, word for word."""
+    spelling, word for word. Each word's index in ``oshb_words``."""
     result: list[int | None] = [None] * len(letters)
     matcher = SequenceMatcher(None, letters, [w[0] for w in oshb_words], autojunk=False)
     for op, a1, a2, b1, b2 in matcher.get_opcodes():
         if op == "equal" or (op == "replace" and a2 - a1 == b2 - b1):
             for k in range(a2 - a1):
-                result[a1 + k] = oshb_words[b1 + k][1]
+                result[a1 + k] = b1 + k
     return result
 
 
-def align(sefaria_letters: list[str], oshb_words: list[list]) -> list[int | None]:
-    """The group of each of Sefaria's words (given by their letters, "" for
-    a token with none, like paseq), from OSHB's ``[letters, group(, 1)]``."""
+def line_up(sefaria_letters: list[str], oshb_words: list[list]) -> list[int | None]:
+    """The OSHB word (its index in ``oshb_words``, ``[letters, group(,
+    1)]``) of each of Sefaria's words, given by their letters ("" for a
+    token with none, like paseq)."""
     targets = [i for i, s in enumerate(sefaria_letters) if s]
     result: list[int | None] = [None] * len(sefaria_letters)
     letters = [sefaria_letters[i] for i in targets]
     for with_qere in (True, False):
-        words = oshb_words if with_qere else [w for w in oshb_words if len(w) < 3]
+        words = list(range(len(oshb_words))) if with_qere \
+            else [k for k, w in enumerate(oshb_words) if len(w) < 3]
         if len(words) == len(letters):
-            for i, w in zip(targets, words):
-                result[i] = w[1]
+            for i, k in zip(targets, words):
+                result[i] = k
             return result
-    for i, g in zip(targets, _match(letters, oshb_words)):
-        result[i] = g
+    for i, k in zip(targets, _match(letters, oshb_words)):
+        result[i] = k
     return result
+
+
+def align(sefaria_letters: list[str], oshb_words: list[list]) -> list[int | None]:
+    """The group of each of Sefaria's words (see :func:`line_up`)."""
+    return [None if k is None else oshb_words[k][1] for k in line_up(sefaria_letters, oshb_words)]
 
 
 def verse_words(book: str, ch: int, vs: int, pointed: str) -> list[list]:
     """One pasuq's words as ``[text, separator, group]`` (group None where
     there's none: no data for the book, or a word that didn't line up)."""
+    return [[t, s, _group_at(book, at)] for t, s, at in _verse_places(book, ch, vs, pointed)]
+
+
+def _verse_places(book: str, ch: int, vs: int, pointed: str) -> list[list]:
+    """One pasuq's words as ``[text, separator, (chapter:verse, index)]``:
+    each with the OSHB word it is, or None."""
     ps = pieces(pointed)
-    oshb = _book(book).get(f"{ch}:{vs}")
+    key = f"{ch}:{vs}"
+    oshb = _book(book).get(key)
     if not oshb:
         return [[t, s, None] for t, s in ps]
-    gs = align([consonants(t) for t, _s in ps], oshb)
-    return [[t, s, g] for (t, s), g in zip(ps, gs)]
+    ks = line_up([consonants(t) for t, _s in ps], oshb)
+    return [[t, s, None if k is None else (key, k)] for (t, s), k in zip(ps, ks)]
+
+
+def _group_at(book: str, at: tuple[str, int] | None) -> int | None:
+    return None if at is None else _book(book)[at[0]][at[1]][1]
 
 
 def _unmatched(words: list[list]) -> int:
-    return sum(1 for t, _s, g in words if g is None and consonants(t))
+    return sum(1 for t, _s, at in words if at is None and consonants(t))
 
 
 def _realign_chapters(verse_data: list[dict], verses: list[list[list]]) -> None:
@@ -166,14 +184,30 @@ def _realign_chapters(verse_data: list[dict], verses: list[list[list]]) -> None:
         if not before:
             continue
         data = _book(book)
-        theirs = [w for key, ws in sorted(
-            ((k, v) for k, v in data.items() if k.split(":")[0] == str(ch)),
-            key=lambda kv: int(kv[0].split(":")[1])) for w in ws]
-        ours = [(i, j) for i in indices for j, (t, _s, _g) in enumerate(verses[i]) if consonants(t)]
-        groups_found = _match([consonants(verses[i][j][0]) for i, j in ours], theirs)
-        if sum(g is None for g in groups_found) < before:
-            for (i, j), g in zip(ours, groups_found):
-                verses[i][j][2] = g
+        keys = sorted((k for k in data if k.split(":")[0] == str(ch)), key=lambda k: int(k.split(":")[1]))
+        theirs = [(k, n) for k in keys for n in range(len(data[k]))]
+        ours = [(i, j) for i in indices for j, (t, _s, _at) in enumerate(verses[i]) if consonants(t)]
+        found = _match([consonants(verses[i][j][0]) for i, j in ours], [data[k][n] for k, n in theirs])
+        if sum(f is None for f in found) < before:
+            for (i, j), f in zip(ours, found):
+                verses[i][j][2] = None if f is None else theirs[f]
+
+
+def lined_up(verse_data: list[dict]) -> list[list[list]]:
+    """Every loaded pasuq's words as ``[text, separator, (chapter:verse,
+    index)]``: each Sefaria word with the OSHB word (of the same book) it
+    is, or None -- what :func:`passage` and :mod:`ankipasuk.phrases`
+    both start from. The last few are kept."""
+    key = tuple((item["book"], item["ch"], item["vs"], item["pointed"]) for item in verse_data)
+    return [[list(w) for w in verse] for verse in _lined_up(key)]
+
+
+@lru_cache(maxsize=4)
+def _lined_up(key: tuple) -> tuple:
+    verse_data = [{"book": b, "ch": c, "vs": v, "pointed": p} for b, c, v, p in key]
+    verses = [_verse_places(item["book"], item["ch"], item["vs"], item["pointed"]) for item in verse_data]
+    _realign_chapters(verse_data, verses)
+    return tuple(tuple(tuple(w) for w in verse) for verse in verses)
 
 
 def passage(verse_data: list[dict]) -> dict:
@@ -190,8 +224,8 @@ def passage(verse_data: list[dict]) -> dict:
     table = groups()
     counts: Counter = Counter()
     where: dict[int, list[str]] = {}
-    verses = [verse_words(item["book"], item["ch"], item["vs"], item["pointed"]) for item in verse_data]
-    _realign_chapters(verse_data, verses)
+    verses = [[[t, s, _group_at(item["book"], at)] for t, s, at in words]
+              for item, words in zip(verse_data, lined_up(verse_data))]
     for item, words in zip(verse_data, verses):
         label = f"{item['book']} {item['ch']}:{item['vs']}"
         for _t, _s, g in words:

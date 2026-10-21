@@ -34,6 +34,7 @@ optional tools that work on your Anki collection directly.
 - [How the cloze cards are made](#how-the-cloze-cards-are-made)
 - [The diagram](#the-diagram)
 - [Shorashim](#shorashim)
+- [Phrases](#phrases)
 - [Statistics](#statistics)
 - [Tiqqun cards](#tiqqun-cards)
 - [Haftarot](#haftarot)
@@ -402,6 +403,35 @@ differently, as in the Ten Commandments, the whole chapter is lined up
 at once. Of the 232,222 words the app can load, 100 (0.04%) end up with
 no shoresh and simply aren't clickable.
 
+## Phrases
+
+In the **Text** view, switch the side panel from **Shorashim** to
+**Phrases** for the passage's recurring word sequences, in four sections:
+
+- **Refrains**: repeated here more often than chance would give. ויהי ערב
+  ויהי בקר in Bereshit 1, וישא משלו in Balaq, צוה יהוה את משה in Pequdei.
+- **Echoes**: shared with one to three other places. תהו ובהו (Yirmeyahu
+  4:23), של נעליך מעל רגליך (Yehoshua' 5:15), and whole parallels, like
+  the Decalogue in Devarim 5 and Shemot 20.
+- **Idioms**: fixed expressions used across the Tanakh. ארץ זבת חלב ודבש,
+  ויחר אף יהוה, וטמא עד הערב.
+- **Formulas**, collapsed: phrases that only frame. Who speaks (ויאמר
+  אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
+  the wording is exceptional (אל שדי; יהוה אלהים in Bereshit 2–3).
+
+Click a phrase to underline it in the text, in its own colour; it works
+alongside the shorashim's colours. A phrase in several sections is tagged
+with the others, and the shorter phrases inside a longer one are under its
+**+**. The statistics window has the same sections in its **Phrases** tab,
+where a row opens its pesuqim and, fetched from Sefaria, its other places,
+the phrase marked in each.
+
+Phrases go by dictionary word, so the same words in different forms are
+the same phrase. They can be any length, and are found across the whole
+Tanakh, the books the app has no readings from included. How they're
+found and tested, with every threshold, is in
+[`docs/phrases.md`](docs/phrases.md).
+
 ## Statistics
 
 **Statistics** opens a window on whatever is loaded, at your current *N*.
@@ -419,6 +449,8 @@ diagram. There's also a per-pasuq CSV export.
   frequent first or the key words first, with its gloss and how many times
   it occurs, in how many pesuqim. Particles and names can be shown or
   hidden. Click a row to see its pesuqim, with its words highlighted.
+- **Phrases**: the loaded pesuqim's refrains, echoes, idioms and formulas
+  (see above). Click a row for its pesuqim and its other places.
 
 ### Pesuqim with the same shape
 
@@ -618,7 +650,8 @@ src/ankipasuk/
 ├── ammud_pages.py       'ammudim as HTML/PDF pages
 ├── diagram_pages.py     the diagram view as HTML/PDF pages
 ├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
-├── shorashim_build.py   making that data from OSHB (scripts/build_shorashim.py)
+├── shorashim_build.py   making that data, and the phrases', from OSHB (scripts/build_shorashim.py)
+├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
@@ -626,12 +659,12 @@ src/ankipasuk/
 ├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
-├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim
+├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
 ├── webgui/              the app: pywebview bridges (api.py, stats_api.py, …)
 │   └── static/          its pages, styles and scripts (diagram.js draws the diagrams)
 └── gui/                 the old tkinter app, no longer maintained
 scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
-docs/                    scheduling, tagging, the transliteration rules, screenshots
+docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
 ```
 
 Only `webgui/` and `gui/` touch anything graphical. The AnkiConnect client
@@ -661,7 +694,8 @@ pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 - The diagrams follow Joshua R. Jacobson's in *Chanting the Hebrew Bible:
   The Art of Cantillation* (Jewish Publication Society), which is also the
   source for the paseq rule above.
-- The shorashim, glosses and parts of speech come from the
+- The shorashim, glosses, parts of speech, and the words, morphology and
+  accents the phrases are found in come from the
   [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb)
   (CC BY 4.0, on the public-domain Westminster Leningrad Codex) and its
   [HebrewLexicon](https://github.com/openscriptures/HebrewLexicon), after

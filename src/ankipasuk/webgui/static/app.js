@@ -5,6 +5,7 @@ let currentTikkunHtml = { plain: "", pointed: "" };
 let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only holds what's in view)
 let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
 let currentShorashim = null; // ankipasuk.shorashim.passage for the loaded pesuqim, once it's in
+let currentPhrases = null; // ankipasuk.phrases.passage, likewise
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -329,7 +330,10 @@ function renderTextBox() {
         const line = words ? rootWordsHtml(words[i], plain)
             : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed);
         return `<div class="tv-line">${line}</div>`;
-    }, (lines) => { for (const line of lines) rootColours.paintAll(line); }, textBox, false);
+    }, (lines) => {
+        for (const line of lines) rootColours.paintAll(line);
+        phraseMarks.paintLines(lines);
+    }, textBox, false);
     renderRootsList();
 }
 
@@ -383,7 +387,81 @@ async function loadShorashim() {
     currentShorashim = result.ok ? result : null;
     if (!result.ok) console.warn("No shorashim:", result.error);
     renderTextBox();
+    loadPhrases();
 }
+
+// =============================================================
+//  Phrases: the passage's refrains, echoes and idioms, and its formulas
+//  (ankipasuk.phrases), beside the text in place of the shorashim. A
+//  picked phrase is underlined in the text, in its own colour.
+// =============================================================
+async function loadPhrases() {
+    const verses = currentVerseData;
+    renderPhrasesList();  // "Finding phrases…"
+    const result = await api().get_phrases();
+    if (verses !== currentVerseData) return;  // other pesuqim were loaded meanwhile
+    currentPhrases = result.ok ? result : { error: result.error };
+    phraseMarks.use(result.ok ? result.phrases : []);
+    phraseMarks.paintLines(document.querySelectorAll("#text-box .tv-line"));
+    renderPhrasesList();
+}
+
+function renderPhrasesList() {
+    const box = document.getElementById("phrases-list");
+    if (!currentPhrases) {
+        box.innerHTML = currentVerseData.length ? '<p class="muted ph-none">Finding phrases…</p>' : "";
+        return;
+    }
+    if (currentPhrases.error) {
+        box.innerHTML = `<p class="muted ph-none">No phrases: ${diagramEscape(currentPhrases.error)}</p>`;
+        return;
+    }
+    const P = currentPhrases.phrases;
+    const item = (id, kind) => {
+        const p = P[id];
+        const kids = p.children[kind] || [];
+        const also = phraseAlso(p, kind).map((a) => `<span class="ph-tag">${a}</span>`).join("");
+        const place = kind === "echo" && p.places.length
+            ? `<span class="ph-place">${diagramEscape(p.places[0].ref)}${p.places.length > 1 ? ` +${p.places.length - 1}` : ""}</span>`
+            : "";
+        const more = kids.length ? `<button type="button" class="link ph-more" title="Shorter phrases inside it">+${kids.length}</button>` : "";
+        return `<li class="ph" data-id="${id}" title="${diagramEscape(phraseTitle(p))}">`
+            + `<div class="ph-line"><span class="ph-text" dir="rtl">${diagramEscape(phraseShort(p.text))}</span>`
+            + `<span class="ph-count">${p.here}</span></div>`
+            + (place || also || more ? `<div class="ph-meta">${place}${also}${more}</div>` : "")
+            + (kids.length ? `<ol class="ph-children" hidden>${kids.map((k) => item(k, kind)).join("")}</ol>` : "")
+            + "</li>";
+    };
+    let html = "";
+    for (const [kind, name, about] of PHRASE_SECTIONS) {
+        const ids = currentPhrases.sections[kind];
+        html += `<details class="ph-section" open><summary title="${about}">${name} <span class="muted">${ids.length}</span></summary>`
+            + (ids.length ? `<ol class="ph-list">${ids.map((id) => item(id, kind)).join("")}</ol>` : '<p class="muted ph-none">None</p>')
+            + "</details>";
+    }
+    const formulas = currentPhrases.sections.formula;
+    const count = formulas.reduce((n, [, ids]) => n + ids.length, 0);
+    html += '<details class="ph-section"><summary title="Phrases that only frame: who speaks, a name, a number, God\'s names">'
+        + `Formulas <span class="muted">${count}</span></summary>`
+        + formulas.map(([name, ids]) => `<div class="ph-class">${diagramEscape(name)}</div>`
+            + `<ol class="ph-list">${ids.map((id) => item(id, "formula")).join("")}</ol>`).join("")
+        + "</details>";
+    box.innerHTML = html;
+    paintPhraseList();
+}
+
+// A picked phrase's text underlined in its colour, in every section it's in.
+function paintPhraseList() {
+    for (const el of document.querySelectorAll("#phrases-list li.ph")) {
+        const colour = phraseMarks.colours.get(Number(el.dataset.id));
+        setPhraseUnderline(el.querySelector(".ph-text"), colour === undefined ? [] : [colour]);
+    }
+}
+
+const phraseMarks = new PhraseMarks((words) => {
+    phraseMarks.paint(document.getElementById("text-box"), words);
+    paintPhraseList();
+});
 
 // The Text and Tikkun views, pointed or letters only as chosen.
 function renderVerseBoxes() {
@@ -406,6 +484,8 @@ async function doFetchAll() {
     await api().clear_ranges();
     currentVerseData = [];
     currentShorashim = null;
+    currentPhrases = null;
+    phraseMarks.use([]);
     currentTikkunHtml = { plain: "", pointed: "" };
     for (const row of document.querySelectorAll(".range-row")) {
         const book = row.querySelector(".range-book").value;
@@ -1098,7 +1178,26 @@ window.addEventListener("pywebviewready", async () => {
         if (item) rootColours.toggle(item.dataset.root);
     });
     addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g]);
-    document.getElementById("btn-clear-roots").addEventListener("click", () => rootColours.clear());
+    document.getElementById("btn-clear-roots").addEventListener("click", () => {
+        rootColours.clear();
+        phraseMarks.clear();
+    });
+    segmented(document.getElementById("panel-kind"), (btn) => {
+        for (const pane of document.querySelectorAll("#roots-panel .panel-pane")) pane.hidden = pane.dataset.pane !== btn.dataset.pane;
+        document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane === "phrases");
+        if (btn.dataset.pane === "phrases") renderPhrasesList();
+    });
+    document.getElementById("phrases-list").addEventListener("click", (e) => {
+        const more = e.target.closest(".ph-more");
+        if (more) {
+            const kids = more.closest("li.ph").querySelector(":scope > .ph-children");
+            kids.hidden = !kids.hidden;
+            more.classList.toggle("open", !kids.hidden);
+            return;
+        }
+        const item = e.target.closest("li.ph");
+        if (item) phraseMarks.toggle(item.dataset.id);
+    });
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("roots-sort"), renderRootsList);
     segmented(document.getElementById("tikkun-kind"), renderVerseBoxes);

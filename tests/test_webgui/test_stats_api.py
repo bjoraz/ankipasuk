@@ -106,3 +106,28 @@ def test_shorashim_most_frequent_first_and_their_pesuqim(genesis_1_1, genesis_1_
     verses = sapi.get_shorashim_verses(earth["g"])
     assert [v["ref"] for v in verses] == ["Bereshit 1:1", "Bereshit 1:2"]
     assert any(w[2] == earth["g"] for w in verses[0]["words"])
+
+
+def test_a_phrases_pesuqim_and_other_places_are_marked(genesis_1_1, genesis_1_2, monkeypatch):
+    from ankipasuk.shorashim import consonants
+    from ankipasuk.webgui import stats_api
+
+    jeremiah_4_23 = "רָאִיתִי אֶת־הָאָרֶץ וְהִנֵּה־תֹהוּ וָבֹהוּ וְאֶל־הַשָּׁמַיִם וְאֵין אוֹרָם׃"
+    asked = []
+
+    def fake_text(ref, _version, _cache):
+        asked.append(ref)
+        return [jeremiah_4_23 if ref == "Jeremiah 4" else ""] * 30
+
+    monkeypatch.setattr(stats_api, "get_text_for_ref", fake_text)
+    sapi = StatsApi(_verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)]), max_leaf_disj=2)
+    result = sapi.get_phrases()
+    tohu = next(p for p in result["phrases"] if consonants(p["text"]) == "תהוובהו")
+    (verse,) = sapi.get_phrase_verses(tohu["id"])
+    assert verse["ref"] == "Bereshit 1:2"
+    assert [consonants(w[0]) for w in verse["words"] if w[3]] == ["תהו", "ובהו"]
+    places = sapi.get_phrase_places(tohu["id"])
+    assert asked == ["Jeremiah 4"] and places["ok"] is True
+    (place,) = places["places"]
+    assert place["ref"] == "Yirmeyahu 4:23"
+    assert [consonants(w[0]) for w in place["words"] if w[2]] == ["תהו", "ובהו"]

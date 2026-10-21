@@ -879,3 +879,14 @@ def test_get_shorashim_gives_each_loaded_word_its_root(genesis_1_1):
     create = result["groups"][words[1][2]]
     accusative = result["groups"][words[3][2]]
     assert create["keyness"] > 0 and create["ratio"] > 10 and accusative["keyness"] < create["keyness"]
+
+
+def test_get_phrases_gives_sections_and_marks(genesis_1_1, genesis_1_2):
+    api = Api()
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+                               {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
+    result = api.get_phrases()
+    assert result["ok"] is True
+    assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula"}
+    listed = {i for kind in ("refrain", "echo", "idiom") for i in result["sections"][kind]}
+    assert listed and all(result["phrases"][i]["marks"] for i in listed)

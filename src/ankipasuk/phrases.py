@@ -1,0 +1,601 @@
+"""Phrases: the word sequences of a passage that recur in the Tanakh,
+sorted into refrains, echoes and idioms, with formulas set apart.
+
+docs/phrases.md describes the choices, the tests and their thresholds;
+this follows it section by section. In short:
+
+- The Tanakh is one sequence of dictionary words (*tokens*), from the
+  data :func:`ankipasuk.shorashim_build.book_lemmas` made: prefixes and
+  suffixes don't count, the object marker אֵת is left out, the qere is
+  read, a two-word name is one token, and no phrase runs from one book
+  into the next.
+- From each token of the passage, a phrase is followed through all its
+  occurrences in the Tanakh while two or more remain, and kept where it
+  can't be extended without losing one (*closed*); then cut at the
+  ta'amim and trimmed (:func:`_find`).
+- Each is then tested (:func:`_classify`): a refrain, an echo, an idiom,
+  any or all of them, unless it's a formula (:func:`formula_class`).
+"""
+
+from __future__ import annotations
+
+import gzip
+import json
+import math
+import threading
+from array import array
+from collections import Counter, defaultdict
+from collections.abc import Iterable
+from functools import cache
+from pathlib import Path
+
+from .config import BOOK_HEBREW_NAMES, OTHER_BOOK_HEBREW_NAMES
+from .shorashim import _book, line_up, lined_up, pieces
+from .shorashim_build import (
+    CONSTRUCT,
+    ETNAHTA,
+    GENTILIC,
+    GOD_NAMES,
+    KING,
+    NUMERAL,
+    OSIS_BOOKS,
+    PROPER,
+    QERE,
+    REFERENCE_BOOKS,
+    consonants,
+)
+
+DATA_DIR = Path(__file__).parent / "data" / "phrases"
+BOOKS = {**OSIS_BOOKS, **REFERENCE_BOOKS}  # Sefaria's name -> OSHB's
+
+# --- the tests' constants (docs/phrases.md, "Constants") ---------------------
+REFRAIN_CHANCE = 1e-3
+ECHO_CHANCE = 1e-3
+ECHO_PLACES = 3
+IDIOM_OCCURRENCES, IDIOM_CHAPTERS = 4, 3
+IDIOM_G2 = 10.83  # p < 0.001, one degree of freedom
+IDIOM_BOUND = 0.1
+RARE_WORDING = 10  # places in the Tanakh
+CONCENTRATED = 1 / 3  # of a wording's places, in the passage
+
+# --- words, by Strong's number ----------------------------------------------
+OBJECT_MARKER = "853"
+NOT_CONTENT = {"3605", "3606"}  # כֹּל
+NEGATIONS = {"3808", "408"}  # לֹא, אַל
+SPEECH_VERBS = {"559", "1696", "6030"}  # אָמַר, דָּבַר, עָנָה: trimmed off a phrase's end
+TITLE_BEFORE = {"6440", "5869"}  # פְּנֵי, עֵינֵי, before a name of God
+FATHER = "1"
+TSEVAOT = "6635"  # צְבָאוֹת: a name of God only after one
+
+# Family words: son, daughter, father, brother, wife, house, land, king,
+# people, tribe (two words), clan, city, beyond.
+KIN = {"1121", "1323", "1", "251", "802", "1004", "776", "4428", "5971", "4294", "7626", "4940", "5892",
+       "5676"}
+# Year, month, day, cubit, sheqel, length, breadth, height, weight, beqa,
+# kikkar; son (בן שנה).
+MEASURE = {"8141", "2320", "3117", "520", "8255", "753", "7341", "6967", "4948", "1235", "3603", "1121"}
+
+# The formula classes after God's names and titles (docs/phrases.md, the
+# table): name -> (core words, other words allowed, names allowed,
+# numerals allowed, needs a name or numeral).
+CLASSES = {
+    "names and their families": (set(), KIN | GOD_NAMES, True, False, True),
+    # say, speak, word, utterance, answer; with be, people
+    "speech": ({"559", "1696", "1697", "5002", "6030"}, GOD_NAMES | KIN | {"1961", "5971"},
+               True, False, False),
+    "numbers, dates and measures": (set(), MEASURE, False, True, True),
+    # beget, live, die, count, generations, number, head; with male, name, go out, host
+    "genealogies and censuses": ({"3205", "2421", "4191", "6485", "8435", "4557", "1538"},
+                                 KIN | MEASURE | {"2145", "8034", "3318", "6635"}, True, True, True),
+    "time": ({"1961"}, {"3117", "6256"}, True, True, False),  # be; day, time
+}
+TITLES = "God's names and titles"
+FORMULA_CLASSES = [TITLES, *CLASSES]
+
+# A token's own bits.
+_CONTENT, _NEG, _LIGHT, _AFTER_ET = 1, 2, 4, 8
+# Breaks after a token: an etnaḥta, a sof pasuq, a segol/shalshelet/zaqef/tifḥa.
+_ETNAHTA, _SOF, _KING = 1, 2, 3
+_PASUQ, _HALF, _UNIT = {_SOF}, {_ETNAHTA, _SOF}, {_ETNAHTA, _SOF, _KING}
+
+
+class Corpus:
+    """The Tanakh as tokens, in parallel arrays, from ``lemmas`` (the
+    dictionary words, ``[strong, kind]``) and ``books`` (``[(name,
+    {"ch:vs": [[lemma, flags(, form)], ...]})]``, as the data has them).
+    A token of -1 is a barrier: a word without a dictionary word, or the
+    end of a book."""
+
+    def __init__(self, lemmas: list[list], books: Iterable[tuple[str, dict]]):
+        assert len(lemmas) < 1 << 14, "pairs are keyed by two lemmas in 28 bits"
+        self.lem = array("i")
+        self.bits = bytearray()
+        self.flags = bytearray()  # the data's (shorashim_build: PROPER, ...)
+        self.brk = bytearray()
+        self.strong: list[str | None] = []
+        self.form: list[str] = []
+        self.where: list[tuple[str, str]] = []  # (book, ch:vs)
+        self.first, self.last = array("h"), array("h")  # its OSHB words in the pasuq
+        self.verses: dict[tuple[str, str], tuple[int, int]] = {}
+        for book, verses in books:
+            for key, words in verses.items():
+                start = len(self.lem)
+                self._add_verse(lemmas, (book, key), words)
+                self.verses[(book, key)] = (start, len(self.lem))
+            self._add(-1, None, None, 0, "", (book, ""), 0, 0, False, _SOF)
+        self.n = sum(1 for x in self.lem if x >= 0)
+        self.freq = Counter(x for x in self.lem if x >= 0)
+        self.pairs: dict[int, list[int]] = defaultdict(list)
+        lem = self.lem
+        for j in range(len(lem) - 1):
+            if lem[j] >= 0 and lem[j + 1] >= 0:
+                self.pairs[lem[j] << 14 | lem[j + 1]].append(j)
+        self._counts: dict[tuple, int] = {}
+
+    def _add_verse(self, lemmas, where, words) -> None:
+        toks: list[list] = []  # [lemma, strong, kind, flags, form, first, last, after_et]
+        after_et = False
+        for k, w in enumerate(words):
+            n, flags = w[0], w[1]
+            form = w[2] if len(w) > 2 else ""
+            first = k
+            if flags & QERE and toks and toks[-1][6] == k - 1:
+                first = toks.pop()[5]  # the qere is read, its ketiv not
+            strong, kind = lemmas[n] if n >= 0 else (None, None)
+            if strong == OBJECT_MARKER:
+                after_et = True
+                continue
+            if toks and kind == "m" and toks[-1][0] == n:
+                toks[-1][6], toks[-1][4] = k, f"{toks[-1][4]} {form}"  # בֵּית לֶחֶם, one name
+                continue
+            toks.append([n, strong, kind, flags, form, first, k, after_et])
+            after_et = False
+        last_x = len(toks) - 1
+        for x, (n, strong, kind, flags, form, first, last, et) in enumerate(toks):
+            brk = _SOF if x == last_x else _ETNAHTA if flags & ETNAHTA else _KING if flags & KING else 0
+            self._add(n, strong, kind, flags, form, where, first, last, et, brk)
+
+    def _add(self, n, strong, kind, flags, form, where, first, last, after_et, brk) -> None:
+        bits = _AFTER_ET if after_et else 0
+        if n >= 0:
+            bits |= _LIGHT if strong in NOT_CONTENT else _CONTENT if kind != "p" else 0
+            if strong in NEGATIONS:
+                bits |= _NEG
+        else:
+            n = -1
+        self.lem.append(n)
+        self.bits.append(bits)
+        self.flags.append(flags)
+        self.brk.append(brk)
+        self.strong.append(strong)
+        self.form.append(form)
+        self.where.append(where)
+        self.first.append(first)
+        self.last.append(last)
+
+    def occurrences(self, i: int, n: int) -> list[int]:
+        """Every start of tokens ``[i, i + n)``'s sequence in the Tanakh."""
+        lem = self.lem
+        occ = self.pairs.get(lem[i] << 14 | lem[i + 1], [])
+        for k in range(2, n):
+            t = lem[i + k]
+            occ = [j for j in occ if lem[j + k] == t]
+        return occ
+
+    def count(self, key: tuple[int, ...]) -> int:
+        """How often the lemma sequence ``key`` occurs in the Tanakh."""
+        if len(key) == 1:
+            return self.freq[key[0]]
+        if key not in self._counts:
+            lem = self.lem
+            occ = self.pairs.get(key[0] << 14 | key[1], [])
+            for k in range(2, len(key)):
+                occ = [j for j in occ if lem[j + k] == key[k]]
+            self._counts[key] = len(occ)
+        return self._counts[key]
+
+
+_loading = threading.Lock()
+
+
+def corpus() -> Corpus:
+    """The bundled Tanakh: a second or two the first time (the app starts
+    on it in the background, see :func:`warm`)."""
+    with _loading:
+        return _corpus()
+
+
+@cache
+def _corpus() -> Corpus:
+    def read(name):
+        return json.loads(gzip.decompress((DATA_DIR / name).read_bytes()))
+    books = ((book, read(f"{osis}.json.gz")) for book, osis in BOOKS.items()
+             if (DATA_DIR / f"{osis}.json.gz").exists())
+    return Corpus(read("lemmas.json.gz"), books)
+
+
+def warm() -> None:
+    """Load the corpus in the background, so the first passage's phrases
+    don't wait for it."""
+    threading.Thread(target=corpus, name="phrases", daemon=True).start()
+
+
+# --- finding a passage's phrases --------------------------------------------
+def _holds_whole(c: Corpus, i: int, end: int, levels: set[int]) -> bool:
+    """Whether tokens ``[i, end]`` hold a whole unit between breaks of
+    ``levels`` (a pasuq, a half, ...)."""
+    started = i == 0 or c.brk[i - 1] in levels
+    for k in range(i, end + 1):
+        if c.brk[k] in levels:
+            if started:
+                return True
+            started = True
+    return False
+
+
+def _cut(c: Corpus, i: int, n: int) -> list[tuple[int, int]]:
+    """Tokens ``[i, i + n)`` cut where they cross a sof pasuq without a
+    whole pasuq in them, an etnaḥta without a whole half, or a segol,
+    shalshelet, zaqef or tifḥa without a whole unit between such breaks."""
+    end = i + n - 1
+    whole = {_SOF: _holds_whole(c, i, end, _PASUQ), _ETNAHTA: _holds_whole(c, i, end, _HALF),
+             _KING: _holds_whole(c, i, end, _UNIT)}
+    cuts = [k for k in range(i, end) if c.brk[k] and not whole[c.brk[k]]]
+    bounds = [i, *(k + 1 for k in cuts), end + 1]
+    return [(bounds[x], bounds[x + 1] - bounds[x]) for x in range(len(bounds) - 1)]
+
+
+def _trim(c: Corpus, s: int, n: int) -> tuple[int, int]:
+    """Particles off both ends (not לֹא, אַל); off the end, כֹּל and a verb
+    of saying too."""
+    while n and not c.bits[s] & (_CONTENT | _LIGHT | _NEG):
+        s, n = s + 1, n - 1
+    while n and (not c.bits[s + n - 1] & (_CONTENT | _NEG) or c.strong[s + n - 1] in SPEECH_VERBS):
+        n -= 1
+    return s, n
+
+
+def _content_words(c: Corpus, s: int, n: int) -> int:
+    return sum(1 for j in range(s, s + n) if c.bits[j] & _CONTENT)
+
+
+def _find(c: Corpus, segments: list[tuple[int, int]]) -> dict[tuple, tuple[int, int, list[int]]]:
+    """The phrases with an occurrence in the passage's ``segments`` (runs
+    of tokens ``[a, b)``): ``{lemmas: (start, length, occurrences)}``."""
+    lem = c.lem
+    raw = []
+    for a, b in segments:
+        for i in range(a, b - 1):
+            if lem[i] < 0 or lem[i + 1] < 0:
+                continue
+            occ, n = c.pairs.get(lem[i] << 14 | lem[i + 1], []), 2
+            if len(occ) < 2:
+                continue  # once in the Tanakh: no phrase
+            while True:
+                nxt: list[int] = []
+                if i + n < b and lem[i + n] >= 0:
+                    t = lem[i + n]
+                    nxt = [j for j in occ if lem[j + n] == t]
+                if len(nxt) < len(occ):  # closed on the right; on the left?
+                    left = lem[i - 1] if i > a else -1
+                    if left < 0 or any(j == 0 or lem[j - 1] != left for j in occ):
+                        raw.append((i, n, occ))
+                if len(nxt) < 2:
+                    break
+                occ, n = nxt, n + 1
+    out: dict[tuple, tuple[int, int, list[int]]] = {}
+    for i, n, occ in raw:
+        for s, m in _cut(c, i, n):
+            s, m = _trim(c, s, m)
+            if m < 2 or _content_words(c, s, m) < 2:
+                continue
+            key = tuple(lem[s:s + m])
+            shifted = [j + s - i for j in occ]
+            if key not in out or len(out[key][2]) < len(shifted):
+                out[key] = (s, m, shifted)
+    return out
+
+
+# --- formulas ---------------------------------------------------------------
+def is_title(c: Corpus, s: int, n: int) -> bool:
+    """God's names side by side (יהוה צבאות, אל שדי, יהוה אלהיך); after a
+    construct form of one without a suffix, a name, a people or fathers
+    (אלהי אברהם, אלהי העברים, אלהי אבתיכם); פני / עיני before one (לפני
+    יהוה). Nothing else: no particle, no אֵת left out inside."""
+    toks = [j for j in range(s, s + n) if not c.bits[j] & _LIGHT]
+    if not any(c.strong[j] in GOD_NAMES for j in toks) or any(c.bits[j] & _AFTER_ET for j in toks[1:]):
+        return False
+    for x, j in enumerate(toks):
+        prev = toks[x - 1] if x else None
+        nxt = toks[x + 1] if x + 1 < len(toks) else None
+        after_god = prev is not None and c.strong[prev] in GOD_NAMES
+        if c.strong[j] in GOD_NAMES and (c.strong[j] != TSEVAOT or after_god):
+            continue
+        named = c.flags[j] & (PROPER | GENTILIC) or c.strong[j] == FATHER
+        if named and after_god and c.flags[prev] & CONSTRUCT:
+            continue
+        before_god = nxt is not None and c.strong[nxt] in GOD_NAMES
+        if c.strong[j] in TITLE_BEFORE and c.flags[j] & CONSTRUCT and before_god:
+            continue
+        return False
+    return True
+
+
+def formula_class(c: Corpus, s: int, n: int) -> str | None:
+    """The formula class of tokens ``[s, s + n)``, or None (docs/phrases.md,
+    Formulas). A list -- three or more names or peoples -- is no formula."""
+    toks = [j for j in range(s, s + n) if c.bits[j] & _CONTENT]
+    if sum(1 for j in toks if c.flags[j] & (PROPER | GENTILIC)) >= 3:
+        return None
+    if is_title(c, s, n):
+        return TITLES
+    for name, (core, allowed, names, numerals, needs) in CLASSES.items():
+        def fits(j, names=names, numerals=numerals):
+            return (names and c.flags[j] & PROPER) or (numerals and c.flags[j] & NUMERAL)
+        if core and not any(c.strong[j] in core for j in toks):
+            continue
+        if needs and not any(fits(j) for j in toks):
+            continue
+        if all(c.strong[j] in core or c.strong[j] in allowed or fits(j) for j in toks):
+            return name
+    return None
+
+
+def _exceptional(c: Corpus, s: int, n: int, occ: list[int], inside) -> bool:
+    """Whether a title's wording (its words' forms) is rare in the Tanakh,
+    or mostly here."""
+    wording = c.form[s:s + n]
+    same = [j for j in occ if c.form[j:j + n] == wording]
+    here = [j for j in same if inside(j, n)]
+    return len(same) <= RARE_WORDING or (len(here) >= 2 and len(here) >= CONCENTRATED * len(same))
+
+
+# --- the tests --------------------------------------------------------------
+def _chance(k: int, mu: float) -> float:
+    """P(X >= k) for X ~ Poisson(mu): how likely ``k`` or more by chance."""
+    if mu <= 0:
+        return 0.0
+    if k <= mu:
+        return 1.0  # at least about a half: as good as certain here
+    # The tail directly, term by term: exact for the tiny values that matter.
+    log_term = -mu + k * math.log(mu) - math.lgamma(k + 1)
+    total, i = 0.0, k
+    while True:
+        term = math.exp(log_term)
+        total += term
+        if term < total * 1e-12 or i > k + 500:
+            return min(total, 1.0)
+        i += 1
+        log_term += math.log(mu / i)
+
+
+def _g2(a: int, c1: int, c2: int, n: int) -> float:
+    """Log-likelihood of two parts occurring together ``a`` times, ``c1``
+    and ``c2`` times in all, in ``n`` words (the 2×2 table)."""
+    cells = [(a, c1 * c2 / n), (c1 - a, c1 * (n - c2) / n), (c2 - a, (n - c1) * c2 / n),
+             (n - c1 - c2 + a, (n - c1) * (n - c2) / n)]
+    return 2 * sum(o * math.log(o / e) for o, e in cells if o > 0 and e > 0)
+
+
+def _classify(c: Corpus, segments: list[tuple[int, int]]) -> list[dict]:
+    """The passage's phrases that are a refrain, an echo, an idiom, or a
+    formula that would be one: each as a dict (see :func:`passage`)."""
+    end_of: dict[int, int] = {}
+    for a, b in segments:
+        for j in range(a, b):
+            end_of[j] = b
+    words = len(end_of)
+    here_freq = Counter(c.lem[j] for j in end_of if c.lem[j] >= 0)
+
+    def inside(j, n):
+        return end_of.get(j, -1) >= j + n
+
+    rows = []
+    for key, (s, n, occ) in _find(c, segments).items():
+        here = [j for j in occ if inside(j, n)]
+        if not here:
+            continue
+        elsewhere = [j for j in occ if not inside(j, n)]
+        formula = formula_class(c, s, n)
+        variant = formula == TITLES and _exceptional(c, s, n, occ, inside)
+        if variant:
+            formula = None
+        kinds = []
+        chance_here = _chance(len(here), words * math.prod(here_freq[x] / words for x in key))
+        if len(here) >= 2 and chance_here < REFRAIN_CHANCE:
+            kinds.append("refrain")
+        chance = _chance(len(occ), c.n * math.prod(c.freq[x] / c.n for x in key))
+        places = sorted({c.where[j] for j in elsewhere}, key=_canonical)
+        if 1 <= len(places) <= ECHO_PLACES and chance < ECHO_CHANCE:
+            kinds.append("echo")
+        chapters = {(c.where[j][0], c.where[j][1].split(":")[0]) for j in occ}
+        bound = 0.0
+        if len(occ) >= IDIOM_OCCURRENCES and len(chapters) >= IDIOM_CHAPTERS:
+            parts = [(c.count(key[:k]), c.count(key[k:])) for k in range(1, len(key))]
+            bound = min(len(occ) / min(left, right) for left, right in parts)
+            strong = all(_g2(len(occ), left, right, c.n) >= IDIOM_G2 for left, right in parts)
+            if bound >= IDIOM_BOUND and strong:
+                kinds.append("idiom")
+        if kinds:
+            rows.append({"key": key, "start": s, "length": n, "occurrences": occ, "here": here,
+                         "elsewhere": elsewhere, "places": places, "chapters": len(chapters),
+                         "books": len({b for b, _ch in chapters}), "kinds": kinds, "formula": formula,
+                         "variant": variant, "chance_here": chance_here, "chance": chance, "bound": bound})
+    return rows
+
+
+def _canonical(where: tuple[str, str]) -> tuple[int, int, int]:
+    book, key = where
+    ch, _colon, vs = key.partition(":")
+    return list(BOOKS).index(book) if book in BOOKS else 99, int(ch or 0), int(vs or 0)
+
+
+def _offsets(big: tuple, small: tuple) -> list[int]:
+    """Where ``small`` is inside ``big``."""
+    return [k for k in range(len(big) - len(small) + 1) if big[k:k + len(small)] == small]
+
+
+def _fold(rows: list[dict], positions: str, keep: int) -> list[dict]:
+    """``rows`` with a phrase folded under a longer one holding it (in its
+    ``children``) when fewer than ``keep`` of its ``positions`` lie outside
+    the longer ones; the rest, longest first."""
+    shown: list[dict] = []
+    having: dict[int, list[dict]] = defaultdict(list)  # a lemma -> the shown phrases with it
+    for r in sorted(rows, key=lambda r: -r["length"]):
+        holders, covered = [], set()
+        for o in having[r["key"][0]]:
+            offsets = _offsets(o["key"], r["key"])
+            if offsets:
+                holders.append(o)
+                covered.update(k + d for k in o[positions] for d in offsets)
+        own = [j for j in r[positions] if j not in covered]
+        if holders and len(own) < keep:
+            holders[0].setdefault("children", []).append(r)
+        else:
+            shown.append(r)
+            for lemma in set(r["key"]):
+                having[lemma].append(r)
+    return shown
+
+
+# --- the passage --------------------------------------------------------------
+def _segments(c: Corpus, verse_data: list[dict]) -> list[tuple[int, int]]:
+    """The passage's tokens as runs ``[a, b)`` (a pasuq loaded twice counts
+    once)."""
+    segments: list[list[int]] = []
+    seen = set()
+    for item in verse_data:
+        span = c.verses.get((item["book"], f"{item['ch']}:{item['vs']}"))
+        if span is None or span in seen:
+            continue
+        seen.add(span)
+        if segments and segments[-1][1] == span[0]:
+            segments[-1][1] = span[1]
+        else:
+            segments.append(list(span))
+    return [(a, b) for a, b in segments if b > a]
+
+
+def ref(c: Corpus, j: int, n: int) -> str:
+    """Where tokens ``[j, j + n)`` are, in the app's spelling: "Yirmeyahu
+    4:23", "Shemot 20:2-6"."""
+    (book, key), (_b2, end) = c.where[j], c.where[j + n - 1]
+    name = BOOK_HEBREW_NAMES.get(book) or OTHER_BOOK_HEBREW_NAMES.get(book, book)
+    if end == key:
+        return f"{name} {key}"
+    ch, vs = key.split(":")
+    ch2, vs2 = end.split(":")
+    return f"{name} {key}–{vs2}" if ch2 == ch else f"{name} {key}–{end}"
+
+
+def _covered(c: Corpus, j: int, n: int) -> dict[tuple[str, str], set[int]]:
+    """The OSHB words (by pasuq) of tokens ``[j, j + n)``, the אֵת between
+    them included."""
+    out: dict[tuple[str, str], set[int]] = defaultdict(set)
+    for t in range(j, j + n):
+        out[c.where[t]].update(range(c.first[t], c.last[t] + 1))
+        if t + 1 < j + n and c.where[t + 1] == c.where[t]:
+            out[c.where[t]].update(range(c.last[t] + 1, c.first[t + 1]))
+    return out
+
+
+def passage(verse_data: list[dict]) -> dict:
+    """The loaded pesuqim's phrases, for the Text view and Statistics::
+
+        {"phrases": [{"id", "kinds", "formula", "variant", "text",
+                      "here", "total", "places", "chapters", "books",
+                      "marks", "verses", "children"}, ...],
+         "sections": {"refrain": [id, ...], "echo": [...], "idiom": [...],
+                      "formula": [[class, [id, ...]], ...]}}
+
+    ``kinds`` are the sections a phrase is in (none for a formula,
+    ``formula`` naming its class); ``variant``, an exceptional wording of
+    God's names. ``text`` is its first occurrence here, in the loaded
+    text; ``marks`` every word of its occurrences here, as ``[pasuq,
+    word]`` (indices into the loaded pesuqim and their words, as
+    :func:`ankipasuk.shorashim.passage` has them); ``verses`` the pesuqim
+    it's in. ``places`` are its other places (``{"ref", "at", "length"}``,
+    all for an echo, the first 30 otherwise). ``children`` are the
+    phrases folded under it, by section."""
+    c = corpus()
+    segments = _segments(c, verse_data)
+    if not segments:
+        return {"phrases": [], "sections": {"refrain": [], "echo": [], "idiom": [], "formula": []}}
+    rows = _classify(c, segments)
+    # Each loaded word, by its OSHB word.
+    words_at: dict[tuple[str, str, int], list[tuple[int, int]]] = defaultdict(list)
+    lined = lined_up(verse_data)
+    for v, (item, words) in enumerate(zip(verse_data, lined)):
+        for k, (_t, _s, at) in enumerate(words):
+            if at is not None:
+                words_at[(item["book"], at[0], at[1])].append((v, k))
+
+    def marks(j: int, n: int) -> list[tuple[int, int]]:
+        out = []
+        for (book, key), idx in _covered(c, j, n).items():
+            for x in idx:
+                out.extend(words_at.get((book, key, x), ()))
+        return sorted(set(out))
+
+    entries = []
+    for i, r in enumerate(rows):
+        r["id"] = i
+        occ_marks = [marks(j, r["length"]) for j in r["here"]]
+        first = occ_marks[0] if occ_marks and occ_marks[0] else []
+        text = "".join(lined[v][k][0] + ("" if x == len(first) - 1 else lined[v][k][1] or " ")
+                       for x, (v, k) in enumerate(first))
+        n = r["length"]
+        entries.append({
+            "id": i, "kinds": r["kinds"] if not r["formula"] else [], "formula": r["formula"],
+            "variant": r["variant"], "text": text, "here": len(r["here"]), "total": len(r["occurrences"]),
+            "places": [{"ref": ref(c, j, n), "at": j, "length": n}
+                       for j in sorted(r["elsewhere"], key=lambda j: _canonical(c.where[j]))[:30]],
+            "chapters": r["chapters"], "books": r["books"],
+            "marks": sorted({m for ms in occ_marks for m in ms}),
+            "verses": sorted({v for ms in occ_marks for v, _k in ms}), "children": {},
+        })
+    sections: dict = {}
+    order = {"refrain": lambda r: (r["chance_here"], -len(r["here"])),
+             "echo": lambda r: (r["chance"], -r["length"]),
+             "idiom": lambda r: (-r["bound"], -len(r["occurrences"]))}
+    keep = {"refrain": ("here", 2), "echo": ("elsewhere", 1), "idiom": ("occurrences", 2)}
+    for kind in ("refrain", "echo", "idiom"):
+        mine = [r for r in rows if kind in r["kinds"] and not r["formula"]]
+        for r in mine:
+            r.pop("children", None)
+        shown = sorted(_fold(mine, *keep[kind]), key=order[kind])
+        for r in shown:
+            kids = sorted(r.get("children", []), key=order[kind])
+            if kids:
+                entries[r["id"]]["children"][kind] = [k["id"] for k in kids]
+        sections[kind] = [r["id"] for r in shown]
+    formulas = [r for r in rows if r["formula"]]
+    for r in formulas:
+        r.pop("children", None)
+    shown = _fold(formulas, "here", 1)
+    for r in shown:
+        if r.get("children"):
+            kids = sorted(r["children"], key=lambda r: -len(r["here"]))
+            entries[r["id"]]["children"]["formula"] = [k["id"] for k in kids]
+    sections["formula"] = [[name, [r["id"] for r in sorted(shown, key=lambda r: (-len(r["here"]), r["start"]))
+                                   if r["formula"] == name]] for name in FORMULA_CLASSES]
+    sections["formula"] = [s for s in sections["formula"] if s[1]]
+    return {"phrases": entries, "sections": sections}
+
+
+def other_place(at: int, length: int, text_of) -> list[dict]:
+    """A phrase's occurrence at token ``at`` (from ``places``), as the
+    pesuqim it's in: ``[{"ref", "words": [[text, separator, marked]]}]``,
+    the phrase's words marked. ``text_of(book, ch, vs)`` gives a pasuq's
+    pointed text."""
+    c = corpus()
+    out = []
+    for (book, key), idx in sorted(_covered(c, at, length).items(), key=lambda kv: _canonical(kv[0])):
+        ch, vs = (int(x) for x in key.split(":"))
+        ps = pieces(text_of(book, ch, vs))
+        oshb = _book(book).get(key) or []
+        ks = line_up([consonants(t) for t, _s in ps], oshb) if oshb else [None] * len(ps)
+        name = BOOK_HEBREW_NAMES.get(book) or OTHER_BOOK_HEBREW_NAMES.get(book, book)
+        out.append({"ref": f"{name} {key}", "words": [[t, s, int(k is not None and k in idx)]
+                                                      for (t, s), k in zip(ps, ks)]})
+    return out

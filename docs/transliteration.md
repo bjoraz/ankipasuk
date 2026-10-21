@@ -141,6 +141,20 @@ The name written into a note's `Source` field and on card titles.
 | Ecclesiastes | Kohelet | Qohelet |
 | Esther | Esther | Ester |
 
+The rest of the Tanakh has no readings in the app, and comes up only as a
+phrase's other places (see [`phrases.md`](phrases.md)):
+
+| Book | Name |
+|---|---|
+| Psalms | Tehillim |
+| Proverbs | Mishle |
+| Job | Iyyov |
+| Daniel | Daniyyel |
+| Ezra | 'Ezra |
+| Nehemiah | Neḥemya |
+| I Chronicles | Divre haYamim Alef |
+| II Chronicles | Divre haYamim Bet |
+
 ### Parashiyyot
 
 Tags use the new slug, numbered by position in the book: `aliyya::<book>::<NN>-<slug>::<1-7|maftir>`.

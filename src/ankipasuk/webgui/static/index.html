@@ -81,25 +81,36 @@
           <span class="seg" id="text-kind">
             <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain">Letters only</button>
           </span>
-          <span class="muted">Click a word to colour its shoresh</span>
+          <span class="muted">Click a word to colour its shoresh, a phrase to underline it</span>
           <span class="inline-group">
             <button id="btn-clear-roots" type="button" class="link">Clear colours</button>
             <button id="btn-copy-text" type="button" class="link">Copy</button>
           </span>
         </div>
         <div class="text-split">
-          <aside class="roots-panel">
-            <div class="roots-head">
-              <span>Shorashim <span id="roots-count" class="muted"></span></span>
-              <label class="muted" title="אֵת, אֲשֶׁר, כִּי, עַל and the like"><input type="checkbox" id="roots-particles"> particles</label>
-            </div>
-            <div class="roots-sort">
-              <span class="seg" id="roots-sort">
-                <button class="active" data-sort="count" title="The most used first">Most used</button><button data-sort="key"
-                  title="Key words first: the roots this passage uses far more than the Tanakh as a whole does">Key words</button>
+          <aside class="roots-panel" id="roots-panel">
+            <div class="panel-switch">
+              <span class="seg" id="panel-kind">
+                <button class="active" data-pane="roots">Shorashim</button><button data-pane="phrases"
+                  title="Word sequences of the passage that recur: refrains, echoes, idioms">Phrases</button>
               </span>
             </div>
-            <ol id="roots-list"></ol>
+            <div class="panel-pane" data-pane="roots">
+              <div class="roots-head">
+                <span>Shorashim <span id="roots-count" class="muted"></span></span>
+                <label class="muted" title="אֵת, אֲשֶׁר, כִּי, עַל and the like"><input type="checkbox" id="roots-particles"> particles</label>
+              </div>
+              <div class="roots-sort">
+                <span class="seg" id="roots-sort">
+                  <button class="active" data-sort="count" title="The most used first">Most used</button><button data-sort="key"
+                    title="Key words first: the roots this passage uses far more than the Tanakh as a whole does">Key words</button>
+                </span>
+              </div>
+              <ol id="roots-list"></ol>
+            </div>
+            <div class="panel-pane" data-pane="phrases" hidden>
+              <div id="phrases-list"></div>
+            </div>
           </aside>
           <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
         </div>
@@ -249,6 +260,7 @@
 
 <script src="diagram.js"></script>
 <script src="shorashim.js"></script>
+<script src="phrases.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
