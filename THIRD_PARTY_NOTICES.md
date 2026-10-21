@@ -72,10 +72,9 @@ What's bundled is derived from them: each word's letters and the group
 (root, or the word itself) it belongs to, and each group's label, gloss,
 words, and count in the whole of OSHB's Tanakh; and, for the phrases, each
 word of the Tanakh's dictionary entry (numbered, with its Strong's number
-and part of speech), a few facts from its morphology and accents (a name,
-a people, a numeral, construct state, a suffix, an etnaḥta or other
-mafsiq on it, a qere), and, for God's names and the words of their
-titles, its letters without prefixes.
+and part of speech) and a few facts from its morphology and accents (a
+name, a people, a numeral, construct state, an etnaḥta or other mafsiq on
+it, a qere).
 
 The Name's gloss was changed from "Jehovah" to "the Name", and the other
 names' English glosses, peoples' included, to the names in AnkiPasuk's
