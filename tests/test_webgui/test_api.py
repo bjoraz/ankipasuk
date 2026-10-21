@@ -863,3 +863,15 @@ def test_export_diagrams_saves_the_drawn_page_as_html(tmp_path, monkeypatch):
     assert '<div class="dg-pasuq">x</div>' in html and "<h1>Bereshit 1:1–8</h1>" in html
     assert "data:font/ttf;base64,Rk9OVA==" in html
     assert api.export_diagrams("", "docx", "t", "s")["ok"] is False
+
+
+def test_get_shorashim_gives_each_loaded_word_its_root(genesis_1_1):
+    from ankipasuk.shorashim import display
+
+    api = Api()
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""}]
+    result = api.get_shorashim()
+    assert result["ok"] is True
+    (words,) = result["verses"]
+    assert [display(result["groups"][g]) for _t, _s, g in words][:2] == ["ר־א־שׁ", "ב־ר־א"]
+    assert all(info["count"] >= 1 and info["verses"] == ["Genesis 1:1"] for info in result["groups"].values())

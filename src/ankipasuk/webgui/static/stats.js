@@ -53,6 +53,24 @@ async function showVersePopup(title, labels) {
     document.getElementById("modal-close").addEventListener("click", closeModal);
 }
 
+// The pesuqim with one root's words in them, as text, those words coloured.
+async function showRootPopup(row) {
+    const verses = await api().get_shorashim_verses(Number(row.g));
+    let html = `<div class="modal-overlay" id="modal-overlay"><div class="modal">`;
+    html += `<h3 dir="auto">${escapeHtml(row.display)} <span class="muted">${escapeHtml(row.gloss)}</span></h3>`;
+    html += `<div class="muted">${row.count} time(s), in ${verses.length} pasuq/pesuqim</div>`;
+    for (const v of verses) {
+        html += `<div class="verse-ref">${escapeHtml(v.ref)}</div><div class="verse-text pasuq-text">${rootWordsHtml(v.words, false)}</div>`;
+    }
+    html += `<button id="modal-close">Close</button></div></div>`;
+    document.getElementById("verse-modal").innerHTML = html;
+    for (const el of document.querySelectorAll(`#verse-modal [data-g="${row.g}"]`)) el.classList.add("hl-0");
+    document.getElementById("modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "modal-overlay") closeModal();
+    });
+    document.getElementById("modal-close").addEventListener("click", closeModal);
+}
+
 function closeModal() {
     document.getElementById("verse-modal").innerHTML = "";
 }
@@ -204,6 +222,39 @@ async function loadStructure() {
 }
 
 // =============================================================
+//  Shorashim: every root in the loaded pesuqim, by frequency
+// =============================================================
+async function loadShorashim() {
+    const rows = await api().get_shorashim();
+    const container = document.getElementById("shorashim-content");
+    const render = () => {
+        const particles = document.getElementById("sh-particles").checked;
+        const names = document.getElementById("sh-names").checked;
+        const shown = rows.filter((r) => (particles || r.kind !== "particle") && (names || r.kind !== "name"));
+        const max = Math.max(...shown.map((r) => r.count), 1);
+        container.innerHTML = shown.map((r, i) => {
+            const words = r.words.map(([w, gloss]) => `${w} ${gloss}`).join(" · ");
+            return `<div class="bar-row sh-row" data-i="${rows.indexOf(r)}" title="${escapeHtml(words)}">
+                <div class="bar-label"><span class="root-label">${escapeHtml(r.display)}</span></div>
+                <div class="sh-gloss">${escapeHtml(r.gloss)}${r.kind === "name" ? " (name)" : ""}</div>
+                <div class="bar-track"><div class="bar-fill" style="width:${(r.count / max) * 100}%"></div></div>
+                <div class="bar-count">${r.count} in ${r.pesuqim}</div></div>`;
+        }).join("") || "<div class='muted'>None.</div>";
+        if (shown.length) {
+            container.innerHTML = `<div class="muted" style="text-align:right">${shown.length} shown · times in pesuqim</div>`
+                + container.innerHTML;
+        }
+    };
+    render();
+    container.addEventListener("click", (e) => {
+        const el = e.target.closest(".sh-row");
+        if (el) showRootPopup(rows[Number(el.dataset.i)]);
+    });
+    document.getElementById("sh-particles").addEventListener("change", render);
+    document.getElementById("sh-names").addEventListener("change", render);
+}
+
+// =============================================================
 //  Wiring
 // =============================================================
 window.addEventListener("pywebviewready", async () => {
@@ -221,6 +272,7 @@ window.addEventListener("pywebviewready", async () => {
     await loadDistributions();
     await loadTropeFrequency();
     await loadStructure();
+    await loadShorashim();
 
     document.getElementById("btn-export-stats-csv").addEventListener("click", async () => {
         const result = await api().export_csv();

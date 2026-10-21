@@ -93,3 +93,15 @@ def test_ratio_bars_fill_every_tenth_between_the_extremes():
     bars = _ratio_bars(Counter({1.2: 2, 1.5: 1}), {1.2: ["a", "b"], 1.5: ["c"]})
     assert [(b["key"], b["count"]) for b in bars] == [("1.2", 2), ("1.3", 0), ("1.4", 0), ("1.5", 1)]
     assert bars[1]["verses"] == []
+
+
+def test_shorashim_most_frequent_first_and_their_pesuqim(genesis_1_1, genesis_1_2):
+    sapi = StatsApi(_verse_data([(1, 1, genesis_1_1), (1, 2, genesis_1_2)]), max_leaf_disj=2)
+    rows = sapi.get_shorashim()
+    counts = [r["count"] for r in rows]
+    assert counts == sorted(counts, reverse=True)
+    earth = next(r for r in rows if r["display"] == "א־ר־צ")  # הָאָרֶץ, in both pesuqim
+    assert (earth["count"], earth["pesuqim"]) == (2, 2)
+    verses = sapi.get_shorashim_verses(earth["g"])
+    assert [v["ref"] for v in verses] == ["Bereshit 1:1", "Bereshit 1:2"]
+    assert any(w[2] == earth["g"] for w in verses[0]["words"])

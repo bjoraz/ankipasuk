@@ -4,6 +4,7 @@ let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
 let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only holds what's in view)
 let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
+let currentShorashim = null; // ankipasuk.shorashim.passage for the loaded pesuqim, once it's in
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -317,16 +318,56 @@ async function addRangeRow() {
 // =============================================================
 //  Fetching verses (every range row, concatenated in order)
 // =============================================================
+// The Text view: one line per pasuq, each word clickable to colour its
+// root once the roots are in (filled in as it scrolls, like the others).
+function renderTextBox() {
+    const plain = document.querySelector("#text-kind .active").dataset.kind === "plain";
+    const textBox = document.getElementById("text-box");
+    const words = currentShorashim && currentShorashim.verses.length === currentVerseData.length
+        ? currentShorashim.verses : null;
+    lazyFill(textBox, currentVerseData.map((_item, i) => i), (i) => {
+        const line = words ? rootWordsHtml(words[i], plain)
+            : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed);
+        return `<div class="tv-line">${line}</div>`;
+    }, (lines) => { for (const line of lines) rootColours.paintAll(line); }, textBox, false);
+    renderRootsList();
+}
+
+// The passage's roots, the most frequent first; particles only if asked.
+function renderRootsList() {
+    const list = document.getElementById("roots-list");
+    const groups = currentShorashim ? Object.entries(currentShorashim.groups) : [];
+    const withParticles = document.getElementById("roots-particles").checked;
+    const shown = groups.filter(([_g, info]) => withParticles || info.kind !== "particle")
+        .sort((a, b) => b[1].count - a[1].count || a[1].label.localeCompare(b[1].label));
+    list.innerHTML = shown.map(([g, info]) => {
+        const words = info.words.map(([w, gloss]) => `${w} ${gloss}`).join(" · ");
+        const kind = info.kind === "name" ? ' <span class="root-kind">name</span>' : "";
+        return `<li data-root="${g}" title="${diagramEscape(words)}">`
+            + `<span class="root-label" data-g="${g}">${diagramEscape(info.display)}</span>`
+            + `<span class="root-gloss">${diagramEscape(info.gloss)}${kind}</span>`
+            + `<span class="root-count">${info.count}</span></li>`;
+    }).join("");
+    rootColours.paintAll(list);
+    document.getElementById("roots-count").textContent = shown.length ? `(${shown.length})` : "";
+}
+
+// Colouring a root colours its words in the text and its entry in the list.
+const rootColours = new RootColours((g) => {
+    rootColours.paint(document.getElementById("text-box"), g);
+    rootColours.paint(document.getElementById("roots-list"), g);
+});
+
+async function loadShorashim() {
+    const result = await api().get_shorashim();
+    currentShorashim = result.ok ? result : null;
+    if (!result.ok) console.warn("No shorashim:", result.error);
+    renderTextBox();
+}
+
 // The Text and Tikkun views, pointed or letters only as chosen.
 function renderVerseBoxes() {
-    const pointed = document.querySelector("#text-kind .active").dataset.kind === "pointed";
-    const textBox = document.getElementById("text-box");
-    textBox.innerHTML = "";
-    for (const item of currentVerseData) {
-        const line = document.createElement("div");
-        line.textContent = pointed ? item.pointed : item.plain;
-        textBox.appendChild(line);
-    }
+    renderTextBox();
     const tikkunPointed = document.querySelector("#tikkun-kind .active").dataset.kind === "pointed";
     document.getElementById("tikkun-box").innerHTML = (tikkunPointed ? currentTikkunHtml.pointed : currentTikkunHtml.plain)
         || '<p class="muted" dir="ltr">The scroll layout is for the Tora only.</p>';
@@ -344,6 +385,7 @@ async function doFetchAll() {
     // The backend appends, so start from nothing each time.
     await api().clear_ranges();
     currentVerseData = [];
+    currentShorashim = null;
     currentTikkunHtml = { plain: "", pointed: "" };
     for (const row of document.querySelectorAll(".range-row")) {
         const book = row.querySelector(".range-book").value;
@@ -424,6 +466,7 @@ async function runRefresh() {
             }
             renderVerseBoxes();
             await doGenerate();
+            if (fetch) await loadShorashim();
         } while (pendingRun || pendingFetch);
     } finally {
         refreshing = false;
@@ -1025,7 +1068,17 @@ window.addEventListener("pywebviewready", async () => {
     segmented(document.getElementById("preview-tabs"), (btn) => {
         for (const view of document.querySelectorAll(".preview-body .view")) view.hidden = view.dataset.view !== btn.dataset.view;
     });
-    segmented(document.getElementById("text-kind"), renderVerseBoxes);
+    segmented(document.getElementById("text-kind"), renderTextBox);
+    document.getElementById("text-box").addEventListener("click", (e) => {
+        const word = e.target.closest(".w");
+        if (word) rootColours.toggle(word.dataset.g);
+    });
+    document.getElementById("roots-list").addEventListener("click", (e) => {
+        const item = e.target.closest("li[data-root]");
+        if (item) rootColours.toggle(item.dataset.root);
+    });
+    document.getElementById("btn-clear-roots").addEventListener("click", () => rootColours.clear());
+    document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("tikkun-kind"), renderVerseBoxes);
 
     document.getElementById("btn-add-range").addEventListener("click", addRangeRow);

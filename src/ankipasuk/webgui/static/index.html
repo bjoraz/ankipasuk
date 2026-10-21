@@ -81,9 +81,22 @@
           <span class="seg" id="text-kind">
             <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain">Letters only</button>
           </span>
-          <button id="btn-copy-text" type="button" class="link">Copy</button>
+          <span class="muted">Click a word to colour its shoresh</span>
+          <span class="inline-group">
+            <button id="btn-clear-roots" type="button" class="link">Clear colours</button>
+            <button id="btn-copy-text" type="button" class="link">Copy</button>
+          </span>
         </div>
-        <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
+        <div class="text-split">
+          <aside class="roots-panel">
+            <div class="roots-head">
+              <span>Shorashim <span id="roots-count" class="muted"></span></span>
+              <label class="muted" title="אֵת, אֲשֶׁר, כִּי, עַל and the like"><input type="checkbox" id="roots-particles"> particles</label>
+            </div>
+            <ol id="roots-list"></ol>
+          </aside>
+          <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
+        </div>
       </div>
 
       <div class="view" data-view="tikkun" hidden>
@@ -229,6 +242,7 @@
 <div id="toast" class="toast" hidden></div>
 
 <script src="diagram.js"></script>
+<script src="shorashim.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

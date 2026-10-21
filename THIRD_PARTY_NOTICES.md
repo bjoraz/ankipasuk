@@ -52,3 +52,23 @@ only for two things Sefaria's `Parasha` structure doesn't provide:
 The holiday table was trimmed down from Hebcal's full calendar data to one
 standard reading per occasion, independent of the year (see
 `docs/anki-tagging.md` for the list and what was left out).
+
+## Shorashim
+
+`src/ankipasuk/data/shorashim/` was made by `scripts/build_shorashim.py`
+from two Open Scriptures projects:
+
+- the [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb)
+  (`wlc/*.xml`): each word's lemma. The text is the Westminster Leningrad
+  Codex, which is in the public domain; OSHB's lemmas and morphology are
+  licensed under the
+  [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/)
+  (CC BY 4.0), Open Scriptures Hebrew Bible, https://hb.openscriptures.org;
+- [HebrewLexicon](https://github.com/openscriptures/HebrewLexicon)
+  (`LexicalIndex.xml`): each lemma's part of speech, gloss, and place in
+  Brown–Driver–Briggs (a public-domain work, 1906), from the same project.
+
+What's bundled is derived from them: each word's letters and the group
+(root, or the word itself) it belongs to, and each group's label, gloss
+and words. The Name's gloss was changed from "Jehovah" to "the Name".
+

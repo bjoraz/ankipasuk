@@ -12,6 +12,7 @@ import webview
 
 from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, TROPE_HEBREW_NAMES, TROPE_UNICODE
 from ..diagram import pasuq_diagram
+from ..shorashim import passage as shorashim_passage
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
 from ..structure import (
     format_structure,
@@ -57,6 +58,7 @@ class StatsApi:
         self.font_css = font_css  # the STAM font's @font-face, from the main window's Api
         self.stats = compute_corpus_stats(verse_data, max_leaf_disj)
         self._diagrams: dict[str, dict] = {}
+        self._roots: dict | None = None  # ankipasuk.shorashim.passage, made when first asked for
 
     def get_font_css(self) -> str:
         return self.font_css
@@ -145,6 +147,32 @@ class StatsApi:
                 ],
             }
             for dc, structs in sorted(grouped.items())
+        ]
+
+    def _shorashim(self) -> dict:
+        if self._roots is None:
+            self._roots = shorashim_passage(self.verse_data)
+        return self._roots
+
+    def get_shorashim(self) -> list:
+        """Every root (or root-less word) in the loaded pesuqim, the most
+        frequent first: ``[{"g", "display", "kind", "gloss", "words",
+        "count", "pesuqim"}]``."""
+        groups = self._shorashim()["groups"]
+        return [
+            {"g": g, "display": info["display"], "kind": info["kind"], "gloss": info["gloss"],
+             "words": info["words"][:5], "count": info["count"], "pesuqim": len(info["verses"])}
+            for g, info in sorted(groups.items(), key=lambda kv: (-kv[1]["count"], kv[1]["label"]))
+        ]
+
+    def get_shorashim_verses(self, g: int) -> list:
+        """The pesuqim with group ``g``'s words in them, each as ``{"ref",
+        "words"}`` (``[text, separator, group]``), for its pop-up."""
+        data = self._shorashim()
+        return [
+            {"ref": _our_spelling(f"{item['book']} {item['ch']}:{item['vs']}"), "words": words}
+            for item, words in zip(self.verse_data, data["verses"])
+            if any(w[2] == g for w in words)
         ]
 
     def get_structure_summary(self) -> list:

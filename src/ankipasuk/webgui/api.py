@@ -79,6 +79,7 @@ from ..sefaria import (
     parse_start_ref,
 )
 from ..settings import Settings
+from ..shorashim import passage as shorashim_passage
 from ..text_processing import strip_vowels_and_trope
 from ..tikkun import (
     FONT_ANKI_FILENAME,
@@ -417,6 +418,18 @@ class Api:
     def clear_cache(self) -> dict:
         self._cache.clear()
         return {"ok": True, "cache_status": self._cache_status_text()}
+
+    # =============================================================
+    #  Shorashim
+    # =============================================================
+    def get_shorashim(self) -> dict:
+        """The loaded pesuqim's words with their roots, and the roots that
+        occur, for the Text view (see ankipasuk.shorashim.passage)."""
+        try:
+            return {"ok": True, **shorashim_passage(self._current_verse_data)}
+        except Exception as e:  # noqa: BLE001 -- the text still shows without them
+            traceback.print_exc()
+            return {"ok": False, "error": str(e)}
 
     # =============================================================
     #  Cloze generation

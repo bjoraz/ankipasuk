@@ -33,6 +33,7 @@ optional tools that work on your Anki collection directly.
 - [Using the app](#using-the-app)
 - [How the cloze cards are made](#how-the-cloze-cards-are-made)
 - [The diagram](#the-diagram)
+- [Shorashim](#shorashim)
 - [Statistics](#statistics)
 - [Tiqqun cards](#tiqqun-cards)
 - [Haftarot](#haftarot)
@@ -148,6 +149,8 @@ The preview has four views:
 
 - **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)).
 - **Text**: the pesuqim pointed or as bare letters, with a Copy button.
+  Click a word to colour every word of its shoresh, with the passage's
+  shorashim listed beside the text (see [Shorashim](#shorashim)).
 - **Tikkun**: the pesuqim as they're laid out in the sefer, pointed or not,
   with controls for text size, line spacing and width.
 - **Cloze markup**: exactly what goes into Anki, to copy.
@@ -326,6 +329,50 @@ divisions the cards don't make at the current *N*, so you can see where a
 card's clauses stop. Pasuq text everywhere in the app is in the same STAM
 font as the tiqqun.
 
+## Shorashim
+
+Every word of the Tora, the Nevi'im and the Megillot has its shoresh:
+
+- A word goes under its root, with all the words BDB files under it:
+  רֵאשִׁית and רֹאשׁ under ר־א־שׁ, מָקוֹם under ק־ו־מ, תּוֹלְדוֹת and
+  יֶלֶד under י־ל־ד.
+- A particle (אֵת, אֲשֶׁר, כִּי, עַל, the pronouns, ...), a name, or a
+  word with no root in BDB is itself, in all its forms. That includes
+  words with a prefix or suffix, like וְאֵת or לָכֶם.
+
+In the **Text** view, click a word: every word with its shoresh in the
+passage gets a colour. Click another, and its shoresh gets the next
+colour; click a coloured word again to take its colour off, or **Clear
+colours** for all. The colours go in the order you click, from 20 chosen
+to be told apart easily (Sasha Trubetskoy's), each taking the first colour
+no coloured shoresh has, and round again once all twenty are in use.
+
+Beside the text is the passage's list of shorashim, the most frequent
+first, each with a short gloss and how often it occurs. Clicking one
+colours it just like clicking a word, and a coloured shoresh is coloured
+in the list too. Particles are left out of the list unless you tick
+**particles** (they're still coloured when you click them in the text).
+The statistics window has the full table.
+
+The roots come from the [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb),
+which gives every word of the Leningrad Codex its lemma, and its
+[lexicon](https://github.com/openscriptures/HebrewLexicon), which places
+each lemma in Brown–Driver–Briggs (BDB) under its root. The glosses are
+BDB's too: a shoresh is glossed by its commonest word (כ־ל־ל: "the
+whole", for כֹּל), in BDB's own first words, which can be odd (ה־י־ה:
+"fall out", from BDB's "fall out, come to pass, become, be"). Hovering a
+shoresh in the list shows its words and their glosses. The data is
+bundled with the app, so nothing is looked up as you go.
+
+The app shows Sefaria's text, so each pasuq's words are lined up with
+OSHB's: word by word where both have the same words (nearly every pasuq;
+a spelling difference between the two codices, like הטהרה and הטהורה,
+doesn't matter), ketiv and qere included, and by their letters
+otherwise. Where the two divide a chapter into pesuqim
+differently, as in the Ten Commandments, the whole chapter is lined up
+at once. Of the 232,222 words the app can load, 100 (0.04%) end up with
+no shoresh and simply aren't clickable.
+
 ## Statistics
 
 **Statistics** opens a window on whatever is loaded, at your current *N*.
@@ -339,6 +386,10 @@ diagram. There's also a per-pasuq CSV export.
 - **Mafsiqim**: how often each mafsiq occurs, by rank, in the diagrams'
   Hebrew names and colours.
 - **Structure**: the pesuqim grouped by their shape (below).
+- **Shorashim**: every shoresh in the loaded pesuqim (see above), the most
+  frequent first, with its gloss and how many times it occurs, in how many
+  pesuqim. Particles and names can be shown or hidden. Click a row to see
+  its pesuqim, with its words highlighted.
 
 ### Pesuqim with the same shape
 
@@ -537,17 +588,19 @@ src/ankipasuk/
 ├── tiqqun_export.py     which pasuq a tiqqun card is (no duplicates), tiqqun CSV
 ├── ammud_pages.py       'ammudim as HTML/PDF pages
 ├── diagram_pages.py     the diagram view as HTML/PDF pages
+├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
+├── shorashim_build.py   making that data from OSHB (scripts/build_shorashim.py)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
 ├── cache.py             on-disk cache used by both
 ├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
-├── data/                bundled maftir lengths, holiday readings and haftarot
+├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim
 ├── webgui/              the app: pywebview bridges (api.py, stats_api.py, …)
 │   └── static/          its pages, styles and scripts (diagram.js draws the diagrams)
 └── gui/                 the old tkinter app, no longer maintained
-scripts/                 double-clickable wrappers for the Anki tools
+scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
 docs/                    scheduling, tagging, the transliteration rules, screenshots
 ```
 
@@ -578,6 +631,11 @@ pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 - The diagrams follow Joshua R. Jacobson's in *Chanting the Hebrew Bible:
   The Art of Cantillation* (Jewish Publication Society), which is also the
   source for the paseq rule above.
+- The shorashim, glosses and parts of speech come from the
+  [Open Scriptures Hebrew Bible](https://github.com/openscriptures/morphhb)
+  (CC BY 4.0, on the public-domain Westminster Leningrad Codex) and its
+  [HebrewLexicon](https://github.com/openscriptures/HebrewLexicon), after
+  Brown–Driver–Briggs; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 - The 'ammud layout and the Shlomo semiStam font from
   [tikkun.io](https://github.com/akivajgordon/tikkun.io) (MIT; the font is
   by Shlomo Orbach under the SIL Open Font License).
