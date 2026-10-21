@@ -23,9 +23,18 @@ coloured, so you can see the whole division at a glance.
 
 ![The main window: Bereshit 1:1–8, each pasuq drawn as its diagram](docs/images/app-cloze.png)
 
+To study the text itself, the **Text** view colours every word of a
+shoresh you click and ranks the passage's key words, and lists its
+recurring phrases: refrains, echoes of other places in the Tanakh, and
+idioms, each a click away from its other places (see
+[Shorashim](#shorashim) and [Phrases](#phrases)).
+
+![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
+
 There's also a statistics window for whatever you've loaded, including a
 way to find pesuqim that share the same ta'amim structure, and a few
-optional tools that work on your Anki collection directly.
+optional tools that work on your Anki collection directly. What changed
+in each version is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Contents
 
@@ -613,8 +622,9 @@ tikkun.io's pages and font are all kept on disk:
 - Anywhere else, if you set `ANKIPASUK_CACHE_DIR`
 
 **Clear cache**, at the bottom of the main window, empties it. Your own
-settings (the last deck and note type you sent cloze notes to, in
-`settings.json`, and the layout controls, in `webview_storage/`) live in
+settings (the last deck and note type you sent cloze notes to and the
+phrase settings, in `settings.json`, and the layout controls, in
+`webview_storage/`) live in
 the same folder and aren't touched by it.
 
 ## For developers

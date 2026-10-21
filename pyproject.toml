@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ankipasuk"
-version = "0.1.0"
-description = "Anki cards for reading from the Sefer Tora: nested clozes split along the ta'amim, and scroll-accurate tiqqun cards."
+dynamic = ["version"]
+description = "Anki cards for reading from the Sefer Tora: nested clozes split along the ta'amim, and scroll-accurate tiqqun cards; the text's shorashim and recurring phrases."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -58,6 +58,9 @@ ankipasuk-migrate-tags = "ankipasuk.anki_connect.cli:_console_migrate_tags"
 
 [project.urls]
 Homepage = "https://github.com/bjoraz/ankipasuk"
+
+[tool.setuptools.dynamic]
+version = { attr = "ankipasuk.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]

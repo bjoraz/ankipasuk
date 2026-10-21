@@ -515,7 +515,7 @@ const phraseCalls = {
 const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
     paintPhraseList();
-});
+}, () => rootColours.colours.values());  // a phrase's line in a colour no coloured shoresh has
 
 // =============================================================
 //  Settings: the phrase tests' thresholds (api.get_settings), in a

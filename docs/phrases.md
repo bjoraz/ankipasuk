@@ -241,7 +241,8 @@ test):
     here and where else: an echo's places, each a link, or "35
     elsewhere", a link too (the other pesuqim it's in).
   - Clicking a row underlines the phrase in the text, in the palette's
-    colours (the shorashim's, in click order), and shows an occurrence:
+    colours (the shorashim's, in click order, skipping those the coloured
+    shorashim have), and shows an occurrence:
     the first one in view, or else the first, brought into view and
     flashed. The row is marked in the same colour. **Clear colours**
     clears roots and phrases. Each underline is one line from a phrase's
