@@ -4,12 +4,14 @@
 
 ### Changed
 
-- Phrases follow the ta'amim's division strictly: a phrase that crosses a
-  break (sof pasuq, etnaḥta, or a segol, zaqef or tifḥa) starts and ends
-  on breaks at least as strong, so it is made of whole units. Before, it
-  only had to contain one whole unit, and could begin or end in the
-  middle of the next: ויהי ערב ויהי בקר יום is now ויהי ערב ויהי בקר, and
-  ויהי דבר יהוה אלי לאמר no longer runs on into בן אדם.
+- Phrases follow the ta'amim's division: a phrase that crosses a sof
+  pasuq, an etnaḥta or a king (segolta, shalshelet, zaqef, tifḥa) starts
+  and ends on breaks at most one step weaker (an etnaḥta, a king, a
+  duke). Before, it only had to contain one whole unit, and could begin
+  or end anywhere in the next: ויהי ערב ויהי בקר יום is now ויהי ערב ויהי
+  בקר, and ויהי דבר יהוה אלי לאמר no longer runs on into בן אדם, while
+  מארץ מצרים מבית עבדים stays whole. The phrase data now records the
+  dukes.
 - A picked phrase's underline takes the palette's colours in click order
   again, as the shorashim do, without skipping theirs (0.2.0's change).
 
@@ -17,6 +19,8 @@
 
 - Trimming a phrase's end could leave it crossing a break it no longer
   stood on.
+- A two-word name (בית לחם) took the break after it from its first word,
+  not its last.
 
 ## 0.2.0 — 2026-10-21
 

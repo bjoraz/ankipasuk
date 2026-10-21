@@ -70,23 +70,29 @@ For each word of the passage:
    without losing an occurrence. Each phrase is therefore as long as its
    occurrences allow, with no length limit, before step 3 divides it.
 3. **Divided as the ta'amim divide** the passage's occurrence. The breaks
-   are, from the strongest: sof pasuq; etnaḥta; segol, shalshelet, zaqef
-   qatan, zaqef gadol and tifḥa. A phrase may cross a break only if it
-   starts and ends on breaks at least as strong as the strongest one it
-   crosses, so it is made of whole units of that level: whole pesuqim
-   across a sof pasuq, whole halves across an etnaḥta, whole units across
-   a zaqef or tifḥa. Particles between a phrase's end and the break don't
-   count (אל ארץ זבת חלב ודבש starts on the zaqef before אל).
+   are, from the strongest: sof pasuq; etnaḥta; the kings (segolta,
+   shalshelet, zaqef qatan and gadol, tifḥa); the dukes (revia', zarqa,
+   pashta, yetiv, tevir), as in the diagrams' rank table. A phrase may
+   cross a sof pasuq, an etnaḥta or a king only if it starts and ends on
+   breaks at most one step weaker than the strongest it crosses: an
+   etnaḥta for a sof pasuq, a king for an etnaḥta, a duke for a king.
+   Particles between a phrase's end and a break don't count (אל ארץ זבת
+   חלב ודבש starts on the zaqef before אל), and a particle's own accent
+   doesn't hide a stronger break beyond it.
 
    Otherwise the part-unit at either end is cut off at the strongest
    break, and each piece is divided the same way. So ויהי ערב ויהי בקר
-   יום, which runs past the tifḥa into יום אחד, is ויהי ערב ויהי בקר; and
-   Yeḥezqel's ויהי דבר יהוה אלי לאמר no longer runs on into the next
-   pasuq's בן אדם. The princes' offering in Bamidbar 7 comes out as its
-   four whole pesuqim (41 words), 12 times: the fifth ends with each
-   prince's name. The Decalogue in Devarim 5 comes out in a long piece of
-   whole pesuqim (72 words) and shorter ones at the commandments, where
-   its wording differs from Shemot 20.
+   יום, which runs past the tifḥa into יום אחד (יום has no disjunctive),
+   is ויהי ערב ויהי בקר; and Yeḥezqel's ויהי דבר יהוה אלי לאמר doesn't
+   run on into the next pasuq's בן אדם, which ends on a zaqef, not an
+   etnaḥta. But מארץ מצרים מבית עבדים (Devarim 5:6) crosses its tifḥa
+   whole, since it starts on the tevir of הוצאתיך; and ואהבת את יהוה
+   אלהיך בכל לבבך ובכל נפשך crosses the etnaḥta, ending on the tifḥa of
+   נפשך. The princes' offering in Bamidbar 7 comes out as its four whole
+   pesuqim (41 words), 12 times: the fifth ends with each prince's name.
+   The Decalogue in Devarim 5 comes out in a long piece of whole pesuqim
+   (72 words) and shorter ones at the commandments, where its wording
+   differs from Shemot 20.
 4. **Trim.** Particles come off both ends, except לֹא and אַל. At the end,
    כֹּל and a verb of saying (אמר, דבר, ענה) come off too, because what
    was said follows: וישא משלו ויאמר becomes וישא משלו. A trimmed piece
@@ -97,9 +103,11 @@ A piece made by steps 3 and 4 keeps the occurrences of the phrase it came
 from. If it also occurs elsewhere on its own, step 2 finds it separately,
 with all its occurrences.
 
-The rule follows the ta'amim's own division, so a fixed expression they
-divide is divided too: מארץ מצרים מבית עבדים in Devarim 5:6, where a
-tifḥa ends אשר הוצאתיך מארץ מצרים, comes out as its two halves.
+One step weaker lets an expression the ta'amim divide stay whole where its
+ends still stand on their division, as מארץ מצרים מבית עבדים does. One
+that starts after a conjunctive is still cut: חן בעיניו in מצאתי חן |
+בעיניו. A duke is a light break, so a few phrases ending on one read as
+fragments (לרקיע | שמים).
 
 ## The tests
 
@@ -281,8 +289,9 @@ test):
 - `data/phrases/<book>.json.gz`, for all 39 books: each pasuq's words, as
   OSHB has them (the same words in the same order as the shorashim's),
   each `[word, flags]`. The flags are the qere, a name, a people, a
-  numeral, construct state (without a suffix), an etnaḥta, and a segol,
-  shalshelet, zaqef or tifḥa (`shorashim_build.book_lemmas`).
+  numeral, construct state (without a suffix), an etnaḥta, a king
+  (segolta, shalshelet, zaqef or tifḥa) and a duke (revia', zarqa,
+  pashta, yetiv or tevir) (`shorashim_build.book_lemmas`).
 - the shorashim's data (letters and groups) for the eight books the app
   has no readings from, so a phrase can be marked in them.
 

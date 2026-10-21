@@ -5,7 +5,7 @@ import pytest
 
 from ankipasuk import phrases as ph
 from ankipasuk import shorashim as sh
-from ankipasuk.shorashim_build import CONSTRUCT, ETNAHTA, KING, PROPER, QERE
+from ankipasuk.shorashim_build import CONSTRUCT, DUKE, ETNAHTA, KING, PROPER, QERE
 
 # A made-up dictionary: words a..h, fillers x1..x9, and a few real ones by
 # their Strong's numbers (אֵת, לֹא, אָמַר, a preposition, a name, God's names).
@@ -46,7 +46,7 @@ def test_the_object_marker_is_left_out_and_a_qere_read_for_its_ketiv():
     assert keys(c, 1) == {("a", "b"): 3}
 
 
-def test_a_phrase_crosses_a_break_only_from_and_to_breaks_as_strong():
+def test_a_phrase_crosses_a_break_only_from_and_to_breaks_at_most_a_step_weaker():
     # The end of one pasuq and the start of the next: cut at the sof pasuq.
     c = made_up(w("x1", "a", "b"), w("c", "d", "x2"), w("x3", "a", "b"), w("c", "d", "x4"))
     assert keys(c, 1, 2) == {("a", "b"): 2, ("c", "d"): 2}
@@ -70,6 +70,28 @@ def test_a_phrase_crosses_a_break_only_from_and_to_breaks_as_strong():
     king = {"b": KING}
     c = made_up(w("x1", "a", "b", "c", "d", flags=king), w("x2", "a", "b", "c", "d", flags=king))
     assert keys(c, 1) == {("a", "b"): 2, ("c", "d"): 2}
+
+
+def test_one_step_weaker_is_enough():
+    def both(*names, flags):
+        first = {("x1" if n == "x" else n): f for n, f in flags.items()}
+        second = {("x2" if n == "x" else n): f for n, f in flags.items()}
+        return made_up(w("x1", *names, flags=first), w("x2", *names, flags=second))
+    # Across a king from a duke, across an etnaḥta from a king: one phrase.
+    assert keys(both("a", "b", "c", "d", flags={"x": DUKE, "b": KING}), 1) == {("a", "b", "c", "d"): 2}
+    assert keys(both("a", "b", "c", "d", flags={"x": KING, "b": ETNAHTA}), 1) == {("a", "b", "c", "d"): 2}
+    # Two steps weaker: cut.
+    split = {("a", "b"): 2, ("c", "d"): 2}
+    assert keys(both("a", "b", "c", "d", flags={"x": DUKE, "b": ETNAHTA}), 1) == split
+    # Across a sof pasuq from an etnaḥta to an etnaḥta: one phrase; from a king, cut.
+    half = {"x1": ETNAHTA, "x2": ETNAHTA, "d": ETNAHTA}
+    c = made_up(w("x1", "a", "b", flags=half), w("c", "d", "x3", flags=half),
+                w("x2", "a", "b", flags=half), w("c", "d", "x4", flags=half))
+    assert keys(c, 1, 2) == {("a", "b", "c", "d"): 2}
+    unit = {"x1": KING, "x2": KING, "d": ETNAHTA}
+    c = made_up(w("x1", "a", "b", flags=unit), w("c", "d", "x3", flags=unit),
+                w("x2", "a", "b", flags=unit), w("c", "d", "x4", flags=unit))
+    assert keys(c, 1, 2) == {("a", "b"): 2, ("c", "d"): 2}
 
 
 def test_particles_and_a_final_verb_of_saying_come_off_the_ends():
@@ -212,6 +234,12 @@ def test_no_phrase_crosses_a_break_from_or_to_a_weaker_one(tanakh):
     # Yeḥezqel's ויהי דבר יהוה אלי לאמר runs on into the next pasuq no more.
     texts = {letters(tanakh, r) for r in rows(tanakh, "Ezekiel", (6, 1), (7, 27))}
     assert not any("לאמר בן אדם" in t for t in texts) and "בן אדם" in texts
+    # Nor ויהי ערב ויהי בקר into יום אחד (יום has no disjunctive); but מארץ
+    # מצרים starts on the tevir of הוצאתיך, a step below the tifḥa it crosses.
+    texts = {letters(tanakh, r) for r in rows(tanakh, "Genesis", (1, 1), (2, 3))}
+    assert "ויהי ערב ויהי בקר" in texts and "ויהי ערב ויהי בקר יום" not in texts
+    devarim = rows(tanakh, "Deuteronomy", (5, 1), (6, 25))
+    assert "idiom" in find(tanakh, devarim, "מארץ מצרים מבית עבדים")["kinds"]
 
 
 def test_passage_marks_the_loaded_words(genesis_1_1, genesis_1_2):

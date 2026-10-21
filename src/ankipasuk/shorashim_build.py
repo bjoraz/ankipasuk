@@ -51,6 +51,7 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from dataclasses import dataclass, field
 
+from .config import TROPE_UNICODE
 from .transliterate import transliterate
 
 # Lexicon parts of speech: particles and names are their own group.
@@ -165,8 +166,13 @@ REFERENCE_BOOKS = {
 GOD_NAMES = {"3068", "3069", "430", "136", "410", "433", "7706", "5945", "6635"}
 
 # A word's flags in the phrase data (book_lemmas).
-QERE, PROPER, GENTILIC, NUMERAL, CONSTRUCT, ETNAHTA, KING = (1 << i for i in range(7))
-_KINGS = set("\u0592\u0593\u0594\u0595\u0596")  # segol, shalshelet, zaqef qatan, zaqef gadol, tifḥa
+QERE, PROPER, GENTILIC, NUMERAL, CONSTRUCT, ETNAHTA, KING, DUKE = (1 << i for i in range(8))
+# The ta'amim by their rank in the app's table (config.TROPE_UNICODE): the
+# kings (segolta, shalshelet, zaqef qatan and gadol, tifḥa) and the dukes
+# (revia', zarqa, pashta, yetiv, tevir). OSHB writes a few zarqas in prose
+# as U+0598, which in the poetic books is tsinnorit (never cut at).
+_KINGS = {ch for ch, (_name, rank) in TROPE_UNICODE.items() if rank == 2}
+_DUKES = {ch for ch, (_name, rank) in TROPE_UNICODE.items() if rank == 3} | {"\u0598"}
 
 
 def _verse_words(xml_text: str, osis: str):
@@ -478,8 +484,9 @@ def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list
 
     flags: QERE; PROPER (a name) and GENTILIC (a people), as the word's
     entry is (:class:`Lemmas`), the same everywhere; NUMERAL and
-    CONSTRUCT (without a suffix), from OSHB's morphology; ETNAHTA and KING
-    (a segol, shalshelet, zaqef or tifḥa on it), from its accents."""
+    CONSTRUCT (without a suffix), from OSHB's morphology; ETNAHTA, KING (a
+    segolta, shalshelet, zaqef or tifḥa on it) and DUKE (a revia', zarqa,
+    pashta, yetiv or tevir), from its accents."""
     verses: dict[str, list[list]] = {}
     for key, v, el, _letters in _verse_words(xml_text, osis):
         words = verses.setdefault(key, [])
@@ -496,7 +503,8 @@ def book_lemmas(xml_text: str, osis: str, lemmas: Lemmas) -> dict[str, list[list
                  | (GENTILIC if kind == "g" else 0)
                  | (NUMERAL if main[:2] in ("Ac", "Ao") else 0)
                  | (CONSTRUCT if main[:1] in ("N", "A") and main.endswith("c") and not suffix else 0)
-                 | (ETNAHTA if "\u0591" in accents else 0) | (KING if accents & _KINGS else 0))
+                 | (ETNAHTA if "\u0591" in accents else 0) | (KING if accents & _KINGS else 0)
+                 | (DUKE if accents & _DUKES else 0))
         words.append([n, flags])
     return verses
 

@@ -35,6 +35,7 @@ from .config import BOOK_HEBREW_NAMES, OTHER_BOOK_HEBREW_NAMES
 from .shorashim import _book, line_up, lined_up, pieces
 from .shorashim_build import (
     CONSTRUCT,
+    DUKE,
     ETNAHTA,
     GENTILIC,
     GOD_NAMES,
@@ -134,9 +135,10 @@ FORMULA_CLASSES = [TITLES, *CLASSES]
 
 # A token's own bits.
 _CONTENT, _NEG, _LIGHT, _AFTER_ET = 1, 2, 4, 8
-# Breaks after a token: an etnaḥta, a sof pasuq, a segol/shalshelet/zaqef/tifḥa.
-_ETNAHTA, _SOF, _KING = 1, 2, 3
-_STRENGTH = {_SOF: 3, _ETNAHTA: 2, _KING: 1}  # how strong a break is
+# The break after a token, by strength: a duke (revia', zarqa, pashta,
+# yetiv, tevir), a king (segolta, shalshelet, zaqef, tifḥa), an etnaḥta, a
+# sof pasuq. A phrase is cut at kings and stronger; a duke can only end one.
+_DUKE, _KING, _ETNAHTA, _SOF = 1, 2, 3, 4
 
 
 class Corpus:
@@ -183,14 +185,16 @@ class Corpus:
             if strong == OBJECT_MARKER:
                 after_et = True
                 continue
-            if toks and kind == "m" and toks[-1][0] == n:
-                toks[-1][5] = k  # בֵּית לֶחֶם, one name
+            if toks and kind == "m" and toks[-1][0] == n:  # בֵּית לֶחֶם, one name
+                breaks = ETNAHTA | KING | DUKE  # the break after it is its last word's
+                toks[-1][5], toks[-1][3] = k, toks[-1][3] & ~breaks | flags & breaks
                 continue
             toks.append([n, strong, kind, flags, first, k, after_et])
             after_et = False
         last_x = len(toks) - 1
         for x, (n, strong, kind, flags, first, last, et) in enumerate(toks):
-            brk = _SOF if x == last_x else _ETNAHTA if flags & ETNAHTA else _KING if flags & KING else 0
+            brk = (_SOF if x == last_x else _ETNAHTA if flags & ETNAHTA else _KING if flags & KING
+                   else _DUKE if flags & DUKE else 0)
             self._add(n, strong, kind, flags, where, first, last, et, brk)
 
     def _add(self, n, strong, kind, flags, where, first, last, after_et, brk) -> None:
@@ -258,34 +262,40 @@ def warm() -> None:
 
 
 # --- finding a passage's phrases --------------------------------------------
+def _particle(c: Corpus, j: int) -> bool:
+    return 0 <= j < len(c.lem) and c.lem[j] >= 0 and not c.bits[j] & _CONTENT
+
+
 def _edge(c: Corpus, j: int, step: int) -> int:
-    """How strong a break the phrase edge at token ``j`` stands on: the
-    break before it (``step`` -1) or after it (+1), past any particles
-    between; 0 when a content word comes first. A book's ends are a sof
-    pasuq."""
-    k = j - 1 if step < 0 else j
-    while 0 <= k < len(c.lem):
-        if c.brk[k]:
-            return _STRENGTH[c.brk[k]]
-        beyond = k if step < 0 else k + 1
-        if beyond >= len(c.lem) or c.lem[beyond] < 0 or c.bits[beyond] & _CONTENT:
-            return 0
-        k += step
-    return _STRENGTH[_SOF]
+    """How strong a break the phrase edge at token ``j`` can stand on: the
+    break before it (``step`` -1) or after it (+1), or one beyond the
+    particles there, whichever is stronger (they can be taken in or left
+    out). A book's ends are a sof pasuq."""
+    if step < 0:
+        best, k = (c.brk[j - 1] if j else _SOF), j - 1
+        while _particle(c, k):
+            best, k = max(best, c.brk[k - 1] if k else _SOF), k - 1
+    else:
+        best, k = c.brk[j], j + 1
+        while _particle(c, k):
+            best, k = max(best, c.brk[k]), k + 1
+    return best
 
 
 def _cut(c: Corpus, i: int, n: int) -> list[tuple[int, int]]:
-    """Tokens ``[i, i + n)`` as the ta'amim divide them: a phrase may cross
-    a break only if it starts and ends on breaks at least as strong as
-    the strongest it crosses. Otherwise a part-unit at either end is cut
-    off at that break, and each piece is divided the same way."""
+    """Tokens ``[i, i + n)`` as the ta'amim divide them: a phrase may cross a
+    sof pasuq, an etnaḥta or a king only if it starts and ends on breaks
+    at most one step weaker than the strongest it crosses (an etnaḥta for
+    a sof pasuq, a king for an etnaḥta, a duke for a king). Otherwise a
+    part-unit at either end is cut off at that break, and each piece is
+    divided the same way."""
     end = i + n - 1
-    inside = [k for k in range(i, end) if c.brk[k]]
+    inside = [k for k in range(i, end) if c.brk[k] >= _KING]
     if not inside:
         return [(i, n)]
-    top = max(_STRENGTH[c.brk[k]] for k in inside)
-    tops = [k for k in inside if _STRENGTH[c.brk[k]] == top]
-    start_ok, end_ok = _edge(c, i, -1) >= top, _edge(c, end, 1) >= top
+    top = max(c.brk[k] for k in inside)
+    tops = [k for k in inside if c.brk[k] == top]
+    start_ok, end_ok = _edge(c, i, -1) >= top - 1, _edge(c, end, 1) >= top - 1
     if start_ok and end_ok:
         return [(i, n)]
     head, tail, lo, hi = [], [], i, end
