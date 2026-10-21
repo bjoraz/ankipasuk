@@ -358,9 +358,12 @@ The roots come from the [Open Scriptures Hebrew Bible](https://github.com/opensc
 which gives every word of the Leningrad Codex its lemma, and its
 [lexicon](https://github.com/openscriptures/HebrewLexicon), which places
 each lemma in Brown–Driver–Briggs (BDB) under its root. The glosses are
-BDB's too: a shoresh is glossed by its commonest word (כ־ל־ל: "the
-whole", for כֹּל), in BDB's own first words, which can be odd (ה־י־ה:
-"fall out", from BDB's "fall out, come to pass, become, be"). Hovering a
+BDB's too: a shoresh is glossed by its commonest word (כ־ל־ל: "all", for
+כֹּל). BDB's first words are sometimes an etymology rather than a meaning
+(הָיָה "fall out", קֹדֶשׁ "apartness", אַחַר "the hinder"), so for the
+commonest words the app gives the plain meaning instead ("be",
+"holiness", "after"); the list is `GLOSS_FIXES` in `shorashim_build.py`.
+Hovering a
 shoresh in the list shows its words and their glosses. The data is
 bundled with the app, so nothing is looked up as you go.
 

@@ -43,8 +43,74 @@ PREFIX_WORDS = {
     "c": ("וְ", "and"), "d": ("הַ", "the"), "i": ("הֲ", "interrogative"), "s": ("שֶׁ", "who"),
 }
 
-# Glosses the lexicon gives that don't belong in this app.
-GLOSS_OVERRIDES = {"3068": "the Name", "3069": "the Name"}  # not "Jehovah"
+# Glosses the lexicon gives that don't belong in this app: the Name's
+# ("Jehovah"), and, for common words, BDB's first words where they're an
+# etymology rather than a meaning (הָיָה "fall out", קֹדֶשׁ "apartness",
+# אַחַר "the hinder"). Each is given with the gloss it replaces, so an
+# entry sharing the number (עָשָׂה "press" beside עָשָׂה "do") keeps its own.
+NAME_GLOSS = {"3068": "the Name", "3069": "the Name"}
+GLOSS_FIXES = {
+    ("310", "the hinder"): "after",
+    ("369", "nothing"): "there is not",
+    ("389", "surely"): "only, surely",
+    ("413", "motion to"): "to",
+    ("430", "gods"): "God, gods",
+    ("520", "ell"): "cubit",
+    ("559", "utter"): "say",
+    ("681", "conjunction"): "beside",
+    ("834", "who"): "who, which, that",
+    ("853", "mark of the accusative"): "(marks the object)",
+    ("935", "come in"): "come",
+    ("996", "interval"): "between",
+    ("1107", "not unto"): "apart from",
+    ("1115", "failure"): "not, except",
+    ("1157", "separation"): "behind, for",
+    ("1288", "kneel"): "bless",
+    ("1289", "kneel"): "bless",
+    ("1697", "speech"): "word, thing",
+    ("1961", "fall out"): "be",
+    ("2233", "sowing"): "seed",
+    ("2320", "newness"): "month",
+    ("2416", "alive"): "living, alive",
+    ("2896", "pleasant"): "good",
+    ("2896", "a good thing"): "good",
+    ("3205", "bear"): "give birth",
+    ("3282", "purpose"): "because",
+    ("3426", "being"): "there is",
+    ("3427", "sit"): "sit, dwell",
+    ("3519", "abundance"): "glory",
+    ("3605", "the whole"): "all",
+    ("3606", "the whole"): "all",
+    ("3627", "article"): "vessel",
+    ("3820", "inner man"): "heart",
+    ("3824", "inner man"): "heart",
+    ("3966", "muchness"): "very",
+    ("4069", "wherefore?"): "why?",
+    ("4397", "messenger"): "messenger, angel",
+    ("4605", "higher part"): "above",
+    ("4672", "attain to"): "find",
+    ("4725", "standing-place"): "place",
+    ("5030", "spokesman"): "prophet",
+    ("5046", "be conspicuous"): "tell",
+    ("5048", "what is conspicuous"): "in front of",
+    ("5612", "missive"): "book",
+    ("5649", "slave"): "servant",
+    ("5650", "slave"): "servant",
+    ("5750", "a going round"): "still, again",
+    ("5769", "long duration"): "forever, world",
+    ("5921", "above"): "on, over",
+    ("5975", "take one’s stand"): "stand",
+    ("5980", "juxtaposition"): "beside",
+    ("6213", "do"): "do, make",
+    ("6680", "lay charge"): "command",
+    ("6944", "apartness"): "holiness",
+    ("7307", "breath"): "spirit, wind",
+    ("7535", "leanness"): "only",
+    ("7725", "turn back"): "return",
+    ("7965", "completeness"): "peace",
+    ("7969", "a three"): "three",
+    ("8478", "the under part"): "under, instead of",
+}
 
 LETTER = re.compile(r"[\u05d0-\u05ea]")
 _LEMMA = re.compile(r"(\d+)\s*([a-z])?")
@@ -100,9 +166,9 @@ def parse_lexicon(xml_text: str) -> dict[str, Entry]:
         xref = e.find(ns + "xref")
         etym = e.find(ns + "etym")
         strong = xref.get("strong") if xref is not None else None
+        gloss = NAME_GLOSS.get(strong) or GLOSS_FIXES.get((strong, text("def")), text("def"))
         entries[e.get("id")] = Entry(
-            id=e.get("id"), word=text("w").replace(_STRESS, ""), pos=text("pos"),
-            gloss=GLOSS_OVERRIDES.get(strong, text("def")), strong=strong,
+            id=e.get("id"), word=text("w").replace(_STRESS, ""), pos=text("pos"), gloss=gloss, strong=strong,
             aug=xref.get("aug") if xref is not None else None,
             etym_type=etym.get("type") if etym is not None else None,
             etym_root=etym.get("root") if etym is not None else None,
@@ -121,7 +187,12 @@ class Grouper:
         for e in entries.values():
             if e.strong:
                 self.by_strong.setdefault((e.strong, e.aug), e.id)
-                self.by_strong.setdefault((e.strong, None), e.id)
+        # A lemma without its letter, where the number has several entries,
+        # is the one without a letter, or else OSHB's first, "a" (עַיִן:
+        # "eye", not "spring").
+        for e in entries.values():
+            if e.strong and (e.strong, None) not in self.by_strong:
+                self.by_strong[(e.strong, None)] = self.by_strong.get((e.strong, "a"), e.id)
         self.groups: list[Group] = []
         self._index: dict[str, int] = {}
 

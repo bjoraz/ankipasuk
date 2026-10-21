@@ -125,3 +125,26 @@ def test_the_bundled_data_knows_bereshit_1_1():
 
 def test_a_book_without_data_just_has_its_words():
     assert sh.verse_words("Psalms", 1, 1, "אַשְׁרֵי הָאִישׁ") == [["אַשְׁרֵי", " ", None], ["הָאִישׁ", "", None]]
+
+
+def test_a_lemma_without_its_letter_is_the_numbers_first_sense():
+    grouper = Grouper(parse_lexicon(LEXICON))
+    # 1254 has "a" (shape) and "b" (be fat); a bare 1254 is "a".
+    g = grouper.group_of("1254")
+    assert grouper.groups[g].lemmas == {("בָּרָא", "shape"): 1}
+
+
+def test_misleading_glosses_are_replaced_only_where_they_are_the_one_named():
+    from ankipasuk.shorashim_build import GLOSS_FIXES
+
+    lexicon = f"""<index {NS}><part>
+    <entry id="a"><w>עָשָׂה</w><pos>V</pos><def>do</def><xref strong="6213" aug="a"/>
+      <etym root="עשׂה" type="main"/></entry>
+    <entry id="b"><w>עָשָׂה</w><pos>V</pos><def>press</def><xref strong="6213" aug="b"/>
+      <etym root="עשׂה" type="main"/></entry>
+    <entry id="c"><w>יהוה</w><pos>Np</pos><def>Jehovah</def><xref strong="3068"/></entry>
+    </part></index>"""
+    entries = parse_lexicon(lexicon)
+    assert GLOSS_FIXES[("6213", "do")] == entries["a"].gloss == "do, make"
+    assert entries["b"].gloss == "press"
+    assert entries["c"].gloss == "the Name"
