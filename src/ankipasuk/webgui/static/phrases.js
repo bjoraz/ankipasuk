@@ -230,16 +230,14 @@ function openPhraseViewer(p, kind, calls, place = 0) {
 }
 
 // Which phrases are underlined, in which colour: as RootColours (click
-// order, the first free colour of the same palette, skipping those
-// ``taken()`` gives -- the coloured shorashim's), but marking words
+// order, the first free colour of the same palette), but marking words
 // -- ``[pasuq, word]`` -- under each line of the text (``.tv-line``,
 // ``data-i`` its pasuq; a word ``[data-k]``, what follows it ``[data-s]``).
 // Each picked phrase keeps one track, the first no phrase sharing a word
 // with it has, so its line stays at one depth from its first word to its
 // last, and runs on between them.
 class PhraseMarks {
-    constructor(onChange, taken = () => []) {
-        this.taken = taken;
+    constructor(onChange) {
         this.colours = new Map(); // phrase id -> palette index
         this.clicks = 0;
         this.phrases = [];
@@ -259,7 +257,7 @@ class PhraseMarks {
         if (this.colours.has(id)) {
             this.colours.delete(id);
         } else {
-            const used = new Set([...this.colours.values(), ...this.taken()]);
+            const used = new Set(this.colours.values());
             let colour = ROOT_PALETTE.findIndex((_c, i) => !used.has(i));
             if (colour < 0) colour = this.clicks % ROOT_PALETTE.length;
             this.colours.set(id, colour);
