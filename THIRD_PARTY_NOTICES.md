@@ -70,8 +70,8 @@ from two Open Scriptures projects:
 
 What's bundled is derived from them: each word's letters and the group
 (root, or the word itself) it belongs to, and each group's label, gloss
-and words. The Name's gloss was changed from "Jehovah" to "the Name", and some
-common words' glosses, where BDB's first words are an etymology rather
-than a meaning, were replaced by the plain meaning (`GLOSS_FIXES` in
-`src/ankipasuk/shorashim_build.py`).
+and words. The Name's gloss was changed from "Jehovah" to "the Name". Some common
+words, whose BDB gloss is more an etymology than a meaning, also have a
+plain meaning added beside it (`MEANINGS` in
+`src/ankipasuk/shorashim_build.py`); their BDB gloss is kept.
 

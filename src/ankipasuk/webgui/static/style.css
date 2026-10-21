@@ -216,6 +216,7 @@ body.sidebar-collapsed .sidebar { display: none; }
 .root-gloss { flex: 1; min-width: 0; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .root-count { color: #888; font-variant-numeric: tabular-nums; }
 .root-kind { font-size: 10px; color: #999; }
+.bdb { font-style: italic; color: #9e9e9e; }
 
 /* The diagrams' save dialog: options on the left, the page on the right. */
 .dialog-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.45);

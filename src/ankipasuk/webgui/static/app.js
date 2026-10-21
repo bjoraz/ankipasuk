@@ -341,12 +341,12 @@ function renderRootsList() {
     const shown = groups.filter(([_g, info]) => withParticles || info.kind !== "particle")
         .sort((a, b) => b[1].count - a[1].count || a[1].label.localeCompare(b[1].label));
     list.innerHTML = shown.map(([g, info]) => {
-        const words = info.words.map(([w, gloss]) => `${w} ${gloss}`).join(" · ");
+        const words = info.words.map(([w, gloss, meaning]) => `${w} ${glossText(gloss, meaning)}`).join(" · ");
         // "proper name", not just "name": a gloss can be "name" (שֵׁם).
         const kind = info.kind === "name" ? ' <span class="root-kind">proper name</span>' : "";
         return `<li data-root="${g}" title="${diagramEscape(words)}">`
             + `<span class="root-label" data-g="${g}">${diagramEscape(info.display)}</span>`
-            + `<span class="root-gloss">${diagramEscape(info.gloss)}${kind}</span>`
+            + `<span class="root-gloss">${glossHtml(info.gloss, info.meaning)}${kind}</span>`
             + `<span class="root-count">${info.count}</span></li>`;
     }).join("");
     rootColours.paintAll(list);

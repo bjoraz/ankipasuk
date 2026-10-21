@@ -23,6 +23,25 @@ const ROOT_PALETTE_DARK = new Set([0, 3, 5, 10, 12, 14, 16, 18]);
     document.head.appendChild(style);
 })();
 
+// A gloss: BDB's, and for some common words a plain meaning beside it
+// (shorashim_build.MEANINGS). The meaning comes first and BDB's follows,
+// muted -- unless the meaning already says it ("do, make" for "do").
+function glossParts(gloss, meaning) {
+    if (!meaning) return { main: gloss || "", bdb: "" };
+    const said = meaning.toLowerCase().split(/,\s*/);
+    return { main: meaning, bdb: gloss && !said.includes(gloss.toLowerCase()) ? gloss : "" };
+}
+
+function glossHtml(gloss, meaning) {
+    const { main, bdb } = glossParts(gloss, meaning);
+    return diagramEscape(main) + (bdb ? ` <span class="bdb" title="BDB's gloss">${diagramEscape(bdb)}</span>` : "");
+}
+
+function glossText(gloss, meaning) {
+    const { main, bdb } = glossParts(gloss, meaning);
+    return bdb ? `${main} (BDB: ${bdb})` : main;
+}
+
 function stripPointing(text) {
     return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
 }

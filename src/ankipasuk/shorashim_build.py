@@ -43,13 +43,15 @@ PREFIX_WORDS = {
     "c": ("וְ", "and"), "d": ("הַ", "the"), "i": ("הֲ", "interrogative"), "s": ("שֶׁ", "who"),
 }
 
-# Glosses the lexicon gives that don't belong in this app: the Name's
-# ("Jehovah"), and, for common words, BDB's first words where they're an
-# etymology rather than a meaning (הָיָה "fall out", קֹדֶשׁ "apartness",
-# אַחַר "the hinder"). Each is given with the gloss it replaces, so an
-# entry sharing the number (עָשָׂה "press" beside עָשָׂה "do") keeps its own.
+# The Name's gloss, in place of the lexicon's "Jehovah".
 NAME_GLOSS = {"3068": "the Name", "3069": "the Name"}
-GLOSS_FIXES = {
+
+# A plain meaning, shown with BDB's gloss, for common words whose BDB gloss
+# is more its etymology than its meaning (הָיָה "fall out": "be"; קֹדֶשׁ
+# "apartness": "holiness"; אַחַר "the hinder": "after"). Each is given with
+# the gloss it goes with, so an entry sharing the number (עָשָׂה "press",
+# beside עָשָׂה "do") isn't given it.
+MEANINGS = {
     ("310", "the hinder"): "after",
     ("369", "nothing"): "there is not",
     ("389", "surely"): "only, surely",
@@ -137,12 +139,13 @@ class Entry:
     id: str
     word: str
     pos: str
-    gloss: str
+    gloss: str  # BDB's, as the lexicon has it
     strong: str | None
     aug: str | None
     etym_type: str | None
     etym_root: str | None
     etym_ref: str | None
+    meaning: str = ""  # a plain meaning beside it, for some (MEANINGS)
 
 
 @dataclass
@@ -151,7 +154,8 @@ class Group:
     label: str
     kind: str  # "root", "word", "name" or "particle"
     gloss: str
-    lemmas: Counter = field(default_factory=Counter)  # (headword, gloss) -> occurrences
+    meaning: str = ""
+    lemmas: Counter = field(default_factory=Counter)  # (headword, gloss, meaning) -> occurrences
 
 
 def parse_lexicon(xml_text: str) -> dict[str, Entry]:
@@ -166,9 +170,10 @@ def parse_lexicon(xml_text: str) -> dict[str, Entry]:
         xref = e.find(ns + "xref")
         etym = e.find(ns + "etym")
         strong = xref.get("strong") if xref is not None else None
-        gloss = NAME_GLOSS.get(strong) or GLOSS_FIXES.get((strong, text("def")), text("def"))
+        bdb = text("def")
         entries[e.get("id")] = Entry(
-            id=e.get("id"), word=text("w").replace(_STRESS, ""), pos=text("pos"), gloss=gloss, strong=strong,
+            id=e.get("id"), word=text("w").replace(_STRESS, ""), pos=text("pos"),
+            gloss=NAME_GLOSS.get(strong, bdb), meaning=MEANINGS.get((strong, bdb), ""), strong=strong,
             aug=xref.get("aug") if xref is not None else None,
             etym_type=etym.get("type") if etym is not None else None,
             etym_root=etym.get("root") if etym is not None else None,
@@ -196,10 +201,10 @@ class Grouper:
         self.groups: list[Group] = []
         self._index: dict[str, int] = {}
 
-    def _group(self, key: str, label: str, kind: str, gloss: str) -> int:
+    def _group(self, key: str, label: str, kind: str, gloss: str, meaning: str = "") -> int:
         if key not in self._index:
             self._index[key] = len(self.groups)
-            self.groups.append(Group(key, label, kind, gloss))
+            self.groups.append(Group(key, label, kind, gloss, meaning))
         return self._index[key]
 
     def _root(self, entry: Entry) -> Entry | None:
@@ -233,32 +238,34 @@ class Grouper:
             return None
         entry = self.entries[entry_id]
         if entry.pos in PARTICLE_POS:
-            g = self._group(f"w:{entry.id}", entry.word, "particle", entry.gloss)
+            g = self._group(f"w:{entry.id}", entry.word, "particle", entry.gloss, entry.meaning)
         elif entry.pos in NAME_POS:
-            g = self._group(f"w:{entry.id}", entry.word, "name", entry.gloss)
+            g = self._group(f"w:{entry.id}", entry.word, "name", entry.gloss, entry.meaning)
         else:
             root = self._root(entry)
             if root is None:
-                g = self._group(f"w:{entry.id}", entry.word, "word", entry.gloss)
+                g = self._group(f"w:{entry.id}", entry.word, "word", entry.gloss, entry.meaning)
             else:
                 letters = root.etym_root or consonants(root.word)
-                g = self._group(f"r:{root.id}", letters, "root", root.gloss)
-        return self._count(g, entry.word, entry.gloss)
+                g = self._group(f"r:{root.id}", letters, "root", root.gloss, root.meaning)
+        return self._count(g, entry.word, entry.gloss, entry.meaning)
 
-    def _count(self, g: int, word: str, gloss: str) -> int:
-        self.groups[g].lemmas[(word, gloss)] += 1
+    def _count(self, g: int, word: str, gloss: str, meaning: str = "") -> int:
+        self.groups[g].lemmas[(word, gloss, meaning)] += 1
         return g
 
     def table(self) -> list[dict]:
-        """The groups, for the app: label, kind, gloss, and the words in
-        each, most used first. A group's gloss is its commonest word's
-        (כלל: "all", for כֹּל, not the root's "complete"), or the root's
-        own where that's all there is."""
+        """The groups, for the app: label, kind, gloss (BDB's) and plain
+        meaning (where there's one), and the words in each, most used
+        first, as ``[word, gloss, meaning]``. A group's gloss is its
+        commonest word's (כלל: "the whole", for כֹּל, not the root's
+        "complete"), or the root's own where that's all there is."""
         out = []
         for g in self.groups:
-            words = [[w, gl] for (w, gl), _n in g.lemmas.most_common()]
-            gloss = next((gl for _w, gl in words if gl), g.gloss)
-            out.append({"label": g.label, "kind": g.kind, "gloss": gloss, "words": words[:8]})
+            words = [[w, gl, mn] for (w, gl, mn), _n in g.lemmas.most_common()]
+            gloss, meaning = next(((gl, mn) for _w, gl, mn in words if gl), (g.gloss, g.meaning))
+            out.append({"label": g.label, "kind": g.kind, "gloss": gloss, "meaning": meaning,
+                        "words": words[:8]})
         return out
 
 

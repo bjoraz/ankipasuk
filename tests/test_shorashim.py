@@ -70,7 +70,7 @@ def test_a_roots_gloss_is_its_commonest_words(built):
     grouper, _verses = built
     root = next(g for g in grouper.table() if g["label"] == "ראשׁ")
     assert root["gloss"] in ("beginning", "head")
-    assert {w for w, _gloss in root["words"]} == {"רֵאשִׁית", "רֹאשׁ"}
+    assert {w for w, _gloss, _meaning in root["words"]} == {"רֵאשִׁית", "רֹאשׁ"}
 
 
 def test_pieces_split_at_spaces_and_maqaf():
@@ -131,11 +131,11 @@ def test_a_lemma_without_its_letter_is_the_numbers_first_sense():
     grouper = Grouper(parse_lexicon(LEXICON))
     # 1254 has "a" (shape) and "b" (be fat); a bare 1254 is "a".
     g = grouper.group_of("1254")
-    assert grouper.groups[g].lemmas == {("בָּרָא", "shape"): 1}
+    assert grouper.groups[g].lemmas == {("בָּרָא", "shape", ""): 1}
 
 
-def test_misleading_glosses_are_replaced_only_where_they_are_the_one_named():
-    from ankipasuk.shorashim_build import GLOSS_FIXES
+def test_a_plain_meaning_goes_beside_bdbs_gloss_only_where_it_is_the_one_named():
+    from ankipasuk.shorashim_build import MEANINGS
 
     lexicon = f"""<index {NS}><part>
     <entry id="a"><w>עָשָׂה</w><pos>V</pos><def>do</def><xref strong="6213" aug="a"/>
@@ -145,6 +145,8 @@ def test_misleading_glosses_are_replaced_only_where_they_are_the_one_named():
     <entry id="c"><w>יהוה</w><pos>Np</pos><def>Jehovah</def><xref strong="3068"/></entry>
     </part></index>"""
     entries = parse_lexicon(lexicon)
-    assert GLOSS_FIXES[("6213", "do")] == entries["a"].gloss == "do, make"
-    assert entries["b"].gloss == "press"
-    assert entries["c"].gloss == "the Name"
+    # BDB's gloss is kept; the plain meaning goes beside it.
+    assert MEANINGS[("6213", "do")] == "do, make"
+    assert (entries["a"].gloss, entries["a"].meaning) == ("do", "do, make")
+    assert (entries["b"].gloss, entries["b"].meaning) == ("press", "")
+    assert (entries["c"].gloss, entries["c"].meaning) == ("the Name", "")
