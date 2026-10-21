@@ -1,72 +1,49 @@
 # AnkiPasuk
 
-AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for qeriya:
-reading aloud from the sefer, which has neither niqqud nor ta'amim. It
-takes the text and ta'amim from [Sefaria](https://www.sefaria.org/) and
-makes two kinds of cards:
+AnkiPasuk makes [Anki](https://apps.ankiweb.net/) cards for qeriya, reading
+aloud from the sefer, which has neither niqqud nor ta'amim; and it is a set
+of tools for studying the text that work without Anki at all. The text and
+ta'amim come from [Sefaria](https://www.sefaria.org/).
 
-- **Cloze cards**, the core, are for learning the reading of the pesuqim
-  you'll read: from the Tora, a haftara, the Nevi'im or the Megillot. Each
-  pasuq is taken apart along its own ta'amim: first into its two halves,
-  then each half into its clauses, down to the smallest phrases the
-  mafsiqim allow. A hidden part shows only its bare letters, as in the
-  sefer, and you supply the reading, a piece at a time, then the whole
-  pasuq.
-- **Tiqqun cards** are optional and more ambitious: memorizing the Tora
-  itself, word for word and unpointed, as it stands in the sefer's
-  columns (the standard layout of 245 'ammudim of 42 lines). Each card
-  shows where you are and asks you to recite what follows: the next pasuq,
-  or the next line. The cloze cards are enough to prepare a reading;
-  these are for knowing the sefer's text by heart, 'ammud by 'ammud.
+**Making cards**
 
-AnkiPasuk is also a set of tools for studying the text, which work without
-Anki at all: load any range of pesuqim and use the preview and the
-statistics window.
+- **Cloze cards**, the core, teach the reading of the pesuqim you'll read
+  (Tora, haftara, Nevi'im, Megillot): each pasuq is taken apart along its
+  ta'amim, down to its smallest clauses, and you supply the reading from
+  the bare letters, a piece at a time, then the whole pasuq.
+- **Tiqqun cards** are an optional, more ambitious scheme: memorizing the
+  Tora word for word, unpointed, as it stands in the sefer's 245 'ammudim,
+  by reciting the next pasuq or line.
+- **Anki tools** retire a pasuq's clause cards once you know it, and tag
+  notes by parasha, 'aliyya and holiday.
 
-- **Diagrams.** Every pasuq is drawn the way Joshua Jacobson draws them in
-  *Chanting the Hebrew Bible*: a bracket over the text for each mafsiq,
-  ranked and coloured, so you see the whole division at a glance. They
-  can be saved as PDF or HTML pages to read or print.
-- **Shorashim.** In the **Text** view, click a word to colour every word
-  of its root, with the passage's roots listed beside the text, their
-  glosses, and a **Key words** order: the roots the passage uses far more
-  than the Tanakh does.
-- **Phrases.** The same view lists the passage's recurring phrases:
-  refrains within it, echoes of a few other places in the Tanakh (each
-  opened in its own chapter), and idioms used across it, with formulas
-  set apart.
-- **Statistics.** A window on whatever is loaded: words, groups and
-  clauses per pasuq, how often each mafsiq occurs, the shorashim and
-  phrases in full tables, and the pesuqim grouped by the shape of their
-  ta'amim, to find pesuqim built alike. Every count opens the pesuqim
-  behind it, and there's a CSV export.
-- **The sefer's columns.** Any 'ammud can be shown, or saved as pages, as
-  it is laid out in the sefer.
+**Studying the text** (no Anki needed)
+
+- **Diagrams** of every pasuq's division, in Joshua Jacobson's style, to
+  save as PDF or HTML.
+- **Shorashim**: click a word to colour its root through the passage, with
+  glosses and the passage's key words.
+- **Phrases**: the passage's refrains, echoes of other places in the
+  Tanakh (each opened in its chapter) and idioms.
+- **Statistics**: counts and distributions, the mafsiqim, and pesuqim
+  grouped by the shape of their ta'amim.
+
+Each study tool is also a Python function, usable from a script (see
+[For developers](#for-developers)). What changed in each version is in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ![The main window: Bereshit 1:1–8, each pasuq drawn as its diagram](docs/images/app-cloze.png)
 
 ![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
 
-Each part is also a Python function with no GUI or Anki behind it, to use
-from a script or notebook (see [For developers](#for-developers)).
-
-Optional tools work on your Anki collection directly: they retire a
-pasuq's clause cards once you know the whole pasuq, and tag notes by
-parasha, 'aliyya and holiday. What changed in each version is in
-[`CHANGELOG.md`](CHANGELOG.md).
-
 ## Contents
 
-- [Installing](#installing)
-- [Using the app](#using-the-app)
-- [How the cloze cards are made](#how-the-cloze-cards-are-made)
-- [The diagram](#the-diagram)
-- [Shorashim](#shorashim)
-- [Phrases](#phrases)
-- [Statistics](#statistics)
-- [Tiqqun cards](#tiqqun-cards)
-- [Haftarot](#haftarot)
-- [Tools that work on your Anki collection](#tools-that-work-on-your-anki-collection-optional)
+- [Installing](#installing) · [Using the app](#using-the-app)
+- **Making cards:** [How the cloze cards are made](#how-the-cloze-cards-are-made) ·
+  [Tiqqun cards](#tiqqun-cards) ·
+  [Tools that work on your Anki collection](#tools-that-work-on-your-anki-collection-optional)
+- **Studying the text:** [The diagram](#the-diagram) · [Shorashim](#shorashim) ·
+  [Phrases](#phrases) · [Statistics](#statistics)
 - [Spelling](#spelling) · [Cache](#cache) · [For developers](#for-developers) · [Credits](#credits)
 
 ## Installing
@@ -209,6 +186,23 @@ The same layout: the 'ammudim, how to divide their cards, and the export
 on the left; on the right, each chosen 'ammud as its column of the sefer,
 with ◀ ▶ to step through them. See [Tiqqun cards](#tiqqun-cards) below.
 
+### Haftarot
+
+Choose **Haftara** as a range's mode to load a parasha's haftara, or that
+of a special Shabbat: the four parashiyyot, Shabbat haGadol, Ḥol haMo'ed
+Sukkot and Pesaḥ, Rosh Ḥodesh, Maḥar Ḥodesh, and the two Shabbatot of
+Ḥanukka. The list follows the Spanish and Portuguese custom, from the S&P
+London list of readings; it's in `src/ankipasuk/data/haftarot.json`,
+together with that list's rules for which haftara gives way to which. A
+haftara in two parts (Mishpatim, Tsav, Mase, Shabbat Shuva) loads in
+reading order.
+
+A pasuq read in more than one haftara gets every one's tag: Yirmeyahu 1
+is read for Shemot and for Mattot, Yesha'yahu 54:1–10 for Noaḥ and for Ki
+Tetse.
+
+# Making cards
+
 ## How the cloze cards are made
 
 Here it is step by step, with Bereshit 1:2 as the example.
@@ -324,6 +318,110 @@ the letters of the whole pasuq and nothing else. Nested clozes need Anki
 
 Tehillim, Mishle and Iyov aren't supported, because the Sifre Emet use a
 different system of ta'amim.
+
+## Tiqqun cards
+
+Tiqqun cards are an optional, longer-term scheme: memorizing the Tora's
+text verbatim, unpointed, in the sefer's own layout, an 'ammud at a time.
+They don't teach the reading (that's the cloze cards' job); they ask you
+to recite the text from where a card leaves off, the way the
+[AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on drills poetry.
+In the **Tiqqun cards** tab, choose one or more ranges of 'ammudim (1 to
+245), and AnkiPasuk sends their cards straight to Anki, or saves them as
+one CSV to import. Each 'ammud has its own deck, `Ammudim::001` to
+`Ammudim::245`, so there's no deck to choose.
+
+![The Tiqqun cards tab, previewing 'ammud 1](docs/images/app-tiqqun.png)
+
+Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
+layout data, which follows the standard layout of the sefer: 245 'ammudim
+of 42 lines each. Lines break where they do in that layout and are
+justified edge to edge, petuḥot and setumot appear as real gaps
+(Az Yashir and the 'Aseret haDibberot included), and the font is the same
+Shlomo semiStam that tikkun.io uses. The font is copied into Anki's media
+folder, so the cards work offline.
+
+You can divide the cards two ways:
+
+**By pasuq** (the default). One card per pasuq, showing the line before it
+for context and asking for the pasuq's own lines. Pesuqim rarely start and
+end on a line break, and tikkun.io's data doesn't say where in a line one
+pasuq stops and the next starts. AnkiPasuk works it out by lining up the
+words on each line against Sefaria's word count for each pasuq, so every
+card tests that pasuq's words and nothing more:
+
+- On a line shared with the previous pasuq, its end is shown as ordinary
+  text.
+- On a line shared with the next pasuq, its opening words are covered by a
+  gray bar on both sides of the card, so this card doesn't give away the
+  next one.
+- A pasuq that runs over onto the next 'ammud gets a visible "['Ammud N]"
+  divider where the column changes.
+- On the answer side, hovering a word (tapping it, on a phone) turns it,
+  in place, into the same word with its niqqud and ta'amim; a ketiv shows
+  its qere, in braces. The next pasuq's covered words don't.
+
+The alignment also works backwards. If the first pasuq you asked for starts
+in the middle of a line, it steps back to the last petuḥa (the last point
+where nothing earlier can spill onto the line) and aligns from there, so a
+stray word from before your range can't throw off every card after it.
+
+Each card is titled by its pasuq (`Bereshit 1:3`); its 'ammud is in its
+tags and deck.
+
+**By line.** The overlapping-window method from the
+[AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on: a few lines of
+context, then recite the next line (or lines). Context size, recite size
+and grouping can all be set. This is an independent reimplementation; you
+don't need AnkiLPCG installed.
+
+Both kinds use the same note type, "Ankipasuk Aliyah", which is created the
+first time you send cards to Anki (so do that once before importing a
+CSV). As with the cloze cards, the deck is created if it's missing, and a
+card that's already in Anki is skipped, wherever it is: the same pasuq's
+card, or in line mode the same lines. Existing cards are never changed. A
+pasuq's card is tagged with its parasha, 'aliyya and holidays like the
+cloze notes, plus `ammud::NNN`. Each card has small controls in the corner
+for text size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you
+set there applies to every card.
+
+**Save pages as** HTML or PDF saves the chosen 'ammudim as pages instead:
+each 'ammud as its column of the sefer, one to a page, in the same font,
+blank lines between books included, to read from or print. It's the page
+the tab previews. The HTML carries the font inside it and prints a page per
+'ammud from a browser; PDF needs WeasyPrint (see
+[Optional extras](#optional-extras)).
+
+## Tools that work on your Anki collection (optional)
+
+These need Anki open with AnkiConnect. Open them from **Anki tools** in
+the app, run them as commands (`ankipasuk-check-connection`,
+`ankipasuk-init-stems`, `ankipasuk-sync-scheduling`, `ankipasuk-tag-deck`,
+`ankipasuk-migrate-tags`), or double-click the scripts in `scripts/`.
+
+- **Retire clause cards once you know the pasuq.** After a one-time step
+  that flags each note's full-pasuq card, a sync suspends the clause cards
+  on any note whose full-pasuq interval has reached 21 days (you can change
+  this). If the full pasuq lapses, they're unsuspended and marked Again,
+  so you drill them alongside it until it's back up. Details in
+  [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
+- **Tag notes by where they're read.** Each note is tagged with its parasha
+  and 'aliyya, whether it's in the maftir, and any holiday or fast-day
+  reading it belongs to, for example `aliyya::bereshit::04-vayyera::7` and
+  `holiday::rosh_hashana_ii::1`; a haftara pasuq gets `haftara::<parasha>`.
+  It only ever adds tags. If an existing tag disagrees with what it worked
+  out, that's reported and left alone. Details in
+  [`docs/anki-tagging.md`](docs/anki-tagging.md).
+- **Move old tags to the new spelling.** Decks tagged by earlier versions
+  use the old spelling (`aliyah::...`, `holiday::simchat_torah::1`,
+  `amud::012`). Migrate Tags renames those, and only those.
+
+Every tool has a dry-run mode. Use it first.
+
+# Studying the text
+
+None of this needs Anki: load any pesuqim and use the preview and the
+statistics window.
 
 ## The diagram
 
@@ -514,119 +612,7 @@ independent of whatever *N* you use for your cards.
 
 ![The Structure tab: the most common shapes in Bereshit 1–3](docs/images/stats-structure.png)
 
-## Tiqqun cards
-
-Tiqqun cards are an optional, longer-term scheme: memorizing the Tora's
-text verbatim, unpointed, in the sefer's own layout, an 'ammud at a time.
-They don't teach the reading (that's the cloze cards' job); they ask you
-to recite the text from where a card leaves off, the way the
-[AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on drills poetry.
-In the **Tiqqun cards** tab, choose one or more ranges of 'ammudim (1 to
-245), and AnkiPasuk sends their cards straight to Anki, or saves them as
-one CSV to import. Each 'ammud has its own deck, `Ammudim::001` to
-`Ammudim::245`, so there's no deck to choose.
-
-![The Tiqqun cards tab, previewing 'ammud 1](docs/images/app-tiqqun.png)
-
-Every card is drawn from [tikkun.io](https://github.com/akivajgordon/tikkun.io)'s
-layout data, which follows the standard layout of the sefer: 245 'ammudim
-of 42 lines each. Lines break where they do in that layout and are
-justified edge to edge, petuḥot and setumot appear as real gaps
-(Az Yashir and the 'Aseret haDibberot included), and the font is the same
-Shlomo semiStam that tikkun.io uses. The font is copied into Anki's media
-folder, so the cards work offline.
-
-You can divide the cards two ways:
-
-**By pasuq** (the default). One card per pasuq, showing the line before it
-for context and asking for the pasuq's own lines. Pesuqim rarely start and
-end on a line break, and tikkun.io's data doesn't say where in a line one
-pasuq stops and the next starts. AnkiPasuk works it out by lining up the
-words on each line against Sefaria's word count for each pasuq, so every
-card tests that pasuq's words and nothing more:
-
-- On a line shared with the previous pasuq, its end is shown as ordinary
-  text.
-- On a line shared with the next pasuq, its opening words are covered by a
-  gray bar on both sides of the card, so this card doesn't give away the
-  next one.
-- A pasuq that runs over onto the next 'ammud gets a visible "['Ammud N]"
-  divider where the column changes.
-- On the answer side, hovering a word (tapping it, on a phone) turns it,
-  in place, into the same word with its niqqud and ta'amim; a ketiv shows
-  its qere, in braces. The next pasuq's covered words don't.
-
-The alignment also works backwards. If the first pasuq you asked for starts
-in the middle of a line, it steps back to the last petuḥa (the last point
-where nothing earlier can spill onto the line) and aligns from there, so a
-stray word from before your range can't throw off every card after it.
-
-Each card is titled by its pasuq (`Bereshit 1:3`); its 'ammud is in its
-tags and deck.
-
-**By line.** The overlapping-window method from the
-[AnkiLPCG](https://github.com/sobjornstad/AnkiLPCG) add-on: a few lines of
-context, then recite the next line (or lines). Context size, recite size
-and grouping can all be set. This is an independent reimplementation; you
-don't need AnkiLPCG installed.
-
-Both kinds use the same note type, "Ankipasuk Aliyah", which is created the
-first time you send cards to Anki (so do that once before importing a
-CSV). As with the cloze cards, the deck is created if it's missing, and a
-card that's already in Anki is skipped, wherever it is: the same pasuq's
-card, or in line mode the same lines. Existing cards are never changed. A
-pasuq's card is tagged with its parasha, 'aliyya and holidays like the
-cloze notes, plus `ammud::NNN`. Each card has small controls in the corner
-for text size, line spacing and width (A−/A+, ≡−/≡+, ↔−/↔+). Whatever you
-set there applies to every card.
-
-**Save pages as** HTML or PDF saves the chosen 'ammudim as pages instead:
-each 'ammud as its column of the sefer, one to a page, in the same font,
-blank lines between books included, to read from or print. It's the page
-the tab previews. The HTML carries the font inside it and prints a page per
-'ammud from a browser; PDF needs WeasyPrint (see
-[Optional extras](#optional-extras)).
-
-## Haftarot
-
-Choose **Haftara** as a range's mode to load a parasha's haftara, or that
-of a special Shabbat: the four parashiyyot, Shabbat haGadol, Ḥol haMo'ed
-Sukkot and Pesaḥ, Rosh Ḥodesh, Maḥar Ḥodesh, and the two Shabbatot of
-Ḥanukka. The list follows the Spanish and Portuguese custom, from the S&P
-London list of readings; it's in `src/ankipasuk/data/haftarot.json`,
-together with that list's rules for which haftara gives way to which. A
-haftara in two parts (Mishpatim, Tsav, Mase, Shabbat Shuva) loads in
-reading order.
-
-A pasuq read in more than one haftara gets every one's tag: Yirmeyahu 1
-is read for Shemot and for Mattot, Yesha'yahu 54:1–10 for Noaḥ and for Ki
-Tetse.
-
-## Tools that work on your Anki collection (optional)
-
-These need Anki open with AnkiConnect. Open them from **Anki tools** in
-the app, run them as commands (`ankipasuk-check-connection`,
-`ankipasuk-init-stems`, `ankipasuk-sync-scheduling`, `ankipasuk-tag-deck`,
-`ankipasuk-migrate-tags`), or double-click the scripts in `scripts/`.
-
-- **Retire clause cards once you know the pasuq.** After a one-time step
-  that flags each note's full-pasuq card, a sync suspends the clause cards
-  on any note whose full-pasuq interval has reached 21 days (you can change
-  this). If the full pasuq lapses, they're unsuspended and marked Again,
-  so you drill them alongside it until it's back up. Details in
-  [`docs/anki-scheduling.md`](docs/anki-scheduling.md).
-- **Tag notes by where they're read.** Each note is tagged with its parasha
-  and 'aliyya, whether it's in the maftir, and any holiday or fast-day
-  reading it belongs to, for example `aliyya::bereshit::04-vayyera::7` and
-  `holiday::rosh_hashana_ii::1`; a haftara pasuq gets `haftara::<parasha>`.
-  It only ever adds tags. If an existing tag disagrees with what it worked
-  out, that's reported and left alone. Details in
-  [`docs/anki-tagging.md`](docs/anki-tagging.md).
-- **Move old tags to the new spelling.** Decks tagged by earlier versions
-  use the old spelling (`aliyah::...`, `holiday::simchat_torah::1`,
-  `amud::012`). Migrate Tags renames those, and only those.
-
-Every tool has a dry-run mode. Use it first.
+# Reference
 
 ## Spelling
 
@@ -666,6 +652,24 @@ markup, last_cloze, tree, words, groups = verse_to_nested_cloze(pasuq, max_leaf_
 format_structure(verse_structure_signature(pasuq))  # '(((L3 (L3 L2)) (L2 L1)) (L2 (L2 L1)))'
 pasuq_diagram(pasuq, card_n=2)  # {"units": [{"words": [...], "boxes": [...]}, ...]}
 ```
+
+The study tools work on a list of pesuqim, as the app loads them:
+
+```python
+from ankipasuk import phrases, shorashim
+from ankipasuk.cache import SefariaCache
+from ankipasuk.sefaria import get_text_for_ref
+
+text = get_text_for_ref("Genesis 1", "source", SefariaCache())
+pesuqim = [{"book": "Genesis", "ch": 1, "vs": i, "pointed": t} for i, t in enumerate(text, start=1)]
+
+roots = shorashim.passage(pesuqim)["groups"]  # each root: label, gloss, count, keyness, ...
+sorted(roots.values(), key=lambda g: -g["keyness"])[0]["display"]  # 'מ־י־נ'
+found = phrases.passage(pesuqim)  # {"phrases": [...], "sections": {"refrain": [...], ...}}
+[found["phrases"][i]["text"] for i in found["sections"]["refrain"][:1]]  # ['וַֽיְהִי־עֶ֥רֶב וַֽיְהִי־בֹ֖קֶר']
+```
+
+`phrases.passage` takes the tests' thresholds too (`phrases.Thresholds`).
 
 - The rank table is plain data (`TROPE_UNICODE` in `config.py`).
 - Ranking and paseq, grouping, and splitting are separate functions in
