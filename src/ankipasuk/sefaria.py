@@ -71,6 +71,21 @@ class RefNotFoundError(RuntimeError):
     a book ends."""
 
 
+def fetch_error(site: str, what: str, e: requests.RequestException) -> str:
+    """What went wrong fetching ``what`` from ``site``, in words for the
+    app's messages rather than requests' (a proxy or DNS failure is a
+    connection error too)."""
+    if isinstance(e, requests.ConnectionError):
+        return (f"Couldn't reach {site}. Check the internet connection: what was fetched "
+                "before is kept and works offline.")
+    if isinstance(e, requests.Timeout):
+        return f"{site} didn't answer in time when fetching {what}. Try again in a moment."
+    status = getattr(getattr(e, "response", None), "status_code", None)
+    if status:
+        return f"{site} answered with an error ({status}) when fetching {what}."
+    return f"Couldn't fetch {what} from {site} ({type(e).__name__})."
+
+
 def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
     """Return the cleaned verse list for ``ref_str``, using the on-disk
     cache when available and only hitting the network on a miss."""
@@ -91,9 +106,9 @@ def get_text_for_ref(ref_str: str, version_param: str, cache: SefariaCache):
     except requests.HTTPError as e:
         if getattr(e.response, "status_code", None) == 404:
             raise RefNotFoundError(f"Sefaria has no {ref_str}.") from e
-        raise RuntimeError(f"Network/API error while fetching {ref_str}: {e}") from e
+        raise RuntimeError(fetch_error("Sefaria", ref_str, e)) from e
     except requests.RequestException as e:
-        raise RuntimeError(f"Network/API error while fetching {ref_str}: {e}") from e
+        raise RuntimeError(fetch_error("Sefaria", ref_str, e)) from e
     except ValueError as e:
         raise RuntimeError(f"Invalid JSON returned for {ref_str}.") from e
 
@@ -282,7 +297,7 @@ def get_parasha_structure(book: str, cache: SefariaCache):
         resp.raise_for_status()
         data = resp.json()
     except requests.RequestException as e:
-        raise RuntimeError(f"Could not load parasha structure for {book}: {e}") from e
+        raise RuntimeError(fetch_error("Sefaria", f"the parashot of {book}", e)) from e
     except ValueError as e:
         raise RuntimeError(f"Invalid JSON in parasha structure for {book}.") from e
 

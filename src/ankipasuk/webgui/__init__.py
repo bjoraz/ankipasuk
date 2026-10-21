@@ -96,7 +96,7 @@ def main() -> int:
     api = Api()
     phrases.warm()
     window = webview.create_window(
-        "Nested Anki Cloze Generator",
+        "AnkiPasuk",
         str(_STATIC_DIR / "index.html"),
         js_api=api,
         width=1280,

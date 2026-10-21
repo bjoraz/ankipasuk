@@ -362,15 +362,19 @@ def is_title(c: Corpus, s: int, n: int) -> bool:
 
 def formula_class(c: Corpus, s: int, n: int) -> str | None:
     """The formula class of tokens ``[s, s + n)``, or None (docs/phrases.md,
-    Formulas). A list -- three or more names or peoples -- is no formula."""
+    Formulas). A list -- three or more names or peoples -- is no formula.
+    A name here is someone's or somewhere's: יהוה is a name in the lexicon,
+    but only the classes that allow God's names take it."""
     toks = [j for j in range(s, s + n) if c.bits[j] & _CONTENT]
-    if sum(1 for j in toks if c.flags[j] & (PROPER | GENTILIC)) >= 3:
+    named = [j for j in toks if c.flags[j] & (PROPER | GENTILIC) and c.strong[j] not in GOD_NAMES]
+    if len(named) >= 3:
         return None
     if is_title(c, s, n):
         return TITLES
     for name, (core, allowed, names, numerals, needs) in CLASSES.items():
         def fits(j, names=names, numerals=numerals):
-            return (names and c.flags[j] & PROPER) or (numerals and c.flags[j] & NUMERAL)
+            return ((names and c.flags[j] & PROPER and c.strong[j] not in GOD_NAMES)
+                    or (numerals and c.flags[j] & NUMERAL))
         if core and not any(c.strong[j] in core for j in toks):
             continue
         if needs and not any(fits(j) for j in toks):

@@ -30,6 +30,7 @@ import requests
 
 from .cache import SefariaCache
 from .config import REQUEST_TIMEOUT, TORAH_VERSE_COUNTS
+from .sefaria import fetch_error
 
 TIKKUN_RAW_BASE = "https://raw.githubusercontent.com/akivajgordon/tikkun.io/master/src/data"
 
@@ -55,7 +56,7 @@ def _fetch_json(url: str):
         resp.raise_for_status()
         return resp.json()
     except requests.RequestException as e:
-        raise RuntimeError(f"Network/API error while fetching {url}: {e}") from e
+        raise RuntimeError(fetch_error("tikkun.io", "the scroll layout", e)) from e
     except ValueError as e:
         raise RuntimeError(f"Invalid JSON returned from {url}.") from e
 
@@ -72,7 +73,7 @@ def get_font_base64(cache: SefariaCache) -> str:
         resp = requests.get(FONT_RAW_URL, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
     except requests.RequestException as e:
-        raise RuntimeError(f"Network error while fetching the STAM font: {e}") from e
+        raise RuntimeError(fetch_error("GitHub", "the STAM font", e)) from e
 
     encoded = base64.b64encode(resp.content).decode("ascii")
     cache.set_tikkun_font(encoded)

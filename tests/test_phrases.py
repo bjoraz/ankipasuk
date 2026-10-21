@@ -134,6 +134,16 @@ def test_the_thresholds_change_what_is_listed(tanakh):
     assert sum("echo" in kinds for kinds in texts(echo_places=6).values()) > echoes
 
 
+def test_gods_name_is_no_persons_name_in_the_formula_classes(tanakh):
+    temple = find(tanakh, rows(tanakh, "I Samuel", (3, 1), (3, 21)), "בית יהוה")
+    assert temple["formula"] is None  # not a name formula, as בית משה would be
+    joseph = find(tanakh, rows(tanakh, "Genesis", (39, 1), (39, 23)), "ויהי יהוה את יוסף")
+    assert joseph["formula"] is None  # not a time formula
+    # Nor one of a list's three names: this is speech.
+    speech = find(tanakh, rows(tanakh, "Numbers", (19, 1), (19, 22)), "וידבר יהוה אל משה ואל אהרן")
+    assert speech["formula"] == "speech"
+
+
 def test_idioms_and_lists(tanakh):
     found = rows(tanakh, "Exodus", (3, 1), (4, 31))
     assert "idiom" in find(tanakh, found, "זבת חלב ודבש")["kinds"]

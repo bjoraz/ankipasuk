@@ -154,6 +154,10 @@ dates, and says nothing else. A phrase is a formula of a class if it has
 one of the class's **core** words and every other content word is a core
 word or one the class **also** allows.
 
+A *name* in these classes is a person's or a place's. The lexicon calls
+יהוה a name too, but God's names count only where a class allows them, so
+בית יהוה and ויהי יהוה את יוסף are not name or time formulas.
+
 Names and peoples (gentilics) are as the shorashim have them, decided
 once for each dictionary word: a people is a word the lexicon calls one,
 or one OSHB's morphology calls one in most of its places. Neither alone is
@@ -165,7 +169,7 @@ all other words go by Strong's number.
 | Class | Core | Also | Formulas | Not formulas |
 |---|---|---|---|---|
 | **God's names and titles** | see below | | יהוה אלהיך, יהוה צבאות, אדני יהוה, אלהי ישראל, לפני יהוה | מלאך יהוה, ברוך יהוה, יד יהוה, חי יהוה |
-| **Names and their families** | a name | בֵּן, בַּת, אָב, אָח, אִשָּׁה, בַּיִת, אֶרֶץ, מֶלֶךְ, עַם, מַטֶּה, שֵׁבֶט, מִשְׁפָּחָה, עִיר, עֵבֶר; other names; God's names | בני ישראל, בלק בן צפור, מלך מצרים, מארץ מצרים, יהוה אל משה | רות המואביה (a people is no name here), משדי מואב |
+| **Names and their families** | a name, not God's | בֵּן, בַּת, אָב, אָח, אִשָּׁה, בַּיִת, אֶרֶץ, מֶלֶךְ, עַם, מַטֶּה, שֵׁבֶט, מִשְׁפָּחָה, עִיר, עֵבֶר; other names; God's names | בני ישראל, בלק בן צפור, מלך מצרים, מארץ מצרים, יהוה אל משה | רות המואביה (a people is no name here), משדי מואב, בית יהוה |
 | **Speech** | אָמַר, דָּבַר, דָּבָר, נְאֻם, עָנָה | names, God's names, family words, הָיָה, עַם | ויאמר אלהים, ויאמר בלק אל בלעם, וידבר יהוה אל משה לאמר, ויען בלעם, ויהי דבר יהוה, נאם יהוה | ויאמר אלהים יהי אור, שמע ישראל |
 | **Numbers, dates and measures** | a numeral | שָׁנָה, חֹדֶשׁ, יוֹם, אַמָּה, שֶׁקֶל, אֹרֶךְ, רֹחַב, קוֹמָה, מִשְׁקָל, בֶּקַע, כִּכָּר, בֵּן (בן שנה) | שלשים ומאה משקלה, ואלף ושבע מאות וחמשה ושבעים, יום שלישי, ביום השביעי | ויום השביעי שבת, כבשים בני שנה |
 | **Genealogies and censuses** | יָלַד, חָיָה, מוּת, פָּקַד, תּוֹלְדוֹת, מִסְפָּר, גֻּלְגֹּלֶת, with a name or a numeral | names, family words, numbers and measures, זָכָר, שֵׁם, יָצָא, צָבָא | ורם הוליד את עמינדב, ויחי X שנה ויולד, הפקדים מבן עשרים שנה | מות יומת, תלדי בנים |
@@ -208,8 +212,9 @@ So יהוה אלהים in Bereshit 2–3 is a formula (20 of 903), as is יהו�
 in Devarim 5–6. The row of an exceptional title is badged "rare" or
 "mostly here", with its counts.
 
-**Lists are not formulas.** A phrase with three or more names or peoples,
-with or without other words, is tested like any other phrase: הכנעני
+**Lists are not formulas.** A phrase with three or more names or peoples
+(God's not counted), with or without other words, is tested like any
+other phrase: הכנעני
 והחתי והאמרי והפרזי והחוי והיבוסי, לאבתיך לאברהם ליצחק וליעקב, ובצלאל
 בן אורי בן חור. The common lists come out as idioms.
 

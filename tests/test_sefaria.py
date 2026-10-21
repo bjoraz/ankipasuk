@@ -197,3 +197,18 @@ def test_every_listed_book_has_a_chapter_count():
     from ankipasuk.config import MEGILLOT_BOOKS, NEVIIM_BOOKS, NON_TORAH_CHAPTER_COUNTS
 
     assert set(NON_TORAH_CHAPTER_COUNTS) == set(NEVIIM_BOOKS) | set(MEGILLOT_BOOKS)
+
+
+def test_a_failed_fetch_says_what_went_wrong_in_words(tmp_path, monkeypatch):
+    import requests
+
+    def offline(*_args, **_kwargs):
+        raise requests.exceptions.ProxyError("Unable to connect to proxy")  # a ConnectionError too
+
+    monkeypatch.setattr(sefaria_module.requests, "get", offline)
+    with pytest.raises(RuntimeError) as failed:
+        sefaria_module.get_text_for_ref("Genesis 1", "source", SefariaCache(cache_dir=tmp_path))
+    assert str(failed.value).startswith("Couldn't reach Sefaria. Check the internet connection")
+    assert "HTTPSConnectionPool" not in str(failed.value)
+    late = sefaria_module.fetch_error("Sefaria", "Genesis 1", requests.Timeout())
+    assert late == "Sefaria didn't answer in time when fetching Genesis 1. Try again in a moment."

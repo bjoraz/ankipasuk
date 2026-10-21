@@ -2,6 +2,7 @@
 
 let currentVerseData = [];
 let currentTikkunHtml = { plain: "", pointed: "" };
+let tikkunError = ""; // why the scroll layout couldn't be fetched, if it couldn't
 let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only holds what's in view)
 let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
 let currentShorashim = null; // ankipasuk.shorashim.passage for the loaded pesuqim, once it's in
@@ -610,7 +611,7 @@ function renderVerseBoxes() {
     renderTextBox();
     const tikkunPointed = document.querySelector("#tikkun-kind .active").dataset.kind === "pointed";
     document.getElementById("tikkun-box").innerHTML = (tikkunPointed ? currentTikkunHtml.pointed : currentTikkunHtml.plain)
-        || '<p class="muted" dir="ltr">The scroll layout is for the Tora only.</p>';
+        || `<p class="muted" dir="ltr">${tikkunError ? diagramEscape(tikkunError) : "The scroll layout is for the Tora only."}</p>`;
     const n = currentVerseData.length;
     document.getElementById("line-count").textContent = n ? `${n} ${n === 1 ? "pasuq" : "pesuqim"} loaded` : "";
     const send = document.getElementById("btn-export-cloze-anki");
@@ -629,6 +630,7 @@ async function doFetchAll() {
     currentPhrases = null;
     phraseMarks.use([]);
     currentTikkunHtml = { plain: "", pointed: "" };
+    tikkunError = "";
     for (const row of document.querySelectorAll(".range-row")) {
         const book = row.querySelector(".range-book").value;
         const mode = row.querySelector(".range-mode").value;
@@ -666,6 +668,8 @@ async function doFetchAll() {
         // loses that view, not the range.
         if (tikkunResult && tikkunResult.ok) {
             currentTikkunHtml = { plain: tikkunResult.plain_html, pointed: tikkunResult.pointed_html };
+        } else if (tikkunResult) {
+            tikkunError = tikkunResult.error;
         }
         document.getElementById("cache-status").textContent = result.cache_status;
     }
