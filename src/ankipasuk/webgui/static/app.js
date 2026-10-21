@@ -394,8 +394,11 @@ async function loadShorashim() {
 //  (ankipasuk.phrases), beside the text in place of the shorashim. A
 //  picked phrase is underlined in the text, in its own colour.
 // =============================================================
+// Also when the settings change.
 async function loadPhrases() {
     const verses = currentVerseData;
+    if (phraseViewerClose) phraseViewerClose();  // its phrase is gone
+    currentPhrases = null;
     renderPhrasesList();  // "Finding phrases…"
     const result = await api().get_phrases();
     if (verses !== currentVerseData) return;  // other pesuqim were loaded meanwhile
@@ -447,6 +450,95 @@ const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
     paintPhraseList();
 });
+
+// =============================================================
+//  Settings: the phrase tests' thresholds (api.get_settings), in a
+//  dialog. A control is [data-setting]: a number (shown times its
+//  data-scale) or a choice of chances or shares (SETTING_CHOICES).
+// =============================================================
+const SETTING_CHOICES = {
+    chance: [1e-2, 1e-3, 1e-4, 1e-5, 1e-6].map((v) => [v, `1 in ${Math.round(1 / v).toLocaleString("en")}`]),
+    share: [[0.25, "a quarter"], [1 / 3, "a third"], [0.5, "half"], [2 / 3, "two thirds"], [0.75, "three quarters"]],
+};
+let settingsDefaults = {};
+let settingsOpened = ""; // the values when the dialog opened, to tell whether they changed
+
+const sameSetting = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b));
+
+function settingControls() {
+    return [...document.querySelectorAll("#settings-form [data-setting]")];
+}
+
+function settingValue(el) {
+    const value = Number(el.value) / (el.tagName === "SELECT" ? 1 : Number(el.dataset.scale) || 1);
+    return el.value !== "" && Number.isFinite(value) ? value : settingsDefaults[el.dataset.setting];
+}
+
+function settingText(el, value) {
+    if (el.tagName === "SELECT") {
+        const choice = SETTING_CHOICES[el.dataset.choices].find(([v]) => sameSetting(v, value));
+        return choice ? choice[1] : String(value);
+    }
+    return String(Math.round(value * (Number(el.dataset.scale) || 1) * 100) / 100);
+}
+
+// A control not at its default is marked, and its tooltip gives the default.
+function markSetting(el) {
+    const fallback = settingsDefaults[el.dataset.setting];
+    el.classList.toggle("changed", !sameSetting(settingValue(el), fallback));
+    el.title = `Default: ${settingText(el, fallback)}`;
+}
+
+function showSettings(values) {
+    for (const el of settingControls()) {
+        const value = values[el.dataset.setting];
+        if (el.tagName === "SELECT") {
+            const choices = [...SETTING_CHOICES[el.dataset.choices]];
+            if (!choices.some(([v]) => sameSetting(v, value))) choices.push([value, String(value)]);  // set by hand
+            el.innerHTML = choices.map(([v, text]) => `<option value="${v}">${text}</option>`).join("");
+            el.value = String(choices.find(([v]) => sameSetting(v, value))[0]);
+        } else {
+            el.value = settingText(el, value);
+        }
+        markSetting(el);
+    }
+}
+
+function readSettings() {
+    return Object.fromEntries(settingControls().map((el) => [el.dataset.setting, settingValue(el)]));
+}
+
+async function openSettings() {
+    const result = await api().get_settings();
+    settingsDefaults = result.defaults.phrases;
+    for (const el of settingControls()) {
+        const [low, high] = result.limits.phrases[el.dataset.setting];
+        if (el.tagName !== "INPUT") continue;
+        const scale = Number(el.dataset.scale) || 1;
+        Object.assign(el, { min: low * scale, max: high * scale, step: 1, required: true });
+    }
+    showSettings(result.phrases);
+    settingsOpened = JSON.stringify(readSettings());
+    document.getElementById("settings-dialog").hidden = false;
+    settingControls()[0].focus();
+}
+
+function closeSettings() {
+    document.getElementById("settings-dialog").hidden = true;
+}
+
+// Saved, the phrases are found again with them (and in an open
+// statistics window: api.save_settings).
+async function saveSettings() {
+    const values = readSettings();
+    const changed = JSON.stringify(values) !== settingsOpened;
+    const result = await api().save_settings({ phrases: values });
+    if (!result.ok) return showToast(result.error, true);
+    closeSettings();
+    if (!changed) return;
+    showToast("Settings saved.");
+    if (currentVerseData.length) loadPhrases();
+}
 
 // The Text and Tikkun views, pointed or letters only as chosen.
 function renderVerseBoxes() {
@@ -1240,6 +1332,22 @@ window.addEventListener("pywebviewready", async () => {
     });
     document.getElementById("btn-anki-tools").addEventListener("click", async () => {
         await api().open_anki_connect_window();
+    });
+    document.getElementById("btn-settings").addEventListener("click", openSettings);
+    const settingsDialog = document.getElementById("settings-dialog");
+    settingsDialog.addEventListener("click", (e) => {
+        if (e.target === settingsDialog || e.target.closest("[data-close]")) closeSettings();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !settingsDialog.hidden) closeSettings();
+    });
+    settingsDialog.addEventListener("input", (e) => {
+        if (e.target.dataset.setting) markSetting(e.target);
+    });
+    document.getElementById("st-reset").addEventListener("click", () => showSettings(settingsDefaults));
+    document.getElementById("settings-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveSettings();
     });
 
     addAmmudRow();

@@ -26,8 +26,10 @@ import threading
 from array import array
 from collections import Counter, defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass, fields
 from functools import cache
 from pathlib import Path
+from statistics import NormalDist
 
 from .config import BOOK_HEBREW_NAMES, OTHER_BOOK_HEBREW_NAMES
 from .shorashim import _book, line_up, lined_up, pieces
@@ -48,15 +50,53 @@ from .shorashim_build import (
 DATA_DIR = Path(__file__).parent / "data" / "phrases"
 BOOKS = {**OSIS_BOOKS, **REFERENCE_BOOKS}  # Sefaria's name -> OSHB's
 
-# --- the tests' constants (docs/phrases.md, "Constants") ---------------------
-REFRAIN_CHANCE = 1e-3
-ECHO_CHANCE = 1e-3
-ECHO_PLACES = 3
-IDIOM_OCCURRENCES, IDIOM_CHAPTERS = 4, 3
-IDIOM_G2 = 10.83  # p < 0.001, one degree of freedom
-IDIOM_BOUND = 0.1
-RARE_WORDING = 10  # places in the Tanakh
-CONCENTRATED = 1 / 3  # of a wording's places, in the passage
+
+# --- the tests' thresholds (docs/phrases.md, "Thresholds") -------------------
+@dataclass(frozen=True)
+class Thresholds:
+    """What a phrase needs to be listed; the app's settings can change
+    them (:meth:`from_settings`)."""
+
+    content_words: int = 2
+    refrain_here: int = 2
+    refrain_chance: float = 1e-3
+    echo_places: int = 3
+    echo_chance: float = 1e-3
+    idiom_occurrences: int = 4
+    idiom_chapters: int = 3
+    idiom_chance: float = 1e-3  # of the G² at each split
+    idiom_bound: float = 0.1
+    rare_wording: int = 10  # places in the Tanakh
+    concentrated: float = 1 / 3  # of a wording's places, in the passage
+
+    @property
+    def idiom_g2(self) -> float:
+        """The G² whose chance is ``idiom_chance`` (one degree of freedom:
+        10.83 for 1/1000)."""
+        return NormalDist().inv_cdf(1 - self.idiom_chance / 2) ** 2
+
+    @classmethod
+    def from_settings(cls, values: dict | None) -> Thresholds:
+        """From saved settings: each within its LIMITS, the default for
+        what's missing or not a number."""
+        out = {}
+        for f in fields(cls):
+            value, (low, high) = (values or {}).get(f.name), LIMITS[f.name]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
+                continue
+            value = min(max(value, low), high)
+            out[f.name] = round(value) if f.type == "int" else float(value)
+        return cls(**out)
+
+
+# How far each threshold may be set.
+LIMITS = {
+    "content_words": (2, 6), "refrain_here": (2, 10), "refrain_chance": (1e-9, 0.05),
+    "echo_places": (1, 10), "echo_chance": (1e-9, 0.05), "idiom_occurrences": (3, 50),
+    "idiom_chapters": (2, 30), "idiom_chance": (1e-9, 0.05), "idiom_bound": (0.01, 1.0),
+    "rare_wording": (0, 100), "concentrated": (0.05, 1.0),
+}
+DEFAULTS = Thresholds()
 
 # --- words, by Strong's number ----------------------------------------------
 OBJECT_MARKER = "853"
@@ -259,9 +299,11 @@ def _content_words(c: Corpus, s: int, n: int) -> int:
     return sum(1 for j in range(s, s + n) if c.bits[j] & _CONTENT)
 
 
-def _find(c: Corpus, segments: list[tuple[int, int]]) -> dict[tuple, tuple[int, int, list[int]]]:
+def _find(c: Corpus, segments: list[tuple[int, int]], content_words: int = DEFAULTS.content_words,
+          ) -> dict[tuple, tuple[int, int, list[int]]]:
     """The phrases with an occurrence in the passage's ``segments`` (runs
-    of tokens ``[a, b)``): ``{lemmas: (start, length, occurrences)}``."""
+    of tokens ``[a, b)``) and at least ``content_words`` content words:
+    ``{lemmas: (start, length, occurrences)}``."""
     lem = c.lem
     raw = []
     for a, b in segments:
@@ -287,7 +329,7 @@ def _find(c: Corpus, segments: list[tuple[int, int]]) -> dict[tuple, tuple[int, 
     for i, n, occ in raw:
         for s, m in _cut(c, i, n):
             s, m = _trim(c, s, m)
-            if m < 2 or _content_words(c, s, m) < 2:
+            if m < 2 or _content_words(c, s, m) < content_words:
                 continue
             key = tuple(lem[s:s + m])
             shifted = [j + s - i for j in occ]
@@ -341,13 +383,13 @@ def formula_class(c: Corpus, s: int, n: int) -> str | None:
     return None
 
 
-def _exceptional(c: Corpus, s: int, n: int, occ: list[int], inside) -> bool:
+def _exceptional(c: Corpus, s: int, n: int, occ: list[int], inside, t: Thresholds = DEFAULTS) -> bool:
     """Whether a title's wording (its words' forms) is rare in the Tanakh,
     or mostly here."""
     wording = c.form[s:s + n]
     same = [j for j in occ if c.form[j:j + n] == wording]
     here = [j for j in same if inside(j, n)]
-    return len(same) <= RARE_WORDING or (len(here) >= 2 and len(here) >= CONCENTRATED * len(same))
+    return len(same) <= t.rare_wording or (len(here) >= 2 and len(here) >= t.concentrated * len(same))
 
 
 # --- the tests --------------------------------------------------------------
@@ -377,7 +419,7 @@ def _g2(a: int, c1: int, c2: int, n: int) -> float:
     return 2 * sum(o * math.log(o / e) for o, e in cells if o > 0 and e > 0)
 
 
-def _classify(c: Corpus, segments: list[tuple[int, int]]) -> list[dict]:
+def _classify(c: Corpus, segments: list[tuple[int, int]], t: Thresholds = DEFAULTS) -> list[dict]:
     """The passage's phrases that are a refrain, an echo, an idiom, or a
     formula that would be one: each as a dict (see :func:`passage`)."""
     end_of: dict[int, int] = {}
@@ -391,30 +433,31 @@ def _classify(c: Corpus, segments: list[tuple[int, int]]) -> list[dict]:
         return end_of.get(j, -1) >= j + n
 
     rows = []
-    for key, (s, n, occ) in _find(c, segments).items():
+    idiom_g2 = t.idiom_g2
+    for key, (s, n, occ) in _find(c, segments, t.content_words).items():
         here = [j for j in occ if inside(j, n)]
         if not here:
             continue
         elsewhere = [j for j in occ if not inside(j, n)]
         formula = formula_class(c, s, n)
-        variant = formula == TITLES and _exceptional(c, s, n, occ, inside)
+        variant = formula == TITLES and _exceptional(c, s, n, occ, inside, t)
         if variant:
             formula = None
         kinds = []
         chance_here = _chance(len(here), words * math.prod(here_freq[x] / words for x in key))
-        if len(here) >= 2 and chance_here < REFRAIN_CHANCE:
+        if len(here) >= t.refrain_here and chance_here < t.refrain_chance:
             kinds.append("refrain")
         chance = _chance(len(occ), c.n * math.prod(c.freq[x] / c.n for x in key))
         places = sorted({c.where[j] for j in elsewhere}, key=_canonical)
-        if 1 <= len(places) <= ECHO_PLACES and chance < ECHO_CHANCE:
+        if 1 <= len(places) <= t.echo_places and chance < t.echo_chance:
             kinds.append("echo")
         chapters = {(c.where[j][0], c.where[j][1].split(":")[0]) for j in occ}
         bound = 0.0
-        if len(occ) >= IDIOM_OCCURRENCES and len(chapters) >= IDIOM_CHAPTERS:
+        if len(occ) >= t.idiom_occurrences and len(chapters) >= t.idiom_chapters:
             parts = [(c.count(key[:k]), c.count(key[k:])) for k in range(1, len(key))]
             bound = min(len(occ) / min(left, right) for left, right in parts)
-            strong = all(_g2(len(occ), left, right, c.n) >= IDIOM_G2 for left, right in parts)
-            if bound >= IDIOM_BOUND and strong:
+            strong = all(_g2(len(occ), left, right, c.n) >= idiom_g2 for left, right in parts)
+            if bound >= t.idiom_bound and strong:
                 kinds.append("idiom")
         if kinds:
             rows.append({"key": key, "start": s, "length": n, "occurrences": occ, "here": here,
@@ -499,7 +542,7 @@ def _covered(c: Corpus, j: int, n: int) -> dict[tuple[str, str], set[int]]:
     return out
 
 
-def passage(verse_data: list[dict]) -> dict:
+def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
     """The loaded pesuqim's phrases, for the Text view and Statistics::
 
         {"phrases": [{"id", "kinds", "formula", "variant", "text",
@@ -516,12 +559,13 @@ def passage(verse_data: list[dict]) -> dict:
     :func:`ankipasuk.shorashim.passage` has them); ``verses`` the pesuqim
     it's in. ``places`` are the other pesuqim it's in, ``elsewhere`` of
     them (``{"ref", "at", "length"}``, the first 30). ``children`` are
-    the phrases folded under it, by section."""
+    the phrases folded under it, by section. ``thresholds`` are the
+    tests'."""
     c = corpus()
     segments = _segments(c, verse_data)
     if not segments:
         return {"phrases": [], "sections": {"refrain": [], "echo": [], "idiom": [], "formula": []}}
-    rows = _classify(c, segments)
+    rows = _classify(c, segments, thresholds)
     # Each loaded word, by its OSHB word.
     words_at: dict[tuple[str, str, int], list[tuple[int, int]]] = defaultdict(list)
     lined = lined_up(verse_data)
@@ -566,7 +610,8 @@ def passage(verse_data: list[dict]) -> dict:
     order = {"refrain": lambda r: (r["chance_here"], -len(r["here"])),
              "echo": lambda r: (r["chance"], -r["length"]),
              "idiom": lambda r: (-r["bound"], -len(r["occurrences"]))}
-    keep = {"refrain": ("here", 2), "echo": ("elsewhere", 1), "idiom": ("occurrences", 2)}
+    keep = {"refrain": ("here", thresholds.refrain_here), "echo": ("elsewhere", 1),
+            "idiom": ("occurrences", 2)}
     for kind in ("refrain", "echo", "idiom"):
         mine = [r for r in rows if kind in r["kinds"] and not r["formula"]]
         for r in mine:

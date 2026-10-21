@@ -131,8 +131,8 @@ to one chapter doesn't count as an idiom, such as וירא אלהים כי טו�
 
 **Folding.** In each section, a phrase inside a longer phrase of the same
 section is folded under it when it doesn't recur apart from it:
-- for refrains, when fewer than 2 of its occurrences here lie outside the
-  longer phrase;
+- for refrains, when fewer of its occurrences here than a refrain needs
+  (2) lie outside the longer phrase;
 - for echoes, when none of its other places lie outside it;
 - for idioms, when fewer than 2 of its occurrences in the Tanakh lie
   outside it;
@@ -264,20 +264,30 @@ The app reads it all into parallel arrays, one entry per token, with an
 index of every pair of words; a passage's phrases take well under a
 second, a whole book about one.
 
-## Constants
+## Thresholds
 
-| Constant | Value | Why |
-|---|---|---|
-| Content words in a phrase | ≥ 2 | one word is the shorashim's job |
-| Refrain: times here | ≥ 2 | a refrain repeats |
-| Refrain: chance | < 0.001 | a common significance level |
-| Echo: other places | 1–3 | more is a stock phrase, an idiom's test |
-| Echo: chance | < 0.001 | a common significance level |
-| Idiom: occurrences / chapters | ≥ 4 / ≥ 3 | used widely, not one passage's repetition |
-| Idiom: G² at every split | ≥ 10.83 | p < 0.001, one degree of freedom |
-| Idiom: bound at the weakest split | ≥ 0.1 | calibrated: drops ויקח שני and ישראל באה, keeps ככוכבי השמים and מלאך יהוה |
-| God's names: rare wording | ≤ 10 places | calibrated: אל שדי (8) in, אלהי יעקב (15) out |
-| God's names: concentrated wording | ≥ 2 here and ≥ ⅓ of all | יהוה אלהים in Bereshit 2–3 (20 of 49) in, יהוה אלהינו in Devarim 5–6 out |
+These are the defaults. **Settings**, in the main window's top bar, changes
+any of them, within the limits shown; the phrases are found again at once,
+in an open statistics window too. Only the changed ones are saved, so a
+later change of a default still applies to the rest
+(`phrases.Thresholds`, `phrases.LIMITS`).
+
+| Threshold | Default | Limits | Why |
+|---|---|---|---|
+| Content words in a phrase | ≥ 2 | 2–6 | one word is the shorashim's job |
+| Refrain: times here | ≥ 2 | 2–10 | a refrain repeats |
+| Refrain: chance | < 0.001 | | a common significance level |
+| Echo: other pesuqim | 1–3 | 1–10 | more is a stock phrase, an idiom's test |
+| Echo: chance | < 0.001 | | a common significance level |
+| Idiom: occurrences / chapters | ≥ 4 / ≥ 3 | 3–50 / 2–30 | used widely, not one passage's repetition |
+| Idiom: chance of the G² at every split | < 0.001 (G² ≥ 10.83) | | one degree of freedom |
+| Idiom: bound at the weakest split | ≥ 0.1 | 0.01–1 | calibrated: drops ויקח שני and ישראל באה, keeps ככוכבי השמים and מלאך יהוה |
+| God's names: rare wording | ≤ 10 places | 0–100 | calibrated: אל שדי (8) in, אלהי יעקב (15) out |
+| God's names: concentrated wording | ≥ 2 here and ≥ ⅓ of all | ¼–¾ | יהוה אלהים in Bereshit 2–3 (20 of 49) in, יהוה אלהינו in Devarim 5–6 out |
+
+The chances are offered from 1/100 to 1/1,000,000. The refrains' fold
+follows their times here: a shorter refrain stays listed on its own when
+it recurs that often apart from the longer one.
 
 ## Limitations
 

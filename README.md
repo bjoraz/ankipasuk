@@ -103,12 +103,13 @@ or `PYWEBVIEW_GUI=qt` forces one.
 The window has a tab for each kind of card, **Cloze cards** and **Tiqqun
 cards**. Each has its settings on the left, in three numbered steps, and a
 preview on the right that follows them as you go: there's nothing to fetch
-or generate by hand. The bar at the top also opens **Statistics** and
-**Anki tools**, and shows whether Anki is open with AnkiConnect, which
-sending cards needs. The note types are loaded as soon as it is. The ◀
-at the top of the preview folds the settings away, to see the preview on
-its own across the whole window; **▶ Settings** brings them back, and the
-app remembers which you left it on.
+or generate by hand. The bar at the top also opens **Statistics**,
+**Anki tools** and **Settings** (the phrases' thresholds), and shows
+whether Anki is open with AnkiConnect, which sending cards needs. The
+note types are loaded as soon as it is. The ◀ at the top of the preview
+folds the settings away, to see the preview on its own across the whole
+window; **▶ Settings** brings them back, and the app remembers which you
+left it on.
 
 ### The Cloze cards tab
 
@@ -436,6 +437,13 @@ the same phrase. They can be any length, and are found across the whole
 Tanakh, the books the app has no readings from included. How they're
 found and tested, with every threshold, is in
 [`docs/phrases.md`](docs/phrases.md).
+
+**Settings**, in the top bar, sets those thresholds: how many words a
+phrase needs, how often a refrain must repeat, how many other pesuqim an
+echo may have, how widely an idiom must be used, and when a wording of
+God's names counts as exceptional rather than a formula. Each shows its
+default; a changed one is marked, and **Reset to defaults** puts them all
+back. Saving finds the phrases again, in the statistics window too.
 
 ## Statistics
 

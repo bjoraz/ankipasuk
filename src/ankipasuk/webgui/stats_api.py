@@ -13,6 +13,7 @@ import webview
 from ..cache import SefariaCache
 from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, TROPE_HEBREW_NAMES, TROPE_UNICODE
 from ..diagram import pasuq_diagram
+from ..settings import Settings
 from ..shorashim import passage as shorashim_passage
 from ..stats import compute_corpus_stats, format_stats_summary, write_stats_csv
 from ..structure import (
@@ -54,7 +55,7 @@ def _our_spelling(label: str) -> str:
 
 class StatsApi(PhraseApi):
     def __init__(self, verse_data: list[dict], max_leaf_disj: int, font_css: str = "",
-                 cache: SefariaCache | None = None) -> None:
+                 cache: SefariaCache | None = None, settings: Settings | None = None) -> None:
         self._window: webview.Window | None = None
         self.verse_data = verse_data
         self.max_leaf_disj = max_leaf_disj
@@ -63,6 +64,7 @@ class StatsApi(PhraseApi):
         self._diagrams: dict[str, dict] = {}
         self._roots: dict | None = None  # ankipasuk.shorashim.passage, made when first asked for
         self._cache = cache  # for a phrase's other places, fetched from Sefaria (see PhraseApi)
+        self._settings = settings  # the main window's: the phrases' thresholds (see PhraseApi)
 
     def get_font_css(self) -> str:
         return self.font_css

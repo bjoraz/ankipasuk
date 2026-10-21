@@ -890,3 +890,33 @@ def test_get_phrases_gives_sections_and_marks(genesis_1_1, genesis_1_2):
     assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula"}
     listed = {i for kind in ("refrain", "echo", "idiom") for i in result["sections"][kind]}
     assert listed and all(result["phrases"][i]["marks"] for i in listed)
+
+
+def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1, genesis_1_2):
+    from dataclasses import asdict
+
+    from ankipasuk.phrases import DEFAULTS
+
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    shown = api.get_settings()
+    assert shown["phrases"] == shown["defaults"]["phrases"] == asdict(DEFAULTS)
+    assert shown["limits"]["phrases"]["echo_places"] == (1, 10)
+
+    reloaded = []
+
+    class Window:  # an open statistics window
+        def evaluate_js(self, script):
+            reloaded.append(script)
+
+    api._stats_windows = [Window()]
+    out = api.save_settings({"phrases": {**shown["phrases"], "echo_places": 99}})
+    assert out["ok"] is True and out["phrases"]["echo_places"] == 10  # its limit
+    assert Settings(cache_dir=tmp_path).get("phrases") == {"echo_places": 10}
+    assert reloaded == ["loadPhrases()"]
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+                               {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
+    assert api.get_phrases()["thresholds"]["echo_places"] == 10
+    api.save_settings({"phrases": shown["defaults"]["phrases"]})
+    assert Settings(cache_dir=tmp_path).get("phrases") == {}
+    assert api.get_phrases()["thresholds"]["echo_places"] == 3  # found again

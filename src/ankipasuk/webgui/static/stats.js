@@ -270,31 +270,43 @@ async function loadShorashim() {
 // =============================================================
 //  Phrases: refrains, echoes, idioms, and formulas (ankipasuk.phrases)
 // =============================================================
+let phraseResult = null;  // the bridge's get_phrases
+let phraseKind = "refrain";
+const phraseEls = () => ({ tabs: document.getElementById("ph-tabs"), about: document.getElementById("ph-about"),
+                           list: document.getElementById("phrases-list") });
+
+// Also when the settings change (the main window's api.save_settings).
 async function loadPhrases() {
-    const els = { tabs: document.getElementById("ph-tabs"), about: document.getElementById("ph-about"),
-                  list: document.getElementById("phrases-list") };
+    const els = phraseEls();
+    if (phraseViewerClose) phraseViewerClose();  // its phrase is gone
+    phraseResult = null;
+    els.tabs.innerHTML = els.list.innerHTML = "";
     els.about.textContent = "Finding phrases…";
     const result = await api().get_phrases();
     if (!result.ok) {
         els.about.textContent = `No phrases: ${result.error}`;
         return;
     }
-    let kind = "refrain";
+    phraseResult = result;
+    renderPhrasePane(phraseResult, phraseKind, els);
+}
+
+function wirePhrases() {
+    const els = phraseEls();
     const calls = { verses: (id) => api().get_phrase_verses(id), context: (id, place) => api().get_phrase_context(id, place) };
-    renderPhrasePane(result, kind, els);
     els.tabs.addEventListener("click", (e) => {
         const tab = e.target.closest("button[data-kind]");
-        if (!tab) return;
-        kind = tab.dataset.kind;
-        renderPhrasePane(result, kind, els);
+        if (!tab || !phraseResult) return;
+        phraseKind = tab.dataset.kind;
+        renderPhrasePane(phraseResult, phraseKind, els);
     });
     // A row, or one of its places, opens the phrase's viewer.
     els.list.addEventListener("click", (e) => {
         const item = e.target.closest("li.ph");
-        if (!item) return;
+        if (!item || !phraseResult) return;
         e.preventDefault();
         const place = e.target.closest(".ph-place");
-        openPhraseViewer(result.phrases[Number(item.dataset.id)], kind, calls, place ? Number(place.dataset.place) : 0);
+        openPhraseViewer(phraseResult.phrases[Number(item.dataset.id)], phraseKind, calls, place ? Number(place.dataset.place) : 0);
     });
 }
 
@@ -317,6 +329,7 @@ window.addEventListener("pywebviewready", async () => {
     await loadTropeFrequency();
     await loadStructure();
     await loadShorashim();
+    wirePhrases();
     await loadPhrases();
 
     document.getElementById("btn-export-stats-csv").addEventListener("click", async () => {

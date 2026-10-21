@@ -17,6 +17,7 @@
   <span class="spacer"></span>
   <button id="btn-stats" class="ghost" title="Statistics on the loaded pesuqim, in a window of its own">Statistics</button>
   <button id="btn-anki-tools" class="ghost" title="Tools that work on your Anki collection, in a window of its own">Anki tools</button>
+  <button id="btn-settings" class="ghost" title="What a phrase needs to be listed as a refrain, an echo or an idiom">Settings</button>
   <span id="anki-status" class="status-pill" title="AnkiConnect, for sending cards straight to Anki">Anki not running</span>
 </header>
 
@@ -205,6 +206,69 @@
   <span id="cache-status"></span>
   <button id="btn-clear-cache" class="link">Clear cache</button>
 </footer>
+
+<!-- ============ Settings: the phrase tests' thresholds (docs/phrases.md) ============ -->
+<div id="settings-dialog" class="dialog-overlay" hidden>
+  <form id="settings-form" class="settings" role="dialog" aria-modal="true" aria-labelledby="st-title">
+    <header class="settings-head">
+      <h3 id="st-title">Settings</h3>
+      <button type="button" class="ph-viewer-close" data-close title="Close (Esc)">×</button>
+    </header>
+    <div class="settings-body">
+      <h4>Phrases</h4>
+      <p class="muted">What a phrase needs to be listed. A chance is how likely it would be if the words
+        fell at random: the lower, the stricter.</p>
+      <div class="st-group">
+        <div class="st-name">Every phrase</div>
+        <div class="st-rules">
+          <label>At least <input type="number" data-setting="content_words"> words, particles not counted</label>
+        </div>
+      </div>
+      <div class="st-group">
+        <div class="st-name">Refrains</div>
+        <div class="st-rules">
+          <label>At least <input type="number" data-setting="refrain_here"> times here</label>
+          <label>Chance at most <select data-setting="refrain_chance" data-choices="chance"></select>,
+            for the passage's own words</label>
+        </div>
+      </div>
+      <div class="st-group">
+        <div class="st-name">Echoes</div>
+        <div class="st-rules">
+          <label>In at most <input type="number" data-setting="echo_places"> other pesuqim of the Tanakh</label>
+          <label>Chance at most <select data-setting="echo_chance" data-choices="chance"></select>,
+            for the Tanakh's words</label>
+        </div>
+      </div>
+      <div class="st-group">
+        <div class="st-name">Idioms</div>
+        <div class="st-rules">
+          <label>At least <input type="number" data-setting="idiom_occurrences"> times, in at least
+            <input type="number" data-setting="idiom_chapters"> chapters</label>
+          <label>Chance at most <select data-setting="idiom_chance" data-choices="chance"></select>
+            of its parts together so often, wherever it's split</label>
+          <label title="Split the phrase anywhere into two parts: this share of the rarer part's uses must be in the phrase">
+            At least <input type="number" data-setting="idiom_bound" data-scale="100">% of its rarer part's uses
+            in it, wherever it's split</label>
+        </div>
+      </div>
+      <div class="st-group">
+        <div class="st-name">God's names</div>
+        <div class="st-rules">
+          <p class="muted">A wording of God's names is a formula unless it's exceptional:</p>
+          <label>In at most <input type="number" data-setting="rare_wording"> places of the Tanakh,</label>
+          <label>or with at least <select data-setting="concentrated" data-choices="share"></select> of them here</label>
+        </div>
+      </div>
+    </div>
+    <footer class="settings-actions">
+      <button type="button" class="link" id="st-reset" title="Put back every setting's default (not saved until you save)">Reset to defaults</button>
+      <span class="spacer"></span>
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </footer>
+  </form>
+</div>
 
 <!-- ============ Saving the diagrams, with a preview ============ -->
 <div id="print-dialog" class="dialog-overlay" hidden>

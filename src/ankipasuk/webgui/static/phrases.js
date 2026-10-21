@@ -12,11 +12,15 @@ function plural(n, one, many = `${one}s`) {
     return `${n} ${n === 1 ? one : many}`;
 }
 
-// The sections, and the line that says what one holds (``n`` of them).
+const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+// The sections, and the line that says what one holds (``n`` of them,
+// found with ``t``, the thresholds: Settings).
 const PHRASE_SECTIONS = [
     ["refrain", "Refrains", (n) => `${plural(n, "phrase")} repeated here more often than chance would give.`],
-    ["echo", "Echoes", (n) => `${plural(n, "phrase")} shared with only one to three other places in the Tanakh. `
-        + "Click a place to read it in its chapter."],
+    ["echo", "Echoes", (n, t) => `${plural(n, "phrase")} shared with only `
+        + (t.echo_places === 1 ? "one other pasuq" : `one to ${NUMBER_WORDS[t.echo_places] || t.echo_places} other pesuqim`)
+        + " in the Tanakh. Click a place to read it in its chapter."],
     ["idiom", "Idioms", (n) => `${plural(n, "fixed expression")}, used across the Tanakh.`],
     ["formula", "Formulas", (n) => `${plural(n, "formula")}: phrases that only frame (who speaks, a name, a number, `
         + "God's names)."],
@@ -72,7 +76,7 @@ function renderPhrasePane(result, kind, els) {
         `<button type="button" data-kind="${k}"${k === kind ? ' class="active"' : ""}>${name}`
         + `<span class="ph-tab-n">${phraseCount(result, k)}</span></button>`).join("");
     const [, , about] = PHRASE_SECTIONS.find(([k]) => k === kind);
-    els.about.textContent = about(phraseCount(result, kind));
+    els.about.textContent = about(phraseCount(result, kind), result.thresholds);
     const P = result.phrases;
     const rows = kind === "formula"
         ? result.sections.formula.map(([name, ids]) => `<li class="ph-class">${diagramEscape(name)}</li>`

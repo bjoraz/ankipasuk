@@ -80,17 +80,26 @@ def test_chance():
     assert ph._chance(3, 5.0) == 1.0
 
 
+def test_thresholds_from_settings_stay_within_their_limits():
+    t = ph.Thresholds.from_settings({"echo_places": 5.4, "refrain_chance": 7, "idiom_bound": "x",
+                                     "rare_wording": True, "content_words": float("nan"), "other": 1})
+    assert (t.echo_places, t.refrain_chance) == (5, 0.05)  # rounded; at most its limit
+    assert (t.idiom_bound, t.rare_wording, t.content_words) == (0.1, 10, 2)  # not numbers: the defaults
+    assert ph.Thresholds.from_settings(None) == ph.DEFAULTS
+    assert ph.DEFAULTS.idiom_g2 == pytest.approx(10.83, abs=0.005)
+
+
 # --- the bundled Tanakh ------------------------------------------------------
 @pytest.fixture(scope="module")
 def tanakh():
     return ph.corpus()
 
 
-def rows(c, book, first, last):
+def rows(c, book, first, last, t=ph.DEFAULTS):
     data = [{"book": book, "ch": int(k.split(":")[0]), "vs": int(k.split(":")[1])}
             for (b, k) in c.verses if b == book]
     data = [d for d in data if first <= (d["ch"], d["vs"]) <= last]
-    return ph._classify(c, ph._segments(c, data))
+    return ph._classify(c, ph._segments(c, data), t)
 
 
 def letters(c, r):
@@ -112,6 +121,17 @@ def test_bereshit_1_has_its_refrains_an_echo_and_formulas(tanakh):
     tohu = find(tanakh, found, "תהו ובהו")
     assert "echo" in tohu["kinds"] and tohu["places"] == [("Jeremiah", "4:23")]
     assert find(tanakh, found, "ויאמר אלהים")["formula"] == "speech"
+
+
+def test_the_thresholds_change_what_is_listed(tanakh):
+    def texts(**changed):
+        found = rows(tanakh, "Genesis", (1, 1), (2, 3), ph.Thresholds(**changed))
+        return {letters(tanakh, r): r["kinds"] for r in found}
+    assert "refrain" in texts()["ויהי ערב ויהי בקר יום"]  # six times
+    assert "refrain" not in texts(refrain_here=7).get("ויהי ערב ויהי בקר יום", [])
+    assert "תהו ובהו" not in texts(content_words=3)
+    echoes = sum("echo" in kinds for kinds in texts().values())
+    assert sum("echo" in kinds for kinds in texts(echo_places=6).values()) > echoes
 
 
 def test_idioms_and_lists(tanakh):

@@ -17,6 +17,7 @@ import csv
 import io
 import re
 import traceback
+from dataclasses import asdict
 from pathlib import Path
 
 import webview
@@ -62,6 +63,9 @@ from ..lpcg import CSS as LPCG_CSS
 from ..lpcg import FIELD_NAMES as LPCG_FIELD_NAMES
 from ..lpcg import MODEL_NAME as LPCG_MODEL_NAME
 from ..lpcg import SCROLL_CSS as LPCG_SCROLL_CSS
+from ..phrases import DEFAULTS as PHRASE_DEFAULTS
+from ..phrases import LIMITS as PHRASE_LIMITS
+from ..phrases import Thresholds
 from ..qeriya import (
     haftara_label,
     haftara_table,
@@ -127,6 +131,7 @@ class Api(PhraseApi):
         self._current_verse_data: list[dict] = []
         self._current_tikkun_html: dict[str, str] = {"plain": "", "pointed": ""}
         self._window: webview.Window | None = None
+        self._stats_windows: list[webview.Window] = []  # open ones, to find their phrases again
 
     # =============================================================
     #  Static reference data (no network)
@@ -519,6 +524,33 @@ class Api(PhraseApi):
 
 
     # =============================================================
+    #  Settings (the Settings dialog)
+    # =============================================================
+    def get_settings(self) -> dict:
+        """The settings, their defaults and how far each may be set: for
+        now the phrase tests' thresholds (ankipasuk.phrases.Thresholds)."""
+        return {"phrases": asdict(self._phrase_thresholds()),
+                "defaults": {"phrases": asdict(PHRASE_DEFAULTS)}, "limits": {"phrases": PHRASE_LIMITS}}
+
+    def save_settings(self, values: dict) -> dict:
+        """Keeps ``values`` (as get_settings gives them), each within its
+        limits -- only those not at their defaults, so a changed default
+        still reaches the rest -- and has the open statistics windows
+        find their phrases again."""
+        phrases = asdict(Thresholds.from_settings((values or {}).get("phrases")))
+        defaults = asdict(PHRASE_DEFAULTS)
+        try:
+            self._settings.set("phrases", {k: v for k, v in phrases.items() if v != defaults[k]})
+        except OSError as e:
+            return {"ok": False, "error": f"Couldn't save the settings: {e}"}
+        for window in list(self._stats_windows):
+            try:
+                window.evaluate_js("loadPhrases()")
+            except Exception:  # noqa: BLE001 -- closing as we speak
+                traceback.print_exc()
+        return {"ok": True, "phrases": phrases}
+
+    # =============================================================
     #  Cloze export straight to Anki (AnkiConnect)
     # =============================================================
     def suggest_cloze_deck(self) -> str:
@@ -903,7 +935,7 @@ class Api(PhraseApi):
             return {"ok": False, "error": "Choose some pesuqim first."}
         font = self.get_tikkun_font_css()
         stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "",
-                             cache=self._cache)
+                             cache=self._cache, settings=self._settings)
         window = webview.create_window(
             "Statistics",
             str(_STATIC_DIR / "stats.html"),
@@ -913,4 +945,6 @@ class Api(PhraseApi):
             text_select=True,
         )
         stats_api._window = window
+        self._stats_windows.append(window)
+        window.events.closed += lambda: self._stats_windows.remove(window)
         return {"ok": True}

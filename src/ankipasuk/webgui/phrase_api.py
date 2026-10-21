@@ -1,40 +1,49 @@
 """The phrase views' calls (see ankipasuk.phrases), shared by the main
 window's bridge and the statistics window's: the list, a phrase's
-pesuqim here, and one of its other places in its chapter."""
+pesuqim here, and one of its other places in its chapter. The tests'
+thresholds are the saved settings' (``"phrases"``)."""
 
 from __future__ import annotations
 
 import traceback
+from dataclasses import asdict
 
 from ..cache import SefariaCache
 from ..config import POINTED_VERSION
-from ..phrases import context, here_verses, passage
+from ..phrases import Thresholds, context, here_verses, passage
 from ..sefaria import get_text_for_ref
+from ..settings import Settings
 from ..shorashim import lined_up
 
 
 class PhraseApi:
     """Mixed into a bridge that gives its loaded pesuqim
-    (``_phrase_pesuqim``) and may have a Sefaria cache (``_cache``)."""
+    (``_phrase_pesuqim``) and may have a Sefaria cache (``_cache``) and
+    the saved settings (``_settings``)."""
 
-    _phrase_result: tuple | None = None  # (the pesuqim's refs, ankipasuk.phrases.passage)
+    _phrase_result: tuple | None = None  # (the pesuqim's refs and thresholds, ankipasuk.phrases.passage)
     _cache: SefariaCache | None = None
+    _settings: Settings | None = None
 
     def _phrase_pesuqim(self) -> list[dict]:
         raise NotImplementedError
 
+    def _phrase_thresholds(self) -> Thresholds:
+        return Thresholds.from_settings(self._settings.get("phrases") if self._settings else None)
+
     def _phrase_data(self) -> dict:
-        data = self._phrase_pesuqim()
-        key = tuple((item["book"], item["ch"], item["vs"]) for item in data)
+        data, thresholds = self._phrase_pesuqim(), self._phrase_thresholds()
+        key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds)
         if self._phrase_result is None or self._phrase_result[0] != key:
-            self._phrase_result = (key, passage(data))
+            self._phrase_result = (key, passage(data, thresholds))
         return self._phrase_result[1]
 
     def get_phrases(self) -> dict:
         """The loaded pesuqim's recurring phrases, by section (see
-        ankipasuk.phrases.passage)."""
+        ankipasuk.phrases.passage), and the thresholds they were found
+        with."""
         try:
-            return {"ok": True, **self._phrase_data()}
+            return {"ok": True, **self._phrase_data(), "thresholds": asdict(self._phrase_thresholds())}
         except Exception as e:  # noqa: BLE001 -- the text still shows without them
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
