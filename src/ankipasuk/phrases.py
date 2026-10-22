@@ -754,8 +754,8 @@ def context(at: int, length: int, chapter_of) -> dict:
     """One of a phrase's places (``at``, ``length`` as its ``places`` have
     them) in its chapter, for its viewer::
 
-        {"ref", "title", "verses": [{"vs", "words": [[text, sep, marked]],
-                                     "hit"}]}
+        {"ref", "title", "ch", "verses": [{"vs", "words": [[text, sep, marked]],
+                                           "hit"}]}
 
     ``hit`` marks the pesuqim the phrase is in, its words ``marked``.
     ``chapter_of(book, ch)`` gives a chapter's pesuqim, pointed."""
@@ -774,4 +774,4 @@ def context(at: int, length: int, chapter_of) -> dict:
         else:
             words = [[t, s, 0] for t, s in ps]
         verses.append({"vs": vs, "words": words, "hit": bool(idx)})
-    return {"ref": ref(c, at, length), "title": f"{_name(book)} {ch}", "verses": verses}
+    return {"ref": ref(c, at, length), "title": f"{_name(book)} {ch}", "ch": ch, "verses": verses}

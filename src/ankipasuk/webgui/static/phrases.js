@@ -200,7 +200,7 @@ function openPhraseViewer(p, kind, calls, place = 0) {
             + `<select class="ph-pick">${p.places.map((x, k) => `<option value="${k}">${diagramEscape(x.ref)}</option>`).join("")}</select>`
             + '<button type="button" class="ph-step" data-step="1" title="The next">›</button>';
     const there = p.places.length
-        ? `<section class="ph-there"><h4>${kind === "frame" ? "Its other end" : "Elsewhere"} `
+        ? `<section class="ph-there"><h4>${kind === "frame" ? "Outside the passage" : "Elsewhere"} `
             + `<span class="muted">${plural(p.elsewhere, "pasuq", "pesuqim")}</span></h4>`
             + `<div class="ph-places">${picker}${more > 0 ? `<span class="muted">and ${more} more</span>` : ""}</div>`
             + '<div class="ph-chapter-title"></div><div class="ph-chapter"></div></section>'
@@ -267,7 +267,7 @@ function openPhraseViewer(p, kind, calls, place = 0) {
         }
         title.textContent = result.title;
         box.innerHTML = result.verses.map((v) => `<p class="ph-vs pasuq-text${v.hit ? " hit" : ""}" dir="rtl">`
-            + `<span class="ph-vs-n">${v.vs}</span>${markedWordsHtml(v.words)}</p>`).join("");
+            + `<span class="ph-vs-n" dir="ltr">${result.ch}:${v.vs}</span>${markedWordsHtml(v.words)}</p>`).join("");
         const hit = box.querySelector(".ph-vs.hit");  // (the chapter box is its offset parent)
         if (hit) box.scrollTop = Math.max(0, hit.offsetTop - box.clientHeight / 4);
     }

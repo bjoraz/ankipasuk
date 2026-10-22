@@ -106,7 +106,7 @@ def test_an_echo_opens_in_its_chapter(main_window):
     page.locator("#phrases-list .ph-place", has_text="Yirmeyahu 4:23").first.click()
     page.wait_for_selector(".ph-vs.hit")
     assert page.locator(".ph-chapter-title").inner_text() == "Yirmeyahu 4"
-    assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "23"
+    assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "4:23"
     assert in_view(main_window, ".ph-vs.hit", ".ph-chapter")  # scrolled to it
     assert page.locator(".ph-there .ph-hit").count() >= 1 and page.locator(".ph-here .ph-hit").count() >= 1
     page.keyboard.press("Escape")
@@ -168,8 +168,10 @@ def test_a_frames_other_end_opens_in_its_chapter(main_window):
     bara = page.locator("#phrases-list li.ph", has=page.locator('.ph-n:text-is("1:1–2:3")')).first
     bara.locator(".ph-place").click()
     page.wait_for_selector(".ph-viewer .ph-there h4")
-    assert page.locator(".ph-viewer .ph-there h4").text_content().startswith("Its other end")
+    assert page.locator(".ph-viewer .ph-there h4").text_content().startswith("Outside the passage")
     assert "A frame: Bereshit 1:1–2:3" in page.locator(".ph-viewer-sub").inner_text()
+    page.wait_for_selector(".ph-vs.hit")
+    assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "2:3"
 
 
 def test_the_text_marks_the_masoretic_breaks(main_window):
@@ -180,6 +182,18 @@ def test_the_text_marks_the_masoretic_breaks(main_window):
     line = page.locator('#text-box .tv-line[data-i="4"]')  # 1:5, the first day's petuḥa
     assert "tv-end-p" in line.get_attribute("class") and line.locator(".tv-break").inner_text() == "פ"
     assert page.locator('#text-box .tv-line[data-i="3"] .tv-break').count() == 0
+
+
+def test_each_pasuq_in_the_text_has_its_chapter_and_verse(main_window):
+    load(main_window, 1, 8, 8)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.wait_for_selector('#text-box .tv-line[data-i="4"] .w')
+    number = page.locator('#text-box .tv-line[data-i="4"] .tv-n')
+    assert number.inner_text() == "1:5" and number.get_attribute("title") == "Bereshit 1:5"
+    # One a pasuq, left out when the text is copied.
+    assert page.locator("#text-box .tv-line .tv-n").count() == 8
+    assert page.evaluate("getComputedStyle(document.querySelector('#text-box .tv-n')).userSelect") == "none"
 
 
 def test_the_verbs_pane_counts_the_forms_and_colours_them(main_window):
@@ -193,6 +207,8 @@ def test_the_verbs_pane_counts_the_forms_and_colours_them(main_window):
     page.wait_for_selector("#verbs-list li")
     kinds = page.locator("#verbs-list li")
     assert kinds.count() == 7 and kinds.first.locator(".vf-name").inner_text() == "wayyiqtol"
+    assert kinds.first.get_attribute("title").startswith("Wayyiqtol (vav-consecutive imperfect)")
+    assert "Imperative: a command" in kinds.nth(4).get_attribute("title")  # each of a group's forms
     total = int(page.locator("#verbs-count").inner_text().strip("()"))
     counted = sum(int(kinds.nth(i).locator(".vf-n").inner_text()) for i in range(7))
     assert total == counted == page.locator('#verbs-strip rect[y="0"]').count()  # a block a verb

@@ -129,7 +129,7 @@ def test_a_phrases_pesuqim_and_other_places_are_marked(genesis_1_1, genesis_1_2,
     # Its other place, in its chapter: the pasuq it's in marked, its words too.
     there = sapi.get_phrase_context(tohu["id"], 0)
     assert asked == ["Jeremiah 4"] and there["ok"] is True
-    assert (there["title"], there["ref"]) == ("Yirmeyahu 4", "Yirmeyahu 4:23")
+    assert (there["title"], there["ref"], there["ch"]) == ("Yirmeyahu 4", "Yirmeyahu 4:23", 4)
     assert [v["vs"] for v in there["verses"] if v["hit"]] == [23] and len(there["verses"]) == 24
     assert [consonants(w[0]) for w in there["verses"][22]["words"] if w[2]] == ["תהו", "ובהו"]
     # Offline: the place and why.

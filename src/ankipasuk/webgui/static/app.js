@@ -334,7 +334,9 @@ function renderTextBox() {
         const inside = {};
         for (const b of breaks) if (Array.isArray(b) && words) inside[b[1] - 1] = sectionBreakHtml(b[0]) + " ";
         const end = breaks.filter((b) => !Array.isArray(b)).pop();
-        const line = (words ? rootWordsHtml(words[i], plain, inside)
+        const item = currentVerseData[i];
+        const number = `<span class="tv-n" dir="ltr" title="${diagramEscape(pasuqLabel(item))}">${item.ch}:${item.vs}</span>`;
+        const line = number + (words ? rootWordsHtml(words[i], plain, inside)
             : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed))
             + (end ? ` ${sectionBreakHtml(end)}` : "");
         return `<div class="tv-line${end ? ` tv-end-${end.toLowerCase()}` : ""}">${line}</div>`;

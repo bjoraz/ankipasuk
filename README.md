@@ -155,7 +155,8 @@ app remembers which you left it on.
 The preview has four views:
 
 - **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)).
-- **Text**: the pesuqim pointed or as bare letters, with a Copy button.
+- **Text**: the pesuqim pointed or as bare letters, each with its chapter
+  and verse, small, before it, and a Copy button (for the text alone).
   Click a word to colour every word of its shoresh, with the passage's
   shorashim listed beside the text (see [Shorashim](#shorashim)). The
   Masoretic sections are marked as in a printed Tanakh: פ after a pasuq
@@ -598,8 +599,8 @@ back. Saving finds the phrases again, in the statistics window too.
 In the **Text** view, the side panel's **Verbs** pane shows the passage's
 verbs by their form, as OSHB's morphology codes them, in seven groups:
 wayyiqtol, qatal, yiqtol, weqatal, volitive (imperative, jussive,
-cohortative), participle and infinitive. Tick **all forms** to tell all
-eleven apart. Each has its colour and its count, and while the pane is
+cohortative), participle and infinitive; hover over one for what it is.
+Tick **all forms** to tell all eleven apart. Each has its colour and its count, and while the pane is
 open the text's verbs are coloured by it (a coloured shoresh keeps its
 own colour). Click a form to hide or show it.
 
