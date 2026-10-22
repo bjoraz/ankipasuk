@@ -129,13 +129,14 @@ function stripPointing(text) {
 // underline can run on between its words; maqaf kept between words, or a
 // space for letters only.
 function rootWordsHtml(words, plain, extra = {}) {
-    return words.map(([text, sep, g], k) => {
+    return words.map(([text, sep, g, form], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
         const between = after ? `<span data-s="${k}">${after}</span>` : "";
         if (!shown.trim()) return shown + between + (extra[k] || "");
+        const f = form ? ` data-f="${form}"` : "";  // a verb's form (verbs.js)
         const word = g === null || g === undefined
-            ? `<span data-k="${k}">${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}">${shown}</span>`;
+            ? `<span data-k="${k}"${f}>${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}"${f}>${shown}</span>`;
         return word + between + (extra[k] || "");
     }).join("");
 }

@@ -92,7 +92,8 @@
             <div class="panel-switch">
               <span class="seg" id="panel-kind">
                 <button class="active" data-pane="roots">Shorashim</button><button data-pane="phrases"
-                  title="Word sequences of the passage that recur: refrains, echoes, idioms">Phrases</button>
+                  title="Word sequences of the passage that recur: refrains, echoes, idioms">Phrases</button><button
+                  data-pane="verbs" title="The verbs' forms: wayyiqtol, qatal, yiqtol, weqatal…">Verbs</button>
               </span>
             </div>
             <div class="panel-pane" data-pane="roots">
@@ -116,6 +117,18 @@
                   title="What a phrase needs to be listed as a refrain, an echo or an idiom">Settings…</button>
               </div>
               <ol class="ph-list" id="phrases-list"></ol>
+            </div>
+            <div class="panel-pane" data-pane="verbs" hidden>
+              <div class="roots-head">
+                <span>Verbs <span id="verbs-count" class="muted"></span></span>
+                <label class="muted" title="Each of OSHB's eleven forms, not seven groups"><input type="checkbox"
+                  id="verbs-all"> all forms</label>
+              </div>
+              <div id="verbs-strip" class="vf-strip"></div>
+              <div class="vf-ends muted"><span id="verbs-last"></span><span id="verbs-first"></span></div>
+              <ol id="verbs-list" class="vf-list"></ol>
+              <p class="muted vf-note">The verbs' forms, as OSHB's morphology codes them, coloured in the text.
+                Click a form to hide or show it.</p>
             </div>
           </aside>
           <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
@@ -329,6 +342,7 @@
 <script src="diagram.js"></script>
 <script src="shorashim.js"></script>
 <script src="phrases.js"></script>
+<script src="verbs.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

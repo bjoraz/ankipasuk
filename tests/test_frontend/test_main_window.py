@@ -151,3 +151,28 @@ def test_the_text_marks_the_masoretic_breaks(main_window):
     line = page.locator('#text-box .tv-line[data-i="4"]')  # 1:5, the first day's petuḥa
     assert "tv-end-p" in line.get_attribute("class") and line.locator(".tv-break").inner_text() == "פ"
     assert page.locator('#text-box .tv-line[data-i="3"] .tv-break').count() == 0
+
+
+def test_the_verbs_pane_counts_the_forms_and_colours_them(main_window):
+    load(main_window, 2, 3, 34)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.wait_for_selector("#text-box .tv-line .w")
+    colour = "getComputedStyle(document.querySelector('#text-box [data-f=\"w\"]')).color"
+    plain = page.evaluate(colour)
+    page.click('#panel-kind [data-pane="verbs"]')
+    page.wait_for_selector("#verbs-list li")
+    kinds = page.locator("#verbs-list li")
+    assert kinds.count() == 7 and kinds.first.locator(".vf-name").inner_text() == "wayyiqtol"
+    total = int(page.locator("#verbs-count").inner_text().strip("()"))
+    counted = sum(int(kinds.nth(i).locator(".vf-n").inner_text()) for i in range(7))
+    assert total == counted == page.locator('#verbs-strip rect[y="0"]').count()  # a block a verb
+    assert page.locator('#verbs-strip rect[y="1.08"]').count() == 7  # a tick a petuḥa: each day
+    assert page.evaluate(colour) != plain  # wayyiqtol coloured in the text
+    kinds.first.click()  # hidden
+    assert page.evaluate(colour) == plain and "off" in kinds.first.get_attribute("class")
+    page.check("#verbs-all")
+    assert page.locator("#verbs-list li").count() == 11
+    page.click('#panel-kind [data-pane="roots"]')  # leaving the pane takes the colours off
+    qatal = "getComputedStyle(document.querySelector('#text-box [data-f=\"p\"]')).color"
+    assert page.evaluate(qatal) == plain

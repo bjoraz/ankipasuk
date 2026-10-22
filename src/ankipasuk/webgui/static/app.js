@@ -408,6 +408,7 @@ async function loadShorashim() {
     currentShorashim = result.ok ? result : null;
     if (!result.ok) console.warn("No shorashim:", result.error);
     renderTextBox();
+    renderVerbsPane();
     loadPhrases();
 }
 
@@ -559,6 +560,45 @@ const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
     renderPhrasesList();  // the picked ones first
 });
+
+// =============================================================
+//  Verbs: the Verbs pane (verbs.js) -- the passage's verb forms, counted
+//  and drawn as a strip; the text's verbs coloured while it's open.
+// =============================================================
+const VERBS_ALL_KEY = "ankipasuk_verbs_all";
+let verbsHidden = new Set(); // kinds hidden (by key), until the kinds change
+
+// "Bereshit 1:1": a loaded pasuq in the app's spelling.
+function pasuqLabel(item) {
+    const label = cachedBookLabels && cachedBookLabels[item.book];
+    return `${label ? label.split(" · ")[0] : item.book} ${item.ch}:${item.vs}`;
+}
+
+function verbsPaneOpen() {
+    return !document.querySelector('#roots-panel .panel-pane[data-pane="verbs"]').hidden;
+}
+
+function verbsAllForms() {
+    return document.getElementById("verbs-all").checked;
+}
+
+function renderVerbsPane() {
+    const box = document.getElementById("text-box");
+    if (!verbsPaneOpen()) {
+        colourVerbs(box, null);
+        return;
+    }
+    const kinds = verbKinds(verbsAllForms());
+    const sequence = verbSequence(currentShorashim ? currentShorashim.verses : []);
+    const breaks = currentVerseData.map((v) => v.breaks || []);
+    document.getElementById("verbs-strip").innerHTML = verbStripHtml(sequence, kinds, verbsHidden, breaks);
+    document.getElementById("verbs-list").innerHTML = verbListHtml(sequence, kinds, verbsHidden);
+    document.getElementById("verbs-count").textContent = sequence.length ? `(${sequence.length})` : "";
+    const ref = (v) => (v === undefined ? "" : pasuqLabel(currentVerseData[v]));
+    document.getElementById("verbs-first").textContent = ref(sequence.length ? sequence[0][0] : undefined);
+    document.getElementById("verbs-last").textContent = ref(sequence.length ? sequence[sequence.length - 1][0] : undefined);
+    colourVerbs(box, kinds, verbsHidden);
+}
 
 // =============================================================
 //  Settings: the phrase tests' thresholds (api.get_settings), in a
@@ -1386,8 +1426,32 @@ window.addEventListener("pywebviewready", async () => {
     });
     segmented(document.getElementById("panel-kind"), (btn) => {
         for (const pane of document.querySelectorAll("#roots-panel .panel-pane")) pane.hidden = pane.dataset.pane !== btn.dataset.pane;
-        document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane === "phrases");
+        document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane !== "roots");
         if (btn.dataset.pane === "phrases") renderPhrasesList();
+        renderVerbsPane();  // colours the verbs, or takes their colours off
+    });
+    const verbsAll = document.getElementById("verbs-all");
+    try { verbsAll.checked = localStorage.getItem(VERBS_ALL_KEY) === "1"; } catch (e) { /* none kept */ }
+    verbsAll.addEventListener("change", () => {
+        try { localStorage.setItem(VERBS_ALL_KEY, verbsAll.checked ? "1" : ""); } catch (e) { /* not kept */ }
+        verbsHidden = new Set();
+        renderVerbsPane();
+    });
+    document.getElementById("verbs-list").addEventListener("click", (e) => {
+        const item = e.target.closest("li[data-kind]");
+        if (!item) return;
+        if (verbsHidden.has(item.dataset.kind)) verbsHidden.delete(item.dataset.kind);
+        else verbsHidden.add(item.dataset.kind);
+        renderVerbsPane();
+    });
+    document.getElementById("verbs-strip").addEventListener("click", (e) => {
+        const svg = e.target.closest("svg");
+        if (!svg || !currentShorashim) return;
+        const sequence = verbSequence(currentShorashim.verses);
+        const r = svg.getBoundingClientRect();
+        const i = Math.min(sequence.length - 1, Math.max(0, Math.floor(((r.right - e.clientX) / r.width) * sequence.length)));
+        const [v, k] = sequence[i];
+        showInText(v, k, (box) => flashElements(box, box.querySelectorAll(`.tv-line[data-i="${v}"] [data-k="${k}"]`)));
     });
     document.getElementById("ph-tabs").addEventListener("click", (e) => {
         const tab = e.target.closest("button[data-kind]");

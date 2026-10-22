@@ -4,7 +4,7 @@ ankipasuk.shorashim (lining OSHB's words up with Sefaria's text)."""
 import pytest
 
 from ankipasuk import shorashim as sh
-from ankipasuk.shorashim_build import Grouper, book_words, parse_lexicon
+from ankipasuk.shorashim_build import Grouper, book_words, parse_lexicon, verb_form
 
 NS = 'xmlns="http://openscriptures.github.com/morphhb/namespace"'
 
@@ -29,7 +29,7 @@ LEXICON = f"""<index {NS}><part>
 
 BOOK = f"""<osis {NS}><osisText><div type="book" osisID="Gen"><chapter osisID="Gen.1">
 <verse osisID="Gen.1.1">
-  <w lemma="b/7225">בְּ/רֵאשִׁ֖ית</w> <w lemma="1254 a">בָּרָ֣א</w> <w lemma="853">אֵ֥ת</w>
+  <w lemma="b/7225">בְּ/רֵאשִׁ֖ית</w> <w lemma="1254 a" morph="HVqp3ms">בָּרָ֣א</w> <w lemma="853">אֵ֥ת</w>
   <w lemma="l">לָ֑/כֶם</w>
 </verse>
 <verse osisID="Gen.1.2">
@@ -58,6 +58,14 @@ def test_words_under_a_root_share_it_and_particles_names_and_rootless_words_stay
     assert by_letters["אברהם"]["kind"] == "name" and by_letters["אברהם"]["label"] == "אַבְרָהָם"
     assert by_letters["מים"]["kind"] == "word" and by_letters["מים"]["gloss"] == "water"
     assert by_letters["לכם"]["kind"] == "particle" and by_letters["לכם"]["label"] == "לְ"
+
+
+def test_a_verb_carries_its_form(built):
+    _grouper, verses = built
+    assert verses["1:1"][1][2:] == [0, "p"]  # בָּרָא: not a qere, a qatal
+    assert len(verses["1:1"][0]) == 2  # בְּרֵאשִׁית: no verb
+    assert [verb_form(m) for m in ("HC/Vqw3ms", "HVqp3ms", "AVqp3ms", "HNcmpa", "HVhv2ms/Sp1cs", "")] == \
+        ["w", "p", "p", None, "v", None]
 
 
 def test_a_qere_follows_its_ketiv_marked(built):

@@ -25,6 +25,8 @@ ta'amim come from [Sefaria](https://www.sefaria.org/).
   glosses and the passage's key words.
 - **Phrases**: the passage's refrains, echoes of other places in the
   Tanakh (each opened in its chapter) and idioms.
+- **Verb forms**: wayyiqtol, qatal, yiqtol and the rest, counted and drawn
+  as a strip of the passage, and coloured in the text.
 - **Statistics**: counts and distributions, the mafsiqim, and pesuqim
   grouped by the shape of their ta'amim.
 
@@ -43,7 +45,7 @@ Each study tool is also a Python function, usable from a script (see
   [Tiqqun cards](#tiqqun-cards) ·
   [Tools that work on your Anki collection](#tools-that-work-on-your-anki-collection-optional)
 - **Studying the text:** [The diagram](#the-diagram) · [Shorashim](#shorashim) ·
-  [Phrases](#phrases) · [Statistics](#statistics)
+  [Phrases](#phrases) · [Verb forms](#verb-forms) · [Statistics](#statistics)
 - [Spelling](#spelling) · [Cache](#cache) · [For developers](#for-developers) · [Credits](#credits)
 
 ## Installing
@@ -585,6 +587,25 @@ God counts as exceptional rather than a formula. Each shows its
 default; a changed one is marked, and **Reset to defaults** puts them all
 back. Saving finds the phrases again, in the statistics window too.
 
+## Verb forms
+
+In the **Text** view, the side panel's **Verbs** pane shows the passage's
+verbs by their form, as OSHB's morphology codes them, in seven groups:
+wayyiqtol, qatal, yiqtol, weqatal, volitive (imperative, jussive,
+cohortative), participle and infinitive. Tick **all forms** to tell all
+eleven apart. Each has its colour and its count, and while the pane is
+open the text's verbs are coloured by it (a coloured shoresh keeps its
+own colour). Click a form to hide or show it.
+
+Above them, a strip draws the passage: a block per verb, in order, the
+first on the right, with a tick below where a Masoretic section ends.
+Click it to go to that verb in the text. Narrative and law look
+different at a glance: Bereshit's verbs are 42% wayyiqtol, Vayyiqra's
+mostly yiqtol and weqatal. The pane shows forms, not what they're taken
+to mean: reading a run of wayyiqtol as a story's mainline, and the rest
+as background, is an interpretation (Longacre's, Niccacci's), not part
+of the data.
+
 ## Statistics
 
 **Statistics** opens a window on whatever is loaded, at your current *N*.
@@ -714,7 +735,7 @@ src/ankipasuk/
 ├── ammud_pages.py       'ammudim as HTML/PDF pages
 ├── diagram_pages.py     the diagram view as HTML/PDF pages
 ├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
-├── shorashim_build.py   making that data, and the phrases', from OSHB (scripts/build_shorashim.py)
+├── shorashim_build.py   making that data (verb forms too), and the phrases', from OSHB (scripts/build_shorashim.py)
 ├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
 ├── sections.py          the Masoretic sections (scripts/build_sections.py makes their data)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
@@ -726,7 +747,7 @@ src/ankipasuk/
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
 ├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
 └── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
-    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, app.js)
+    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, app.js)
 scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
 docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
 ```

@@ -131,7 +131,7 @@ def line_up(sefaria_letters: list[str], oshb_words: list[list]) -> list[int | No
     letters = [sefaria_letters[i] for i in targets]
     for with_qere in (True, False):
         words = list(range(len(oshb_words))) if with_qere \
-            else [k for k, w in enumerate(oshb_words) if len(w) < 3]
+            else [k for k, w in enumerate(oshb_words) if not (len(w) > 2 and w[2])]  # not a qere
         if len(words) == len(letters):
             for i, k in zip(targets, words):
                 result[i] = k
@@ -166,6 +166,13 @@ def _verse_places(book: str, ch: int, vs: int, pointed: str) -> list[list]:
 
 def _group_at(book: str, at: tuple[str, int] | None) -> int | None:
     return None if at is None else _book(book)[at[0]][at[1]][1]
+
+
+def _form_at(book: str, at: tuple[str, int] | None) -> str | None:
+    """The verb form of the OSHB word ``at`` (see
+    :func:`ankipasuk.shorashim_build.verb_form`), or None."""
+    word = None if at is None else _book(book)[at[0]][at[1]]
+    return word[3] if word is not None and len(word) > 3 else None
 
 
 def _unmatched(words: list[list]) -> int:
@@ -215,7 +222,7 @@ def passage(verse_data: list[dict]) -> dict:
     pesuqim) with their groups, and the groups that occur, each with how
     often, and in which pesuqim (by the verse lookup's labels)::
 
-        {"verses": [[[text, sep, group], ...], ...],
+        {"verses": [[[text, sep, group, form], ...], ...],
          "groups": {group: {"label", "display", "kind", "gloss", "words",
                             "count", "verses", "keyness", "ratio"}}}
 
@@ -224,11 +231,11 @@ def passage(verse_data: list[dict]) -> dict:
     table = groups()
     counts: Counter = Counter()
     where: dict[int, list[str]] = {}
-    verses = [[[t, s, _group_at(item["book"], at)] for t, s, at in words]
+    verses = [[[t, s, _group_at(item["book"], at), _form_at(item["book"], at)] for t, s, at in words]
               for item, words in zip(verse_data, lined_up(verse_data))]
     for item, words in zip(verse_data, verses):
         label = f"{item['book']} {item['ch']}:{item['vs']}"
-        for _t, _s, g in words:
+        for _t, _s, g, _f in words:
             if g is None:
                 continue
             counts[g] += 1
