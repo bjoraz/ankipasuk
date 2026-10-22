@@ -74,3 +74,13 @@ def test_the_save_dialog_picks_a_free_name_in_the_exports_folder(tmp_path):
     second = window.create_file_dialog(save_filename="../cards.csv")
     assert first == str(tmp_path / "exports" / "cards.csv")
     assert second == str(tmp_path / "exports" / "cards (2).csv")
+
+
+def test_where_pywebview_cant_open_a_window_the_app_is_served(monkeypatch):
+    import ankipasuk.webgui as webgui
+
+    served = []
+    monkeypatch.setattr(webgui, "opens_windows", lambda: False)
+    monkeypatch.setattr(webgui, "serve", lambda *args: served.append(args) or 0)
+    assert webgui.main([]) == 0
+    assert served and served[0][:2] == ("127.0.0.1", 8770)

@@ -20,7 +20,9 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.31",
-    "pywebview>=5.0",
+    # Not on iOS (a-Shell), where it can't open a window: there the app
+    # is served to a browser instead (ankipasuk --serve).
+    "pywebview>=5.0; platform_system != 'iOS'",
 ]
 
 [project.optional-dependencies]

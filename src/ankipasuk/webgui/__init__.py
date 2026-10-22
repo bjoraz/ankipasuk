@@ -2,7 +2,8 @@
 chrome, but rendered by the OS's own web engine -- WebView2 on Windows,
 WebKitGTK on Linux, WKWebView on macOS) showing the HTML/CSS/JS frontend
 in ``static/``, backed by :class:`ankipasuk.webgui.api.Api`. With
-``--serve``, or where pywebview isn't installed, the same pages are
+``--serve``, or where pywebview isn't installed or can't open a
+window (iOS), the same pages are
 served to a browser instead (see :mod:`ankipasuk.webgui.serve`).
 
 Runs fully offline except for the same Sefaria network calls the app
@@ -23,7 +24,7 @@ from .. import phrases
 from ..cache import default_cache_dir
 from ._webview import webview
 from .api import Api
-from .backend import NoWebViewBackendError, choose_backend
+from .backend import NoWebViewBackendError, choose_backend, opens_windows
 from .serve import DEFAULT_HOST, DEFAULT_PORT, serve
 
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -101,9 +102,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    if args.serve or webview is None:
+    if args.serve or webview is None or not opens_windows():
         if not args.serve:
-            print("pywebview isn't installed, so the app opens in a browser instead.", file=sys.stderr)
+            why = "pywebview isn't installed" if webview is None else "pywebview can't open a window here"
+            print(f"{why}, so the app opens in a browser instead.", file=sys.stderr)
         return serve(args.host, args.port, not args.no_browser, args.exports)
 
     #  Checked before building anything: on Linux the rendering backend is

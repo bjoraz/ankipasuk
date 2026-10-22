@@ -188,6 +188,14 @@ interpreter ({platform.python_version()} at {sys.executable}) -- check you're
 installing into the same environment you're launching from."""
 
 
+def opens_windows() -> bool:
+    """Whether pywebview can open a window here at all: not on iOS (in
+    a-Shell, say), where it installs but ``platform.system()`` is none of
+    the systems it knows. ankipasuk then serves the app to a browser
+    (see .serve) instead."""
+    return platform.system() in ("Windows", "Darwin", "Linux", "OpenBSD")
+
+
 def choose_backend() -> str | None:
     """The backend to hand ``webview.start(gui=...)``, or ``None`` to let
     pywebview decide for itself.

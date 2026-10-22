@@ -105,18 +105,21 @@ changes the port and `--no-browser` leaves the browser closed. Ctrl-C
 stops it.
 
 This is how the app runs on iOS, in [a-Shell](https://holzschu.github.io/a-Shell_iOS/),
-where pywebview can't be installed. Nothing needs installing but
-`requests`; run the app straight from the checkout:
+where pywebview can't open a window. a-Shell's git is `lg2`, and its
+clone lands in `ankipasuk.git`:
 
 ```bash
-git clone https://github.com/bjoraz/ankipasuk.git
-pip install requests
-cd ankipasuk/src
-python -m ankipasuk --serve
+lg2 clone https://github.com/bjoraz/ankipasuk.git
+cd ankipasuk.git
+pip install -e .        # leaves pywebview out on iOS
+ankipasuk
 ```
 
-Without pywebview, `ankipasuk` does this by itself, so `--serve` is
-optional there. iOS pauses a-Shell soon after you switch to another app,
+To update, `lg2 pull`. Without installing, `python -m ankipasuk` from
+`src/` works as well (it needs only `requests`, which a-Shell has).
+
+On iOS, or without pywebview, `ankipasuk` does this by itself, so `--serve`
+is optional there. iOS pauses a-Shell soon after you switch to another app,
 and the server with it, so keep the page in a-Shell's own browser rather
 than Safari. Saved files are in Files, under *On My iPhone › a-Shell ›
 AnkiPasuk*. PDF export needs WeasyPrint, which a-Shell can't install;

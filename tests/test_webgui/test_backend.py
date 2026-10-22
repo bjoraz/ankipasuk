@@ -309,3 +309,10 @@ def test_http_cache_is_cleared_but_saved_settings_are_kept(tmp_path):
 
     assert not (tmp_path / "cache").exists()
     assert (tmp_path / "localstorage" / "settings").read_text() == "kept"
+
+
+@pytest.mark.parametrize("system, expected",
+                         [("Linux", True), ("Darwin", True), ("Windows", True), ("iOS", False)])
+def test_opens_windows_only_where_pywebview_can(monkeypatch, system, expected):
+    monkeypatch.setattr(backend.platform, "system", lambda: system)
+    assert backend.opens_windows() is expected
