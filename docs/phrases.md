@@ -253,25 +253,34 @@ test):
 
 A frame (an *inclusio*) is a unit of the text that opens and closes with
 the same words. The units are the book's Masoretic sections (the
-README's Text view section has where they come from), alone or in runs of
-up to 8 consecutive sections: the whole book is searched, whatever is
-loaded, and a frame is listed when its unit overlaps the passage. A break
-inside a pasuq doesn't end a unit. A book without section data (the
-Ketuvim but the Megillot) has no frames.
+README's Text view section has where they come from):
+
+- a **setuma section**: one section, a setuma at either of its ends;
+- a **petuḥa section**: from a petuḥa to the next, however many setumot
+  it holds (the book's start and end count as petuḥot): Bereshit 2:4–3:21,
+  with setumot after 3:15 and 3:16, or Devarim 22:6–25:16, with 35;
+- a **run** of up to 8 consecutive sections, otherwise.
+
+The whole book is searched, whatever is loaded, and a frame is listed when
+its unit overlaps the passage. A break inside a pasuq doesn't end a unit.
+A book without section data (the Ketuvim but the Megillot) has no frames.
 
 There are two kinds, listed apart:
 
 - **Phrases**: a phrase of the book (as the tests above find them in the
   whole book, formulas left out) that is in the unit's first pasuq and its
-  last. ברא אלהים frames the creation, Bereshit 1:1–2:3; עשות יהוה אלהים,
-  Bereshit 2:4–3:21; Miryam's song closes as the song of the sea opens
+  last. Sections: עשות יהוה אלהים, Bereshit 2:4–3:21; ביום אפו, Eikha 2;
+  שמע ישראל, Devarim 5:1–6:3; each camp of Bemidbar 2 opens and closes with
+  its מחנה. Runs: ברא אלהים frames the creation, Bereshit 1:1–2:3, seven
+  petuḥa sections; Miryam's song closes as the song of the sea opens
   (Shemot 15:1–21).
 - **Words (candidates)**: a rare dictionary word, at most 15 times in the
   book and 4 in the unit, found only near the unit's two ends: in its
   first and its last tenth (at most 5 pesuqim each), at least once in each,
   nowhere between. ילד in Ruth (1:5, Naomi's children lost; 4:16, the
   child in her lap), רוח in Yona (1:4, 4:8), צלם and דמות in Bereshit (1:26
-  and 5:1–3). God's names are left out.
+  and 5:1–3), והארכת ימים around Devarim's laws (22:7, 25:15). God's names
+  are left out.
 
 **The chance** of each is how likely its places in the unit would fall so
 if they were spread at random over the unit's pesuqim:
@@ -285,12 +294,20 @@ if they were spread at random over the unit's pesuqim:
 
 A phrase or word is tried in every unit it could frame, so its best chance
 is multiplied by the number of units tried, and it's kept if that's under
-0.05; for each, its strongest unit is listed. The list is ordered by it.
+0.05; for each, its strongest unit is listed. **The sections come first**:
+a phrase or word is tested on the setuma and petuḥa sections it could
+frame, against their number, and only if it frames none of them, on all
+its units, against all of them. So a section's frame is kept over a
+stronger run's, and is found more easily. The list has the phrases framing
+a section first, then those framing a run, then the words, each in order
+of that chance (times the units).
 
 **Words are candidates**, not findings: about a third of them are the same
-rare word in two neighbouring stories, or two senses of one word. A frame
-shows its unit, its sections and its chance; its ends outside the passage
-are links, each opening the frame's viewer on that pasuq in its chapter.
+rare word in two neighbouring stories, or two senses of one word. Their
+group is folded; click its header to show them. A frame shows its unit,
+what the unit is ("a petuḥa section with 2 setumot", "7 sections") and
+its chance; its ends outside the passage are links, each opening the
+frame's viewer on that pasuq in its chapter.
 
 ## Display
 
@@ -319,6 +336,16 @@ are links, each opening the frame's viewer on that pasuq in its chapter.
     go to its previous or next occurrence in the text (round from the
     last to the first), each flashed; a pasuq loaded twice has one in
     each.
+  - A group of a section (a formula class, the frames' kinds) folds and
+    opens by its header, and stays so.
+  - **The archive.** Hovering over a row shows **archive**: it puts the
+    phrase away, out of every section it's in, in every passage, until
+    it's restored. A phrase is archived by its dictionary words, so in all
+    its wordings; a frame is archived for its book. **Archive (n)**, below
+    the list, lists everything archived, the last first, with the section
+    it was archived from, its pasuq (a frame's unit) and the day, each
+    with **Restore** (and **Restore all**). It's kept with the settings,
+    and the Statistics window shares it.
   - The phrases are found once the shorashim are in. The Tanakh's index
     is built when the app starts, in the background (a second or two).
 - **The viewer.** A place's link opens the phrase's viewer: on the right,

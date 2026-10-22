@@ -148,8 +148,15 @@ def test_frames_are_listed_and_a_picked_one_goes_from_one_end_to_the_other(main_
     show_phrases(main_window)
     page = main_window.page
     page.click('#ph-tabs [data-kind="frame"]')
-    groups = page.locator("#phrases-list li.ph-class").all_text_contents()  # (shown in capitals)
-    assert groups == ["Phrases", "Words (candidates)"]
+    groups = page.locator("#phrases-list .ph-fold")
+    assert [g.get_attribute("data-group") for g in groups.all()] == ["runs", "words"]
+    # The words' frames are folded: shown when their header is clicked, and remembered.
+    assert page.locator("#phrases-list li.ph").count() == 1
+    page.click('#phrases-list .ph-fold[data-group="words"]')
+    words = int(page.locator('#phrases-list .ph-fold[data-group="words"] .ph-class-n').inner_text())
+    assert page.locator("#phrases-list li.ph").count() == 1 + words
+    page.click('#phrases-list .ph-fold[data-group="words"]')
+    assert page.locator("#phrases-list li.ph").count() == 1
     bara = page.locator("#phrases-list li.ph", has=page.locator('.ph-n:text-is("1:1–2:3")')).first
     assert "7 sections" in bara.locator(".ph-meta").inner_text()
     bara.locator(".ph-text").click()
@@ -172,6 +179,45 @@ def test_a_frames_other_end_opens_in_its_chapter(main_window):
     assert "A frame: Bereshit 1:1–2:3" in page.locator(".ph-viewer-sub").inner_text()
     page.wait_for_selector(".ph-vs.hit")
     assert page.locator(".ph-vs.hit .ph-vs-n").inner_text() == "2:3"
+
+
+def test_a_frame_of_a_section_says_which(main_window):
+    load(main_window, 3, 24, 80)  # Bereshit 2:4-3:21, a petuḥa section with two setumot
+    show_phrases(main_window)
+    page = main_window.page
+    page.click('#ph-tabs [data-kind="frame"]')
+    assert page.locator("#phrases-list .ph-fold").first.get_attribute("data-group") == "sections"
+    row = page.locator("#phrases-list li.ph").first
+    assert row.locator(".ph-n").inner_text() == "2:4–3:21"
+    assert "a petuḥa section with 2 setumot" in row.locator(".ph-meta").inner_text()
+
+
+def test_a_phrase_archived_is_gone_until_restored(main_window):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    count = lambda: int(page.locator('#ph-tabs [data-kind="refrain"] .ph-tab-n').inner_text())  # noqa: E731
+    before = count()
+    first = page.locator("#phrases-list li.ph").first
+    pid = first.get_attribute("data-id")
+    underlined = "[...document.querySelectorAll('#text-box [data-k]')].some(e => e.style.boxShadow)"
+    first.locator(".ph-text").click()  # picked: underlined
+    assert page.evaluate(underlined)
+    first.hover()
+    first.locator(".ph-archive").click()
+    page.wait_for_selector(".ph-archive-open")
+    assert page.locator(f'#phrases-list li.ph[data-id="{pid}"]').count() == 0 and count() == before - 1
+    assert page.locator(".ph-archive-open").inner_text() == "Archive (1)"
+    assert not page.evaluate(underlined)  # and no longer picked
+    # Gone from every section it was in, and kept in the archive.
+    page.click(".ph-archive-open")
+    entry = page.locator(".ph-archive-list li.ph")
+    assert entry.count() == 1 and "a refrain" in entry.inner_text() and "here" in entry.inner_text()
+    entry.locator(".ph-restore").click()
+    page.wait_for_selector(".ph-archive-list .ph-none")
+    page.keyboard.press("Escape")
+    assert count() == before and page.locator(f'#phrases-list li.ph[data-id="{pid}"]').count() == 1
+    assert page.locator(".ph-archive-open").count() == 0
 
 
 def test_the_text_marks_the_masoretic_breaks(main_window):

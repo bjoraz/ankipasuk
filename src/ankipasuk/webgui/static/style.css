@@ -278,7 +278,28 @@ body.sidebar-collapsed .sidebar { display: none; }
 .ph-rare { font-size: 10px; color: #8d6e63; border: 1px solid #e0d6d0; border-radius: 3px; padding: 0 3px; margin-left: 4px; }
 .ph-class { padding: 8px 10px 3px; font-size: 11px; color: #78909c; font-weight: 600; text-transform: uppercase;
             letter-spacing: 0.04em; cursor: default; }
+.ph-fold { cursor: pointer; }
+.ph-fold::before { content: "▸"; display: inline-block; width: 1em; color: #90a4ae; }
+.ph-fold.open::before { content: "▾"; }
+.ph-fold:hover { color: #455a64; }
+.ph-class-n { font-weight: normal; color: #90a4ae; margin-left: 3px; }
 .ph-none { padding: 10px; color: #90a4ae; font-size: 12px; }
+/* A row's archive button, shown on the row's hover; the archive's link
+   below the list, and the archive itself. */
+.ph-archive { visibility: hidden; margin-left: 6px; padding: 0 5px; font-size: 10px; line-height: 1.5; color: #78909c;
+              background: white; border: 1px solid #dfe5e8; border-radius: 3px; }
+.ph:hover .ph-archive, .ph-archive:focus-visible { visibility: visible; }
+.ph-archive:hover { color: #37474f; border-color: #b0bec5; }
+.ph-archived { padding: 8px 10px; font-size: 11px; text-align: center; }
+.ph-archived button { font-size: 11px; }
+.ph-viewer.ph-archive-box { width: min(640px, calc(100vw - 40px)); height: auto; max-height: min(640px, calc(100vh - 40px)); }
+.ph-archive-title { font-size: 17px; font-weight: 600; color: #37474f; }
+.ph-archive-list { flex: 1; overflow-y: auto; }
+.ph-archive-list .ph { cursor: default; }
+.ph-restore { margin-left: 6px; padding: 0 7px; font-size: 11px; line-height: 1.5; }
+.ph-here-tag { color: var(--accent); }
+.ph-archive-foot { padding: 8px 18px; border-top: 1px solid #eceff1; text-align: right; font-size: 12px; }
+.ph-archive-foot button { font-size: 12px; }
 .ph-more { padding: 7px 10px; text-align: center; }
 .ph-more button { font-size: 12px; }
 .ph-head { display: flex; align-items: baseline; gap: 8px; padding-right: 10px; border-bottom: 1px solid #f0f0f0; }

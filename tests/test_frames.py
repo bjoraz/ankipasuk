@@ -27,22 +27,42 @@ def frame(book, first, last, *strong):
                 if (f["first"], f["last"]) == (first, last) and words(f) == list(strong))
 
 
-def test_units_are_runs_of_sections():
-    keys = keys_of("Genesis")
-    units = fr.units("Genesis", keys)
-    days = [(keys[a], keys[b], n) for a, b, n in units if a == 0]
+def named(book):
+    keys = keys_of(book)
+    return [(keys[a], keys[b], n, kind) for a, b, n, kind in fr.units(book, keys)]
+
+
+def test_units_are_sections_petuha_sections_and_runs():
+    units = named("Genesis")
+    days = [u for u in units if u[0] == "1:1"]
     # Bereshit 1:1 starts the first day; each day ends with a petuḥa, the seventh at 2:3.
-    assert days[:2] == [("1:1", "1:5", 1), ("1:1", "1:8", 2)]
-    assert ("1:1", "2:3", 7) in days and len(days) == fr.MAX_SECTIONS
-    assert all(b >= a for a, b, _n in units)
+    assert days[:2] == [("1:1", "1:5", 1, "petuha"), ("1:1", "1:8", 2, "run")]
+    assert ("1:1", "2:3", 7, "run") in days and len(days) == fr.MAX_SECTIONS
+    # 2:4 to the petuḥa at 3:21, with setumot after 3:15 and 3:16.
+    assert ("2:4", "3:21", 3, "petuha") in units and ("2:4", "3:15", 1, "setuma") in units
+    assert ("3:16", "3:16", 1, "setuma") in units and ("2:4", "3:16", 2, "run") in units
+    # A petuḥa section is one however many setumot it holds: Devarim's laws.
+    assert ("22:6", "25:16", 36, "petuha") in named("Deuteronomy")
 
 
 def test_bereshit_1_is_framed_by_bara_elohim():
     f = frame("Genesis", "1:1", "2:3", CREATE, GOD)
-    assert f["word"] is False and f["sections"] == 7
+    assert f["word"] is False and (f["sections"], f["unit"]) == (7, "run")
     # In 4 of the unit's 34 pesuqim (1:1, 1:21, 1:27, 2:3): by chance, the
     # first and the last both among them in 4·3 of the 34·33 ways.
     assert f["chance"] == 4 * 3 / (34 * 33)
+
+
+def test_the_sections_frames_come_first():
+    # Eikha 2 opens and closes with בְּיוֹם אַפּוֹ (2:1, 2:22); each camp of
+    # Bemidbar 2 with its מַחֲנֵה; Bemidbar 30's vows with what YHWH commanded.
+    assert frame("Lamentations", "2:1", "2:22", "3117", "639")["unit"] == "petuha"
+    assert frame("Numbers", "2:10", "2:16", "4264", "7205")["unit"] == "setuma"
+    assert frame("Numbers", "30:2", "30:17", "6680", "3068")["unit"] == "petuha"
+    for book in ("Genesis", "Numbers"):
+        units = [f["unit"] for f in fr.book_frames(book)]
+        first_run = units.index("run")
+        assert first_run > 0 and all(u == "run" for u in units[first_run:])
 
 
 def test_rare_words_framing_a_unit():
@@ -76,10 +96,11 @@ def test_frames_where_the_passage_touches_their_unit():
     loaded = pesuqim("Genesis", 1, 1, 31) + pesuqim("Genesis", 2, 1, 3)
     out = fr.add_to(ph.passage(loaded), loaded)
     groups = dict(out["sections"]["frame"])
-    assert set(groups) == {"phrases", "words"}
-    bara = next(out["phrases"][i] for i in groups["phrases"]
+    assert set(groups) == {"runs", "words"}  # (no section here has a phrase's frame)
+    bara = next(out["phrases"][i] for i in groups["runs"]
                 if out["phrases"][i]["frame"]["first"] == "Bereshit 1:1")
     assert bara["kinds"] == ["frame"] and bara["frame"]["last"] == "Bereshit 2:3"
+    assert bara["key"] == f"frame Genesis {CREATE} {GOD}" and bara["frame"]["unit"] == "run"
     assert sorted(v for v, *_ in bara["spans"]) == [0, 33] and bara["places"] == []  # both ends here
 
     # Only its first day loaded: its other end is a place, to read in its chapter.

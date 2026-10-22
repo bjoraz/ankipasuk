@@ -892,6 +892,38 @@ def test_get_phrases_gives_sections_and_marks(genesis_1_1, genesis_1_2):
     assert listed and all(result["phrases"][i]["marks"] for i in listed)
 
 
+def test_an_archived_phrase_is_kept_until_restored(tmp_path, genesis_1_1, genesis_1_2):
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+                               {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
+
+    told = []
+
+    class Window:  # an open statistics window, and the main one
+        def __init__(self, name):
+            self.name = name
+
+        def evaluate_js(self, script):
+            told.append((self.name, script))
+
+    api._window, api._stats_windows = Window("main"), [Window("stats")]
+    result = api.get_phrases()
+    assert result["archive"] == []
+    pid = result["sections"]["echo"][0]
+    key = result["phrases"][pid]["key"]
+    out = api.archive_phrase(pid, "echo")
+    assert out["ok"] is True and [e["key"] for e in out["archive"]] == [key]
+    (entry,) = out["archive"]
+    assert entry["kind"] == "echo" and entry["where"].startswith("Bereshit 1:") and entry["text"]
+    assert told == [("stats", "phraseArchiveChanged()")]  # not the window that archived it
+    # Kept: another session, and every passage, has it.
+    assert Settings(cache_dir=tmp_path).get("phrase_archive") == out["archive"]
+    assert api.get_phrases()["archive"] == out["archive"]
+    assert api.restore_phrases([key]) == {"ok": True, "archive": []}
+    assert Settings(cache_dir=tmp_path).get("phrase_archive") == []
+
+
 def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1, genesis_1_2):
     from dataclasses import asdict
 

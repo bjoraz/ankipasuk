@@ -574,6 +574,14 @@ def letters(c: Corpus, j: int, n: int) -> list[str]:
     return out
 
 
+def phrase_key(c: Corpus, j: int, n: int) -> str:
+    """Tokens ``[j, j + n)`` as their dictionary words, the same wherever
+    and however they're written, and from one build of the data to the
+    next: their Strong's numbers ("1254 430"), or for a preposition with a
+    suffix, which has none, its letter (לָהֶם, "ל")."""
+    return " ".join(c.strong[t] or letters(c, t, 1)[0][:1] for t in range(j, j + n))
+
+
 def ref(c: Corpus, j: int, n: int) -> str:
     """Where tokens ``[j, j + n)`` are, in the app's spelling: "Yirmeyahu
     4:23", "Shemot 20:2-6"."""
@@ -649,13 +657,14 @@ class Placer:
 def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
     """The loaded pesuqim's phrases, for the Text view and Statistics::
 
-        {"phrases": [{"id", "kinds", "formula", "exceptional", "text",
+        {"phrases": [{"id", "key", "kinds", "formula", "exceptional", "text",
                       "here", "total", "elsewhere", "places", "chapters",
                       "books", "marks", "spans", "verses", "children"}, ...],
          "sections": {"refrain": [id, ...], "echo": [...], "idiom": [...],
                       "formula": [[class, [id, ...]], ...]}}
 
-    ``kinds`` are the sections a phrase is in (none for a formula,
+    ``key`` is its dictionary words (:func:`phrase_key`); ``kinds`` are
+    the sections a phrase is in (none for a formula,
     ``formula`` naming its class); ``exceptional``, why a title of God
     isn't one ("rare", "here": :func:`_exceptional`). ``text`` is its first occurrence here, in the loaded
     text; ``marks`` every word of its occurrences here, as ``[pasuq,
@@ -686,7 +695,8 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
                 seen.add(c.where[j])
                 places.append({"ref": ref(c, j, n), "at": j, "length": n})
         entries.append({
-            "id": i, "kinds": r["kinds"] if not r["formula"] else [], "formula": r["formula"],
+            "id": i, "key": phrase_key(c, r["start"], n),
+            "kinds": r["kinds"] if not r["formula"] else [], "formula": r["formula"],
             "exceptional": r["exceptional"], "text": text, "here": len(r["here"]),
             "total": len(r["occurrences"]),
             "elsewhere": len(places), "places": places[:30],

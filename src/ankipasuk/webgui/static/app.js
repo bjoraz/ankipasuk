@@ -556,7 +556,27 @@ function flashSpan(box, [v, k, v2, k2]) {
 const phraseCalls = {
     verses: (id) => api().get_phrase_verses(id),
     context: (id, place) => api().get_phrase_context(id, place),
+    archive: (id, kind) => api().archive_phrase(id, kind),
+    restore: (keys) => api().restore_phrases(keys),
 };
+
+// A phrase archived is no longer picked.
+function unpickPhrase(p) {
+    if (phraseMarks.colours.has(p.id)) phraseMarks.toggle(p.id);
+    phraseAt.delete(p.id);
+}
+
+// The archive changed in another window (api._on_archive).
+async function phraseArchiveChanged() {
+    if (!currentPhrases || currentPhrases.error) return;
+    currentPhrases.archive = await api().get_phrase_archive();
+    const archived = phraseArchived(currentPhrases);
+    for (const id of [...phraseMarks.colours.keys()]) {
+        if (archived.has(currentPhrases.phrases[id].key)) unpickPhrase(currentPhrases.phrases[id]);
+    }
+    renderPhrasesList();
+    if (phraseArchiveDialog && phraseArchiveDialog.result === currentPhrases) phraseArchiveDialog.render();
+}
 
 const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
@@ -1466,11 +1486,8 @@ window.addEventListener("pywebviewready", async () => {
     // first occurrence in view, or else the first); its arrows go from one
     // occurrence to the next; a place opens its viewer.
     document.getElementById("phrases-list").addEventListener("click", (e) => {
-        if (e.target.closest(".ph-more button")) {
-            togglePhrasesAll(phraseKind);
-            renderPhrasesList();
-            return;
-        }
+        if (currentPhrases && !currentPhrases.error
+            && phrasePaneClick(e, currentPhrases, phraseKind, phraseCalls, renderPhrasesList, unpickPhrase)) return;
         const item = e.target.closest("li.ph");
         if (!item) return;
         const p = currentPhrases.phrases[Number(item.dataset.id)];

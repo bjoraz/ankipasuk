@@ -3,9 +3,11 @@
 //  in sections -- refrains, echoes, idioms, and formulas set apart.
 //  Shared by the main window's Text view and the statistics window: the
 //  section tabs and lists (renderPhrasePane), and a phrase's viewer
-//  (openPhraseViewer). A phrase is {id, kinds, formula, exceptional, text,
-//  here, total, places: [{ref}], chapters, books, marks: [[pasuq, word]],
-//  verses}.
+//  (openPhraseViewer), and the archive (openPhraseArchive). A phrase is
+//  {id, key, kinds, formula, exceptional, text, here, total, places:
+//  [{ref}], chapters, books, marks: [[pasuq, word]], verses}; a frame has
+//  its frame too. An archived phrase (its key in the result's archive) is
+//  left out everywhere until it's restored.
 // =============================================================
 
 function plural(n, one, many = `${one}s`) {
@@ -25,10 +27,12 @@ const PHRASE_SECTIONS = [
     ["formula", "Formulas", (n) => `${plural(n, "formula")}: phrases that only frame (who speaks, a name, a number, `
         + "God's names)."],
     ["frame", "Frames", (n) => `${plural(n, "frame")}: units of Masoretic sections that open and close with the same `
-        + "words. A single word's frame is a candidate: some are chance."],
+        + "words, a single section or a petuḥa section first. A single word's frame is a candidate: some are chance."],
 ];
-const PHRASE_GROUPS = { phrases: "Phrases", words: "Words (candidates)" }; // a frame section's groups
-const PHRASE_KIND_NAMES = { refrain: "a refrain", echo: "an echo", idiom: "an idiom" };
+// A frame section's groups (a formula's are its classes).
+const PHRASE_GROUPS = { sections: "Phrases: a section", runs: "Phrases: a run of sections", words: "Words (candidates)" };
+const PHRASE_KIND_NAMES = { refrain: "a refrain", echo: "an echo", idiom: "an idiom", formula: "a formula",
+                            frame: "a frame" };
 
 // A long phrase shortened: its first words … its last, and how many.
 function phraseShort(text, max = 9) {
@@ -40,9 +44,43 @@ function phraseShort(text, max = 9) {
 // Formulas and frames come in groups: [[name, ids], ...].
 const PHRASE_GROUPED = new Set(["formula", "frame"]);
 
-function phraseCount(result, kind) {
+// The keys of the archived phrases.
+function phraseArchived(result) {
+    return new Set((result.archive || []).map((e) => e.key));
+}
+
+// A section's phrases, by id, the archived left out: a list, or for
+// formulas and frames, [[group, ids], ...] (its empty groups left out).
+function phraseSection(result, kind, archived = phraseArchived(result)) {
+    const live = (ids) => ids.filter((id) => !archived.has(result.phrases[id].key));
     const section = result.sections[kind] || [];
+    return PHRASE_GROUPED.has(kind) ? section.map(([name, ids]) => [name, live(ids)]).filter(([, ids]) => ids.length)
+        : live(section);
+}
+
+function phraseCount(result, kind, archived) {
+    const section = phraseSection(result, kind, archived);
     return PHRASE_GROUPED.has(kind) ? section.reduce((n, [, ids]) => n + ids.length, 0) : section.length;
+}
+
+// Groups folded unless opened (words' frames), and those the user folded
+// or opened: remembered.
+const PHRASE_FOLDED = new Set(["frame:words"]);
+const PHRASE_GROUPS_KEY = "ankipasuk_phrase_groups";
+const phraseGroupsFlipped = new Set((() => {
+    try { return JSON.parse(localStorage.getItem(PHRASE_GROUPS_KEY) || "[]"); } catch (e) { return []; }
+})());
+
+function phraseGroupOpen(kind, name) {
+    const key = `${kind}:${name}`;
+    return PHRASE_FOLDED.has(key) === phraseGroupsFlipped.has(key);
+}
+
+function togglePhraseGroup(kind, name) {
+    const key = `${kind}:${name}`;
+    if (phraseGroupsFlipped.has(key)) phraseGroupsFlipped.delete(key);
+    else phraseGroupsFlipped.add(key);
+    try { localStorage.setItem(PHRASE_GROUPS_KEY, JSON.stringify([...phraseGroupsFlipped])); } catch (e) { /* not kept */ }
 }
 
 // A frame's unit: "1:1–2:3", or with its book, "Bereshit 1:1–2:3".
@@ -57,13 +95,23 @@ function oneIn(chance) {
     return `1 in ${n.toLocaleString("en")}`;
 }
 
+// What a frame's unit is: a single section, a petuḥa section (from one
+// petuḥa to the next, setumot between), or a run of sections.
+function frameUnitText(f) {
+    if (f.unit === "setuma") return "a setuma section";
+    if (f.unit === "petuha") {
+        return f.sections === 1 ? "a petuḥa section" : `a petuḥa section with ${plural(f.sections - 1, "setuma", "setumot")}`;
+    }
+    return plural(f.sections, "section");
+}
+
 // One line about a phrase, for its viewer: "An echo · once here · 2 in
 // the Tanakh · also an idiom".
 function phraseSummary(p, kind) {
     if (kind === "frame") {
         const f = p.frame;
         return [`${f.word ? "A word's frame, a candidate" : "A frame"}: ${frameSpan(f, true)}`,
-                plural(f.sections, "section"), `${oneIn(f.chance)} by chance`].join(" · ");
+                frameUnitText(f), `${oneIn(f.chance)} by chance`].join(" · ");
     }
     const what = kind === "formula" ? `A formula (${p.formula})` : PHRASE_KIND_NAMES[kind].replace(/^a/, "A");
     const parts = [what, p.here === 1 ? "once here" : `${p.here} times here`, `${p.total} in the Tanakh`];
@@ -97,8 +145,11 @@ function phraseRowHtml(p, kind, lastPicked = false) {
     return `<li class="ph${lastPicked ? " last-picked" : ""}" data-id="${p.id}">`
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
         + `<div class="ph-meta"><span class="ph-n" title="Times in these pesuqim">${p.here}×</span>`
-        + (where ? ` · ${where}` : "") + rare + "</div></li>";
+        + (where ? ` · ${where}` : "") + rare + PHRASE_ARCHIVE_BUTTON + "</div></li>";
 }
+
+const PHRASE_ARCHIVE_BUTTON = ' <button type="button" class="ph-archive" title="Put it in the archive: hidden here '
+    + 'and in every passage, in all its sections, until you restore it">archive</button>';
 
 // A frame in its list: its words, then its unit, its chance, and its ends
 // that aren't loaded (links to the viewer).
@@ -109,8 +160,8 @@ function frameRowHtml(p, lastPicked) {
     return `<li class="ph${lastPicked ? " last-picked" : ""}" data-id="${p.id}">`
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
         + `<div class="ph-meta"><span class="ph-n" title="${diagramEscape(frameSpan(f, true))}">${frameSpan(f)}</span>`
-        + ` · ${plural(f.sections, "section")} · <span title="How likely by chance">${oneIn(f.chance)}</span>`
-        + (ends ? ` · also ${ends}` : "") + "</div></li>";
+        + ` · ${frameUnitText(f)} · <span title="How likely by chance">${oneIn(f.chance)}</span>`
+        + (ends ? ` · also ${ends}` : "") + PHRASE_ARCHIVE_BUTTON + "</div></li>";
 }
 
 // A section shows its first few phrases (the strongest: each is ranked),
@@ -129,18 +180,20 @@ function togglePhrasesAll(kind) {
 
 // The tabs, the picked section's line, and its list, into ``els`` ({tabs,
 // about, list}), from ``result`` (the bridge's get_phrases): ``first``, the
-// phrases picked (in the order picked), above the rest. A click on the
-// list's last row (.ph-more) is for togglePhrasesAll.
+// phrases picked (in the order picked), above the rest; a group's header
+// folds it. Below, the archive, if anything is in it. Clicks on these
+// are for phrasePaneClick.
 function renderPhrasePane(result, kind, els, first = []) {
+    const archived = phraseArchived(result);
     els.tabs.innerHTML = PHRASE_SECTIONS.map(([k, name]) =>
         `<button type="button" data-kind="${k}"${k === kind ? ' class="active"' : ""}>${name}`
-        + `<span class="ph-tab-n">${phraseCount(result, k)}</span></button>`).join("");
+        + `<span class="ph-tab-n">${phraseCount(result, k, archived)}</span></button>`).join("");
     const [, , about] = PHRASE_SECTIONS.find(([k]) => k === kind);
-    const n = phraseCount(result, kind);
-    els.about.textContent = about(n, result.thresholds);
+    els.about.textContent = about(phraseCount(result, kind, archived), result.thresholds);
     const P = result.phrases;
-    const groups = result.sections[kind] || [];
-    const section = PHRASE_GROUPED.has(kind) ? groups.flatMap(([, ids]) => ids) : groups;
+    const grouped = PHRASE_GROUPED.has(kind);
+    const groups = phraseSection(result, kind, archived);
+    const section = grouped ? groups.flatMap(([, ids]) => ids) : groups;
     const inSection = new Set(section);
     const top = first.filter((id) => inSection.has(id));
     const shown = new Set(top);
@@ -151,15 +204,124 @@ function renderPhrasePane(result, kind, els, first = []) {
         room -= taken.length;
         return taken;
     };
-    const rows = PHRASE_GROUPED.has(kind)
-        ? groups.map(([name, ids]) => [name, take(ids)]).filter(([, ids]) => ids.length)
-            .map(([name, ids]) => `<li class="ph-class">${diagramEscape(PHRASE_GROUPS[name] || name)}</li>`
-                + ids.map((id) => phraseRowHtml(P[id], kind)).join("")).join("")
+    // Rows that could show: those of the open groups.
+    const n = grouped ? groups.filter(([name]) => phraseGroupOpen(kind, name)).reduce((m, [, ids]) => m + ids.length, 0)
+        : section.length;
+    const rows = grouped
+        ? groups.map(([name, ids]) => {
+            const open = phraseGroupOpen(kind, name);
+            const taken = open ? take(ids) : [];
+            if (open && !taken.length) return "";  // (no room: Show all)
+            return `<li class="ph-class ph-fold${open ? " open" : ""}" data-group="${diagramEscape(name)}" `
+                + `title="${open ? "Fold" : "Show"} them">${diagramEscape(PHRASE_GROUPS[name] || name)}`
+                + ` <span class="ph-class-n">${ids.length}</span></li>`
+                + taken.map((id) => phraseRowHtml(P[id], kind)).join("");
+        }).join("")
         : take(groups).map((id) => phraseRowHtml(P[id], kind)).join("");
     const more = n <= PHRASES_SHOWN ? ""
         : `<li class="ph-more"><button type="button" class="link">${phrasesAll.has(kind)
             ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n}`}</button></li>`;
-    els.list.innerHTML = (topRows + rows || '<li class="ph-none">None here.</li>') + more;
+    const all = result.sections[kind] || [];
+    const here = (grouped ? all.flatMap(([, ids]) => ids) : all).filter((id) => archived.has(P[id].key)).length;
+    const archive = archived.size
+        ? `<li class="ph-archived"><button type="button" class="link ph-archive-open" title="The phrases you archived: `
+            + `restore any of them">Archive (${archived.size})</button>`
+            + (here ? `<span class="muted"> · ${here} from this section</span>` : "") + "</li>"
+        : "";
+    els.list.innerHTML = (topRows + rows || '<li class="ph-none">None here.</li>') + more + archive;
+}
+
+// The list's own clicks, the same in both windows: Show all, a group's
+// header, a row's archive button, and the archive. True if it was one.
+// ``calls`` are the bridge's: {archive(id, kind), restore(keys)}; then
+// ``redraw()``, after ``archived(phrase)`` for one just archived.
+function phrasePaneClick(e, result, kind, calls, redraw, archived = () => {}) {
+    if (e.target.closest(".ph-more button")) {
+        togglePhrasesAll(kind);
+        redraw();
+        return true;
+    }
+    const fold = e.target.closest(".ph-fold");
+    if (fold) {
+        togglePhraseGroup(kind, fold.dataset.group);
+        redraw();
+        return true;
+    }
+    if (e.target.closest(".ph-archive-open")) {
+        openPhraseArchive(result, calls, redraw);
+        return true;
+    }
+    const button = e.target.closest(".ph-archive");
+    if (!button) return false;
+    const p = result.phrases[Number(button.closest("li.ph").dataset.id)];
+    calls.archive(p.id, kind).then((r) => {
+        if (!r.ok) return phraseArchiveError(r.error);
+        result.archive = r.archive;
+        archived(p);
+        redraw();
+    });
+    return true;
+}
+
+function phraseArchiveError(error) {
+    if (typeof showToast === "function") showToast(error, true);
+    else console.error(error);
+}
+
+// The archive, over the window: every archived phrase, the last first,
+// each with its section, its pasuq and when, and a button to restore it
+// (those in this passage marked "here"). ``calls`` as phrasePaneClick's;
+// ``redraw()`` after a phrase is restored. phraseArchiveChanged (in each
+// window) has it show what another window did.
+let phraseArchiveDialog = null; // {result, render}, while it's open
+function openPhraseArchive(result, calls, redraw) {
+    if (phraseArchiveDialog) phraseArchiveDialog.close();
+    const overlay = document.createElement("div");
+    overlay.className = "ph-viewer-overlay";
+    overlay.innerHTML = '<div class="ph-viewer ph-archive-box" role="dialog" aria-modal="true">'
+        + '<header class="ph-viewer-head"><div class="ph-archive-title">Archive</div>'
+        + '<div class="ph-viewer-sub">The phrases you archived, the last first. Each is left out of every passage '
+        + 'until you restore it.</div>'
+        + '<button type="button" class="ph-viewer-close" title="Close (Esc)">×</button></header>'
+        + '<ol class="ph-list ph-archive-list"></ol>'
+        + '<footer class="ph-archive-foot"><button type="button" class="link ph-restore-all">Restore all</button></footer>'
+        + "</div>";
+    document.body.appendChild(overlay);
+    const list = overlay.querySelector(".ph-archive-list");
+    const render = () => {
+        const here = new Set(dialog.result.phrases.map((p) => p.key));
+        const archive = dialog.result.archive || [];
+        list.innerHTML = archive.map((e) => `<li class="ph" data-key="${diagramEscape(e.key)}">`
+            + `<div class="ph-text" dir="rtl">${diagramEscape(phraseShort(e.text || ""))}</div>`
+            + `<div class="ph-meta">${diagramEscape(PHRASE_KIND_NAMES[e.kind] || e.kind)}`
+            + (e.where ? ` · ${diagramEscape(e.where)}` : "") + (e.date ? ` · archived ${diagramEscape(e.date)}` : "")
+            + (here.has(e.key) ? ' · <span class="ph-here-tag">here</span>' : "")
+            + ' <button type="button" class="ph-restore">Restore</button></div></li>').join("")
+            || '<li class="ph-none">Nothing is archived.</li>';
+        overlay.querySelector(".ph-restore-all").hidden = archive.length < 2;
+    };
+    const restore = (keys) => calls.restore(keys).then((r) => {
+        if (!r.ok) return phraseArchiveError(r.error);
+        dialog.result.archive = r.archive;
+        render();
+        redraw();
+    });
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    const close = () => {
+        overlay.remove();
+        document.removeEventListener("keydown", onKey);
+        phraseArchiveDialog = null;
+    };
+    const dialog = { result, render, close };
+    phraseArchiveDialog = dialog;
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay || e.target.closest(".ph-viewer-close")) close();
+        const one = e.target.closest(".ph-restore");
+        if (one) restore([one.closest("li").dataset.key]);
+        if (e.target.closest(".ph-restore-all")) restore((dialog.result.archive || []).map((x) => x.key));
+    });
+    render();
 }
 
 // Words ([text, separator, (group,) marked]) as HTML, each run of marked

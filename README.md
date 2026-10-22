@@ -561,11 +561,13 @@ In the **Text** view, switch the side panel from **Shorashim** to
   אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
   the title is rare (אל שדי, 8 times in the Tanakh) or mostly in the
   passage (אדני יהוה in all of Yeḥezqel).
-- **Frames**: runs of the book's Masoretic sections that open and close
-  with the same words, an *inclusio*: ברא אלהים, Bereshit 1:1–2:3. The
-  whole book is searched; a frame shows if its unit reaches the passage,
-  with its chance. A rare word at both ends, and nowhere between, is
-  listed too, as a candidate: ילד in Ruth (1:5, 4:16), רוח in Yona.
+- **Frames**: the book's Masoretic sections that open and close with the
+  same words, an *inclusio*. A single section or a petuḥa section (from
+  one petuḥa to the next, setumot and all) comes first: עשות יהוה אלהים,
+  Bereshit 2:4–3:21; then runs of sections: ברא אלהים, Bereshit 1:1–2:3.
+  The whole book is searched; a frame shows if its unit reaches the
+  passage, with its chance. A rare word at both ends, and nowhere between,
+  is listed too, as a candidate, folded: ילד in Ruth (1:5, 4:16).
 
 One section shows at a time, by its tab, with its 12 strongest phrases
 first; **Show all** lists the rest, and the app remembers which sections
@@ -578,8 +580,11 @@ flashed. Under
 each phrase are the places it shares (for an echo) or how many other
 pesuqim have it; click one to open the phrase's viewer: its pesuqim here
 on one side, and on the other the place in its whole chapter, fetched from
-Sefaria, the pasuq tinted and the phrase marked. The statistics window has
-the same sections in its **Phrases** tab, a row opening the same viewer.
+Sefaria, the pasuq tinted and the phrase marked. A phrase that's wrong, or
+that you don't need for now, can be archived (hover over its row): it's
+left out of every passage until you restore it from **Archive**, below the
+list. The statistics window has the same sections in its **Phrases** tab,
+a row opening the same viewer.
 
 Phrases go by dictionary word, so the same words in different forms are
 the same phrase. They can be any length, and are found across the whole

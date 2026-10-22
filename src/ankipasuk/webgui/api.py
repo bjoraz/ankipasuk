@@ -551,12 +551,21 @@ class Api(PhraseApi):
             self._settings.set("phrases", {k: v for k, v in phrases.items() if v != defaults[k]})
         except OSError as e:
             return {"ok": False, "error": f"Couldn't save the settings: {e}"}
-        for window in list(self._stats_windows):
+        self._run_in_windows("loadPhrases()", self._stats_windows)
+        return {"ok": True, "phrases": phrases}
+
+    def _run_in_windows(self, script: str, windows) -> None:
+        for window in list(windows):
             try:
-                window.evaluate_js("loadPhrases()")
+                window.evaluate_js(script)
             except Exception:  # noqa: BLE001 -- closing as we speak
                 traceback.print_exc()
-        return {"ok": True, "phrases": phrases}
+
+    def _on_archive(self, source: PhraseApi) -> None:
+        """The phrase archive changed in ``source``'s window (this one's or
+        a statistics window's): the others show it as it is now."""
+        self._run_in_windows("phraseArchiveChanged()", [w for w in (self._window, *self._stats_windows)
+                                                        if w is not None and w is not source._window])
 
     # =============================================================
     #  Cloze export straight to Anki (AnkiConnect)
@@ -944,6 +953,7 @@ class Api(PhraseApi):
         font = self.get_tikkun_font_css()
         stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "",
                              cache=self._cache, settings=self._settings)
+        stats_api._on_archive = self._on_archive
         window = webview.create_window(
             "Statistics",
             str(_STATIC_DIR / "stats.html"),
