@@ -39,7 +39,7 @@ def test_phrases_are_listed_by_section_and_a_picked_one_steps_through_the_text(m
     show_phrases(main_window)
     page = main_window.page
     tabs = main_window.texts("#ph-tabs button")
-    assert [t.split("\n")[0] for t in tabs] == ["Refrains", "Echoes", "Idioms", "Formulas"]
+    assert [t.split("\n")[0] for t in tabs] == ["Refrains", "Echoes", "Idioms", "Formulas", "Frames"]
     first = page.locator("#phrases-list li.ph").first
     assert first.locator(".ph-n").inner_text() == "6×"  # ויהי ערב ויהי בקר יום
     first.locator(".ph-text").click()
@@ -141,6 +141,35 @@ def test_a_picked_phrase_moves_to_the_top_with_where_it_is(main_window):
     assert page.locator("#phrases-list li.ph").first.locator(".spark").count() == 1
     page.locator("#phrases-list li.ph").first.locator(".ph-text").click()  # unpicked: back in its place
     assert ids()[:4] == before[:4] and page.locator("#phrases-list .spark").count() == 0
+
+
+def test_frames_are_listed_and_a_picked_one_goes_from_one_end_to_the_other(main_window):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    page.click('#ph-tabs [data-kind="frame"]')
+    groups = page.locator("#phrases-list li.ph-class").all_text_contents()  # (shown in capitals)
+    assert groups == ["Phrases", "Words (candidates)"]
+    bara = page.locator("#phrases-list li.ph", has=page.locator('.ph-n:text-is("1:1–2:3")')).first
+    assert "7 sections" in bara.locator(".ph-meta").inner_text()
+    bara.locator(".ph-text").click()
+    assert bara.locator(".ph-pos").inner_text() == "1/2"  # its two ends, 1:1 and 2:3
+    bara.locator('[data-jump="1"]').click()
+    assert bara.locator(".ph-pos").inner_text() == "2/2"
+    page.wait_for_selector('#text-box .tv-line[data-i="33"] .ph-flash[data-k]')  # 2:3, its last pasuq
+    assert in_view(main_window, '#text-box .tv-line[data-i="33"]', "#text-box")
+
+
+def test_a_frames_other_end_opens_in_its_chapter(main_window):
+    load(main_window, 1, 5, 5)
+    show_phrases(main_window)
+    page = main_window.page
+    page.click('#ph-tabs [data-kind="frame"]')
+    bara = page.locator("#phrases-list li.ph", has=page.locator('.ph-n:text-is("1:1–2:3")')).first
+    bara.locator(".ph-place").click()
+    page.wait_for_selector(".ph-viewer .ph-there h4")
+    assert page.locator(".ph-viewer .ph-there h4").text_content().startswith("Its other end")
+    assert "A frame: Bereshit 1:1–2:3" in page.locator(".ph-viewer-sub").inner_text()
 
 
 def test_the_text_marks_the_masoretic_breaks(main_window):

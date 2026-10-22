@@ -24,7 +24,8 @@ ta'amim come from [Sefaria](https://www.sefaria.org/).
 - **Shorashim**: click a word to colour its root through the passage, with
   glosses and the passage's key words.
 - **Phrases**: the passage's refrains, echoes of other places in the
-  Tanakh (each opened in its chapter) and idioms.
+  Tanakh (each opened in its chapter), idioms, and the frames of the
+  book's sections.
 - **Verb forms**: wayyiqtol, qatal, yiqtol and the rest, counted and drawn
   as a strip of the passage, and coloured in the text.
 - **Statistics**: counts and distributions, the mafsiqim, and pesuqim
@@ -546,7 +547,7 @@ no shoresh and simply aren't clickable.
 ## Phrases
 
 In the **Text** view, switch the side panel from **Shorashim** to
-**Phrases** for the passage's recurring word sequences, in four sections:
+**Phrases** for the passage's recurring word sequences, in five sections:
 
 - **Refrains**: repeated here more often than chance would give. ויהי ערב
   ויהי בקר in Bereshit 1, וישא משלו in Balaq, צוה יהוה את משה in Pequdei.
@@ -559,6 +560,11 @@ In the **Text** view, switch the side panel from **Shorashim** to
   אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
   the title is rare (אל שדי, 8 times in the Tanakh) or mostly in the
   passage (אדני יהוה in all of Yeḥezqel).
+- **Frames**: runs of the book's Masoretic sections that open and close
+  with the same words, an *inclusio*: ברא אלהים, Bereshit 1:1–2:3. The
+  whole book is searched; a frame shows if its unit reaches the passage,
+  with its chance. A rare word at both ends, and nowhere between, is
+  listed too, as a candidate: ילד in Ruth (1:5, 4:16), רוח in Yona.
 
 One section shows at a time, by its tab, with its 12 strongest phrases
 first; **Show all** lists the rest, and the app remembers which sections
@@ -623,8 +629,8 @@ diagram. There's also a per-pasuq CSV export.
   frequent first or the key words first, with its gloss and how many times
   it occurs, in how many pesuqim. Particles and names can be shown or
   hidden. Click a row to see its pesuqim, with its words highlighted.
-- **Phrases**: the loaded pesuqim's refrains, echoes, idioms and formulas
-  (see above). Click a row for its pesuqim and its other places.
+- **Phrases**: the loaded pesuqim's refrains, echoes, idioms, formulas
+  and frames (see above). Click a row for its pesuqim and its other places.
 
 ### Pesuqim with the same shape
 
@@ -738,6 +744,7 @@ src/ankipasuk/
 ├── shorashim_build.py   making that data (verb forms too), and the phrases', from OSHB (scripts/build_shorashim.py)
 ├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
 ├── sections.py          the Masoretic sections (scripts/build_sections.py makes their data)
+├── frames.py            frames: sections that open and close with the same words (docs/phrases.md)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font

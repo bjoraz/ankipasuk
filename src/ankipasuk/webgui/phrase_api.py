@@ -10,6 +10,7 @@ from dataclasses import asdict
 
 from ..cache import SefariaCache
 from ..config import POINTED_VERSION
+from ..frames import add_to as add_frames
 from ..phrases import Thresholds, context, here_verses, passage
 from ..sefaria import get_text_for_ref
 from ..settings import Settings
@@ -35,7 +36,7 @@ class PhraseApi:
         data, thresholds = self._phrase_pesuqim(), self._phrase_thresholds()
         key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds)
         if self._phrase_result is None or self._phrase_result[0] != key:
-            self._phrase_result = (key, passage(data, thresholds))
+            self._phrase_result = (key, add_frames(passage(data, thresholds), data))
         return self._phrase_result[1]
 
     def get_phrases(self) -> dict:

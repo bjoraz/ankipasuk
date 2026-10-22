@@ -887,7 +887,7 @@ def test_get_phrases_gives_sections_and_marks(genesis_1_1, genesis_1_2):
                                {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
     result = api.get_phrases()
     assert result["ok"] is True
-    assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula"}
+    assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula", "frame"}
     listed = {i for kind in ("refrain", "echo", "idiom") for i in result["sections"][kind]}
     assert listed and all(result["phrases"][i]["marks"] for i in listed)
 

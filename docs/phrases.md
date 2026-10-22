@@ -2,8 +2,9 @@
 
 How AnkiPasuk finds a passage's recurring phrases and sorts them: what
 counts as a phrase, how phrases are found, the tests and their thresholds,
-and which phrases are set apart as formulas. The code is
-`src/ankipasuk/phrases.py`, which follows this page section by section; the
+which phrases are set apart as formulas, and frames. The code is
+`src/ankipasuk/phrases.py` (frames: `src/ankipasuk/frames.py`), which
+follows this page section by section; the
 data is OSHB's, as for the shorashim (see the README's Shorashim section,
 and [Data](#data) below).
 
@@ -12,7 +13,7 @@ twice counting once.
 
 ## What it shows
 
-Four sections, for the loaded passage:
+Five sections, for the loaded passage:
 
 - **Refrains**: phrases repeated in the passage more than chance would
   give. ויהי ערב ויהי בקר (Bereshit 1), וישא משלו (Balaq), צוה יהוה את משה
@@ -26,12 +27,15 @@ Four sections, for the loaded passage:
   ויחר אף יהוה, בכל לבבך ובכל נפשך, וטמא עד הערב.
 - **Formulas**, collapsed: phrases that only frame. ויאמר אלהים, בני
   ישראל, יהוה אלהיך.
+- **Frames**: units of the book's Masoretic sections that open and close
+  with the same words (an *inclusio*). ברא אלהים, Bereshit 1:1–2:3; ילד,
+  Ruth 1:5 and 4:16. See [Frames](#frames).
 
 The three kinds are tested independently. A phrase is listed in every
 section whose test it passes, and is tagged there with the other sections
 it's in. For example, in Balaq וחרבו שלופה בידו is a refrain, an echo of
 Divre haYamim I 21:16 and an idiom. A formula is listed under Formulas
-only.
+only. Frames are found apart from the rest, over the whole book.
 
 ## Words
 
@@ -245,6 +249,49 @@ test):
 - the recognition formula, וידעתם כי אני יהוה
 - the oath, חי יהוה
 
+## Frames
+
+A frame (an *inclusio*) is a unit of the text that opens and closes with
+the same words. The units are the book's Masoretic sections (the
+README's Text view section has where they come from), alone or in runs of
+up to 8 consecutive sections: the whole book is searched, whatever is
+loaded, and a frame is listed when its unit overlaps the passage. A break
+inside a pasuq doesn't end a unit. A book without section data (the
+Ketuvim but the Megillot) has no frames.
+
+There are two kinds, listed apart:
+
+- **Phrases**: a phrase of the book (as the tests above find them in the
+  whole book, formulas left out) that is in the unit's first pasuq and its
+  last. ברא אלהים frames the creation, Bereshit 1:1–2:3; עשות יהוה אלהים,
+  Bereshit 2:4–3:21; Miryam's song closes as the song of the sea opens
+  (Shemot 15:1–21).
+- **Words (candidates)**: a rare dictionary word, at most 15 times in the
+  book and 4 in the unit, found only near the unit's two ends: in its
+  first and its last tenth (at most 5 pesuqim each), at least once in each,
+  nowhere between. ילד in Ruth (1:5, Naomi's children lost; 4:16, the
+  child in her lap), רוח in Yona (1:4, 4:8), צלם and דמות in Bereshit (1:26
+  and 5:1–3). God's names are left out.
+
+**The chance** of each is how likely its places in the unit would fall so
+if they were spread at random over the unit's pesuqim:
+
+- a phrase in *m* of the unit's *P* pesuqim has its first and its last
+  among them with chance *m*(*m*−1) / *P*(*P*−1): ברא אלהים is in 4 of the
+  34 pesuqim of Bereshit 1:1–2:3, so 12 / 1,122, 1 in 94;
+- a word in *m* pesuqim of the unit, with ends of *e* pesuqim, is in the
+  ends only, some in each, with chance [C(2*e*, *m*) − 2 C(*e*, *m*)] /
+  C(*P*, *m*).
+
+A phrase or word is tried in every unit it could frame, so its best chance
+is multiplied by the number of units tried, and it's kept if that's under
+0.05; for each, its strongest unit is listed. The list is ordered by it.
+
+**Words are candidates**, not findings: about a third of them are the same
+rare word in two neighbouring stories, or two senses of one word. A frame
+shows its unit, its sections and its chance; its ends outside the passage
+are links, each opening the frame's viewer on that pasuq in its chapter.
+
 ## Display
 
 - **In the Text view.** The side panel switches between Shorashim and
@@ -343,5 +390,9 @@ it recurs that often apart from the longer one.
   Sefaria's here and there. The poetic books' accents work differently,
   but the app has no readings from them, and the cut uses only the
   passage's own accents.
+- **Frames find words, not themes.** A frame of related words (ילד in Ruth
+  opens with יְלָדֶיהָ and closes with הַיֶּלֶד) is found; a theme told in
+  different words isn't. And the units are the Masoretic sections, which
+  needn't be a passage's literary units.
 - **A whole book loaded** makes its own common titles mostly here, so for
   all of Devarim, יהוה אלהיך counts as exceptional (316 of its 903 times).

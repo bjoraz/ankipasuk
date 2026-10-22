@@ -24,7 +24,10 @@ const PHRASE_SECTIONS = [
     ["idiom", "Idioms", (n) => `${plural(n, "fixed expression")}, used across the Tanakh.`],
     ["formula", "Formulas", (n) => `${plural(n, "formula")}: phrases that only frame (who speaks, a name, a number, `
         + "God's names)."],
+    ["frame", "Frames", (n) => `${plural(n, "frame")}: units of Masoretic sections that open and close with the same `
+        + "words. A single word's frame is a candidate: some are chance."],
 ];
+const PHRASE_GROUPS = { phrases: "Phrases", words: "Words (candidates)" }; // a frame section's groups
 const PHRASE_KIND_NAMES = { refrain: "a refrain", echo: "an echo", idiom: "an idiom" };
 
 // A long phrase shortened: its first words … its last, and how many.
@@ -34,14 +37,34 @@ function phraseShort(text, max = 9) {
     return `${words.slice(0, 5).join(" ")} … ${words.slice(-3).join(" ")} (${words.length} words)`;
 }
 
+// Formulas and frames come in groups: [[name, ids], ...].
+const PHRASE_GROUPED = new Set(["formula", "frame"]);
+
 function phraseCount(result, kind) {
-    return kind === "formula" ? result.sections.formula.reduce((n, [, ids]) => n + ids.length, 0)
-        : result.sections[kind].length;
+    const section = result.sections[kind] || [];
+    return PHRASE_GROUPED.has(kind) ? section.reduce((n, [, ids]) => n + ids.length, 0) : section.length;
+}
+
+// A frame's unit: "1:1–2:3", or with its book, "Bereshit 1:1–2:3".
+function frameSpan(f, withBook = false) {
+    const split = (ref) => [ref.slice(0, ref.lastIndexOf(" ")), ref.slice(ref.lastIndexOf(" ") + 1)];
+    const [[book, at1], [, at2]] = [split(f.first), split(f.last)];
+    return `${withBook ? `${book} ` : ""}${at1}–${at2}`;
+}
+
+function oneIn(chance) {
+    const n = Math.round(1 / chance);
+    return `1 in ${n.toLocaleString("en")}`;
 }
 
 // One line about a phrase, for its viewer: "An echo · once here · 2 in
 // the Tanakh · also an idiom".
 function phraseSummary(p, kind) {
+    if (kind === "frame") {
+        const f = p.frame;
+        return [`${f.word ? "A word's frame, a candidate" : "A frame"}: ${frameSpan(f, true)}`,
+                plural(f.sections, "section"), `${oneIn(f.chance)} by chance`].join(" · ");
+    }
     const what = kind === "formula" ? `A formula (${p.formula})` : PHRASE_KIND_NAMES[kind].replace(/^a/, "A");
     const parts = [what, p.here === 1 ? "once here" : `${p.here} times here`, `${p.total} in the Tanakh`];
     if (kind === "idiom") parts.push(`in ${plural(p.chapters, "chapter")} of ${plural(p.books, "book")}`);
@@ -60,6 +83,7 @@ function exceptionalTitle(p) {
 // A phrase in a list: its text, then how often here and where else (a
 // link to its viewer: each place, for an echo).
 function phraseRowHtml(p, kind, lastPicked = false) {
+    if (kind === "frame") return frameRowHtml(p, lastPicked);
     let where = "";
     if (kind === "echo") {
         where = p.places.map((x, k) => `<a href="#" class="ph-place" data-place="${k}" title="Read it in its chapter">`
@@ -74,6 +98,19 @@ function phraseRowHtml(p, kind, lastPicked = false) {
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
         + `<div class="ph-meta"><span class="ph-n" title="Times in these pesuqim">${p.here}×</span>`
         + (where ? ` · ${where}` : "") + rare + "</div></li>";
+}
+
+// A frame in its list: its words, then its unit, its chance, and its ends
+// that aren't loaded (links to the viewer).
+function frameRowHtml(p, lastPicked) {
+    const f = p.frame;
+    const ends = p.places.map((x, k) => `<a href="#" class="ph-place" data-place="${k}" title="Read it in its chapter">`
+        + `${diagramEscape(x.ref.slice(x.ref.lastIndexOf(" ") + 1))}</a>`).join(", ");
+    return `<li class="ph${lastPicked ? " last-picked" : ""}" data-id="${p.id}">`
+        + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
+        + `<div class="ph-meta"><span class="ph-n" title="${diagramEscape(frameSpan(f, true))}">${frameSpan(f)}</span>`
+        + ` · ${plural(f.sections, "section")} · <span title="How likely by chance">${oneIn(f.chance)}</span>`
+        + (ends ? ` · also ${ends}` : "") + "</div></li>";
 }
 
 // A section shows its first few phrases (the strongest: each is ranked),
@@ -102,7 +139,8 @@ function renderPhrasePane(result, kind, els, first = []) {
     const n = phraseCount(result, kind);
     els.about.textContent = about(n, result.thresholds);
     const P = result.phrases;
-    const section = kind === "formula" ? result.sections.formula.flatMap(([, ids]) => ids) : result.sections[kind];
+    const groups = result.sections[kind] || [];
+    const section = PHRASE_GROUPED.has(kind) ? groups.flatMap(([, ids]) => ids) : groups;
     const inSection = new Set(section);
     const top = first.filter((id) => inSection.has(id));
     const shown = new Set(top);
@@ -113,11 +151,11 @@ function renderPhrasePane(result, kind, els, first = []) {
         room -= taken.length;
         return taken;
     };
-    const rows = kind === "formula"
-        ? result.sections.formula.map(([name, ids]) => [name, take(ids)]).filter(([, ids]) => ids.length)
-            .map(([name, ids]) => `<li class="ph-class">${diagramEscape(name)}</li>`
+    const rows = PHRASE_GROUPED.has(kind)
+        ? groups.map(([name, ids]) => [name, take(ids)]).filter(([, ids]) => ids.length)
+            .map(([name, ids]) => `<li class="ph-class">${diagramEscape(PHRASE_GROUPS[name] || name)}</li>`
                 + ids.map((id) => phraseRowHtml(P[id], kind)).join("")).join("")
-        : take(result.sections[kind]).map((id) => phraseRowHtml(P[id], kind)).join("");
+        : take(groups).map((id) => phraseRowHtml(P[id], kind)).join("");
     const more = n <= PHRASES_SHOWN ? ""
         : `<li class="ph-more"><button type="button" class="link">${phrasesAll.has(kind)
             ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n}`}</button></li>`;
@@ -162,7 +200,8 @@ function openPhraseViewer(p, kind, calls, place = 0) {
             + `<select class="ph-pick">${p.places.map((x, k) => `<option value="${k}">${diagramEscape(x.ref)}</option>`).join("")}</select>`
             + '<button type="button" class="ph-step" data-step="1" title="The next">›</button>';
     const there = p.places.length
-        ? `<section class="ph-there"><h4>Elsewhere <span class="muted">${plural(p.elsewhere, "pasuq", "pesuqim")}</span></h4>`
+        ? `<section class="ph-there"><h4>${kind === "frame" ? "Its other end" : "Elsewhere"} `
+            + `<span class="muted">${plural(p.elsewhere, "pasuq", "pesuqim")}</span></h4>`
             + `<div class="ph-places">${picker}${more > 0 ? `<span class="muted">and ${more} more</span>` : ""}</div>`
             + '<div class="ph-chapter-title"></div><div class="ph-chapter"></div></section>'
         : "";

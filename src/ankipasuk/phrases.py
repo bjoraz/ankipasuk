@@ -564,6 +564,16 @@ def _segments(c: Corpus, verse_data: list[dict]) -> list[tuple[int, int]]:
     return [(a, b) for a, b in segments if b > a]
 
 
+def letters(c: Corpus, j: int, n: int) -> list[str]:
+    """Tokens ``[j, j + n)`` as OSHB's letters, a word each (for words that
+    aren't loaded, so have no pointed text here)."""
+    out = []
+    for t in range(j, j + n):
+        book, key = c.where[t]
+        out.extend(w[0] for w in _book(book)[key][c.first[t]:c.last[t] + 1])
+    return out
+
+
 def ref(c: Corpus, j: int, n: int) -> str:
     """Where tokens ``[j, j + n)`` are, in the app's spelling: "Yirmeyahu
     4:23", "Shemot 20:2-6"."""
@@ -585,6 +595,55 @@ def _covered(c: Corpus, j: int, n: int) -> dict[tuple[str, str], set[int]]:
         if t + 1 < j + n and c.where[t + 1] == c.where[t]:
             out[c.where[t]].update(range(c.last[t] + 1, c.first[t + 1]))
     return out
+
+
+class Placer:
+    """Where the Tanakh's tokens are in the loaded pesuqim (``verse_data``,
+    the app's fetched pesuqim): an occurrence's words, as ``[pasuq, word]``
+    (indices into the loaded pesuqim and their words, as
+    :func:`ankipasuk.shorashim.passage` has them)."""
+
+    def __init__(self, c: Corpus, verse_data: list[dict]):
+        self.c = c
+        self.lined = lined_up(verse_data)
+        self.words_at: dict[tuple[str, str, int], list[tuple[int, int]]] = defaultdict(list)
+        for v, (item, words) in enumerate(zip(verse_data, self.lined)):
+            for k, (_t, _s, at) in enumerate(words):
+                if at is not None:
+                    self.words_at[(item["book"], at[0], at[1])].append((v, k))
+
+    def marks(self, j: int, n: int) -> list[tuple[int, int]]:
+        """The loaded words of tokens ``[j, j + n)``: in each pasuq, from
+        their first to their last, those between too (a paseq, a word that
+        didn't line up), so an underline runs unbroken. None if they aren't
+        loaded."""
+        found: dict[int, set[int]] = defaultdict(set)
+        for (book, key), idx in _covered(self.c, j, n).items():
+            for x in idx:
+                for v, k in self.words_at.get((book, key, x), ()):
+                    found[v].add(k)
+        return [(v, k) for v, ks in sorted(found.items()) for k in range(min(ks), max(ks) + 1)]
+
+    def text(self, marks: list[tuple[int, int]]) -> str:
+        """The loaded words ``marks`` as they read, with their separators."""
+        return "".join(self.lined[v][k][0] + ("" if x == len(marks) - 1 else self.lined[v][k][1] or " ")
+                       for x, (v, k) in enumerate(marks))
+
+    @staticmethod
+    def spans(occ_marks: list[list[tuple[int, int]]]) -> list[list[int]]:
+        """Each occurrence's first and last word, ``[pasuq, word, pasuq,
+        word]``, in the text's order; a pasuq loaded twice gives one in
+        each."""
+        out = set()
+        for ms in occ_marks:
+            runs: list[list[tuple[int, int]]] = []
+            for m in ms:
+                if runs and m[0] - runs[-1][-1][0] <= 1:
+                    runs[-1].append(m)
+                else:
+                    runs.append([m])
+            out.update((*run[0], *run[-1]) for run in runs)
+        return [list(x) for x in sorted(out)]
 
 
 def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
@@ -613,46 +672,13 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
     if not segments:
         return {"phrases": [], "sections": {"refrain": [], "echo": [], "idiom": [], "formula": []}}
     rows = _classify(c, segments, thresholds)
-    # Each loaded word, by its OSHB word.
-    words_at: dict[tuple[str, str, int], list[tuple[int, int]]] = defaultdict(list)
-    lined = lined_up(verse_data)
-    for v, (item, words) in enumerate(zip(verse_data, lined)):
-        for k, (_t, _s, at) in enumerate(words):
-            if at is not None:
-                words_at[(item["book"], at[0], at[1])].append((v, k))
-
-    def marks(j: int, n: int) -> list[tuple[int, int]]:
-        """The loaded words of an occurrence: in each pasuq, from its first
-        to its last, those between too (a paseq, a word that didn't line
-        up), so its underline runs unbroken."""
-        found: dict[int, set[int]] = defaultdict(set)
-        for (book, key), idx in _covered(c, j, n).items():
-            for x in idx:
-                for v, k in words_at.get((book, key, x), ()):
-                    found[v].add(k)
-        return [(v, k) for v, ks in sorted(found.items()) for k in range(min(ks), max(ks) + 1)]
-
-    def spans(occ_marks: list[list[tuple[int, int]]]) -> list[list[int]]:
-        """Each occurrence's first and last word; a pasuq loaded twice
-        gives one in each."""
-        out = set()
-        for ms in occ_marks:
-            runs: list[list[tuple[int, int]]] = []
-            for m in ms:
-                if runs and m[0] - runs[-1][-1][0] <= 1:
-                    runs[-1].append(m)
-                else:
-                    runs.append([m])
-            out.update((*run[0], *run[-1]) for run in runs)
-        return [list(x) for x in sorted(out)]
+    place = Placer(c, verse_data)
 
     entries = []
     for i, r in enumerate(rows):
         r["id"] = i
-        occ_marks = [marks(j, r["length"]) for j in r["here"]]
-        first = occ_marks[0] if occ_marks and occ_marks[0] else []
-        text = "".join(lined[v][k][0] + ("" if x == len(first) - 1 else lined[v][k][1] or " ")
-                       for x, (v, k) in enumerate(first))
+        occ_marks = [place.marks(j, r["length"]) for j in r["here"]]
+        text = place.text(occ_marks[0] if occ_marks else [])
         n = r["length"]
         places, seen = [], set()  # one a pasuq
         for j in sorted(r["elsewhere"], key=lambda j: _canonical(c.where[j])):
@@ -665,7 +691,7 @@ def passage(verse_data: list[dict], thresholds: Thresholds = DEFAULTS) -> dict:
             "total": len(r["occurrences"]),
             "elsewhere": len(places), "places": places[:30],
             "chapters": r["chapters"], "books": r["books"],
-            "marks": sorted({m for ms in occ_marks for m in ms}), "spans": spans(occ_marks),
+            "marks": sorted({m for ms in occ_marks for m in ms}), "spans": place.spans(occ_marks),
             "verses": sorted({v for ms in occ_marks for v, _k in ms}), "children": {},
         })
     sections: dict = {}

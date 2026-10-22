@@ -31,3 +31,10 @@ def test_the_statistics_window_lists_the_phrases_and_opens_one(stats_window):
     rows.first.click()
     page.wait_for_selector(".ph-viewer .ph-here .ph-hit")
     assert "A refrain" in page.locator(".ph-viewer-sub").inner_text()
+    page.keyboard.press("Escape")
+    # A frame's viewer: both its ends here, so nothing elsewhere.
+    page.click('#ph-tabs [data-kind="frame"]')
+    page.locator("#phrases-list li.ph", has=page.locator('.ph-n:text-is("1:1–2:3")')).first.click()
+    page.wait_for_selector(".ph-viewer .ph-here .ph-hit")
+    assert page.locator(".ph-viewer-sub").inner_text().startswith("A frame: Bereshit 1:1–2:3 · 7 sections")
+    assert page.locator(".ph-viewer .ph-here .ph-ref").all_inner_texts() == ["Bereshit 1:1", "Bereshit 2:3"]
