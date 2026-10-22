@@ -154,7 +154,14 @@ The preview has four views:
 - **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)).
 - **Text**: the pesuqim pointed or as bare letters, with a Copy button.
   Click a word to colour every word of its shoresh, with the passage's
-  shorashim listed beside the text (see [Shorashim](#shorashim)).
+  shorashim listed beside the text (see [Shorashim](#shorashim)). The
+  Masoretic sections are marked as in a printed Tanakh: פ after a pasuq
+  that ends a petuḥa (an open section), ס after one that ends a setuma (a
+  closed one), with a gap before the next pasuq; a break inside a pasuq
+  (Bereshit 35:22) is marked after its word. They follow Sefaria's text,
+  Miqra according to the Masorah (after the Aleppo Codex). The Decalogue
+  and Eikha's acrostics count as one section each: their breaks are the
+  layout, not the structure.
 - **Tikkun**: the pesuqim as they're laid out in the sefer, pointed or not,
   with controls for text size, line spacing and width.
 - **Cloze markup**: exactly what goes into Anki, to copy.
@@ -709,6 +716,7 @@ src/ankipasuk/
 ├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
 ├── shorashim_build.py   making that data, and the phrases', from OSHB (scripts/build_shorashim.py)
 ├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
+├── sections.py          the Masoretic sections (scripts/build_sections.py makes their data)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font

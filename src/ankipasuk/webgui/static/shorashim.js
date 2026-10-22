@@ -128,16 +128,24 @@ function stripPointing(text) {
 // follows it a span too (``data-s``, the word it follows), so a phrase's
 // underline can run on between its words; maqaf kept between words, or a
 // space for letters only.
-function rootWordsHtml(words, plain) {
+function rootWordsHtml(words, plain, extra = {}) {
     return words.map(([text, sep, g], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
         const between = after ? `<span data-s="${k}">${after}</span>` : "";
-        if (!shown.trim()) return shown + between;
+        if (!shown.trim()) return shown + between + (extra[k] || "");
         const word = g === null || g === undefined
             ? `<span data-k="${k}">${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}">${shown}</span>`;
-        return word + between;
+        return word + between + (extra[k] || "");
     }).join("");
+}
+
+// A Masoretic break, as printed Tanakhs show it: פ for a petuḥa, ס for a
+// setuma (see ankipasuk.sections).
+function sectionBreakHtml(kind) {
+    const [letter, what] = kind === "P" ? ["פ", "Petuḥa: an open section ends here"]
+        : ["ס", "Setuma: a closed section ends here"];
+    return `<span class="tv-break" title="${what}">${letter}</span>`;
 }
 
 // Which roots are coloured, and with which colour: in the order they're

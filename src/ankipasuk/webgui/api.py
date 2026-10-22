@@ -74,6 +74,7 @@ from ..qeriya import (
     tiqqun_ammud_deck,
     tiqqun_ammud_tag,
 )
+from ..sections import breaks as section_breaks
 from ..sefaria import (
     fetch_verse_range,
     get_aliyah_ref,
@@ -214,8 +215,15 @@ class Api(PhraseApi):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
+
+    def _add_verses(self, new_verses: list[dict]) -> None:
+        """Append fetched pesuqim, each with its Masoretic breaks (``breaks``,
+        see ankipasuk.sections), to the accumulated verse data."""
+        for verse in new_verses:
+            verse["breaks"] = section_breaks(verse["book"], verse["ch"], verse["vs"])
+        self._current_verse_data.extend(new_verses)
 
     def get_parasha_span(
         self, book: str, from_parasha: str, from_aliyah: int, to_parasha: str, to_aliyah: int,
@@ -261,7 +269,7 @@ class Api(PhraseApi):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     def get_haftarot(self) -> dict:
@@ -294,7 +302,7 @@ class Api(PhraseApi):
         for pos, verse in enumerate(new_verses, 1):
             verse["haftara"] = slug
             verse["haftara_pos"] = pos
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     # =============================================================

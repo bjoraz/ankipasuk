@@ -920,3 +920,15 @@ def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1,
     api.save_settings({"phrases": shown["defaults"]["phrases"]})
     assert Settings(cache_dir=tmp_path).get("phrases") == {}
     assert api.get_phrases()["thresholds"]["echo_places"] == 3  # found again
+
+
+def test_fetched_pesuqim_carry_their_section_breaks(genesis_1_1, monkeypatch):
+    api = Api()
+
+    def fake_fetch(book, start_ch, start_vs, end_ch, end_vs, cache, version_param):
+        return [{"book": book, "ch": 1, "vs": vs, "pointed": genesis_1_1, "plain": genesis_1_1}
+                for vs in (4, 5)]
+
+    monkeypatch.setattr("ankipasuk.webgui.api.fetch_verse_range", fake_fetch)
+    verses = api.fetch_chapter_verse("Genesis", 1, 4, 1, 5)["verses"]
+    assert [v["breaks"] for v in verses] == [[], ["P"]]

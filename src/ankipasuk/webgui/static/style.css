@@ -87,6 +87,11 @@ button:disabled { opacity: 0.6; cursor: default; }
 #output-box .dg-pending { height: 3.2em; }
 #text-box .dg-pending { height: 1.7em; }
 #text-box .tv-line { margin-bottom: 4px; }
+/* A Masoretic break: its letter after the pasuq (or the word, inside one),
+   and a gap before the next pasuq, wider after a petuḥa. */
+#text-box .tv-line.tv-end-p { margin-bottom: 1.1em; }
+#text-box .tv-line.tv-end-s { margin-bottom: 0.55em; }
+.tv-break { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 0.8em; color: #8d6e63; cursor: default; }
 #output-box .out-line { margin-bottom: 0.4em; }
 
 /* ================================================================

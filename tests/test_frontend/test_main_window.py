@@ -141,3 +141,13 @@ def test_a_picked_phrase_moves_to_the_top_with_where_it_is(main_window):
     assert page.locator("#phrases-list li.ph").first.locator(".spark").count() == 1
     page.locator("#phrases-list li.ph").first.locator(".ph-text").click()  # unpicked: back in its place
     assert ids()[:4] == before[:4] and page.locator("#phrases-list .spark").count() == 0
+
+
+def test_the_text_marks_the_masoretic_breaks(main_window):
+    load(main_window, 1, 8, 8)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.wait_for_selector('#text-box .tv-line[data-i="4"]')
+    line = page.locator('#text-box .tv-line[data-i="4"]')  # 1:5, the first day's petuḥa
+    assert "tv-end-p" in line.get_attribute("class") and line.locator(".tv-break").inner_text() == "פ"
+    assert page.locator('#text-box .tv-line[data-i="3"] .tv-break').count() == 0

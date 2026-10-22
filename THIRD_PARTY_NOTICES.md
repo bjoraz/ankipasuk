@@ -53,6 +53,19 @@ The holiday table was trimmed down from Hebcal's full calendar data to one
 standard reading per occasion, independent of the year (see
 `docs/anki-tagging.md` for the list and what was left out).
 
+## Masoretic sections
+
+`src/ankipasuk/data/sections.json.gz` was made by
+`scripts/build_sections.py`: where each petuḥa and setuma falls, read from
+the `{פ}` and `{ס}` marks of *Miqra according to the Masorah* (מקרא על פי
+המסורה), as published by [Sefaria](https://www.sefaria.org/) from
+[Hebrew Wikisource](https://he.wikisource.org/), licensed under the
+[Creative Commons Attribution-ShareAlike license](https://creativecommons.org/licenses/by-sa/4.0/)
+(CC BY-SA). Only the places of the breaks are kept, not the text; the
+Decalogue's and Eikha 1–4's breaks inside them are left out
+(`ankipasuk.sections.ONE_SECTION`). The file is shared under the same
+license.
+
 ## Shorashim
 
 `src/ankipasuk/data/shorashim/` and `src/ankipasuk/data/phrases/` were made

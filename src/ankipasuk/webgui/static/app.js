@@ -328,9 +328,16 @@ function renderTextBox() {
     const words = currentShorashim && currentShorashim.verses.length === currentVerseData.length
         ? currentShorashim.verses : null;
     lazyFill(textBox, currentVerseData.map((_item, i) => i), (i) => {
-        const line = words ? rootWordsHtml(words[i], plain)
-            : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed);
-        return `<div class="tv-line">${line}</div>`;
+        // Its Masoretic breaks: one inside the pasuq after its word, one
+        // after it at its end, and a gap before the next pasuq.
+        const breaks = currentVerseData[i].breaks || [];
+        const inside = {};
+        for (const b of breaks) if (Array.isArray(b) && words) inside[b[1] - 1] = sectionBreakHtml(b[0]) + " ";
+        const end = breaks.filter((b) => !Array.isArray(b)).pop();
+        const line = (words ? rootWordsHtml(words[i], plain, inside)
+            : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed))
+            + (end ? ` ${sectionBreakHtml(end)}` : "");
+        return `<div class="tv-line${end ? ` tv-end-${end.toLowerCase()}` : ""}">${line}</div>`;
     }, (lines) => {
         for (const line of lines) rootColours.paintAll(line);
         phraseMarks.paintLines(lines);
