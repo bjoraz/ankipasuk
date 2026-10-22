@@ -20,8 +20,6 @@ import traceback
 from dataclasses import asdict
 from pathlib import Path
 
-import webview
-
 from ..ammud_pages import ammud_pages_html
 from ..ammud_pages import write_pdf as write_ammud_pages_pdf
 from ..anki_connect import client as anki_client
@@ -101,6 +99,7 @@ from ..tiqqun_export import is_duplicate as tiqqun_is_duplicate
 from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
 from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards
+from ._webview import SAVE_DIALOG, webview
 from .anki_connect_api import AnkiConnectApi
 from .phrase_api import PhraseApi
 from .stats_api import StatsApi
@@ -505,7 +504,7 @@ class Api(PhraseApi):
             return {"ok": False, "error": "Window not ready."}
 
         path = self._window.create_file_dialog(
-            webview.SAVE_DIALOG,
+            SAVE_DIALOG,
             save_filename="cloze_cards.csv",
             file_types=("CSV files (*.csv)", "All files (*.*)"),
         )
@@ -719,7 +718,7 @@ class Api(PhraseApi):
         if self._window is None:
             return {"ok": False, "error": "Window not ready."}
         path = self._window.create_file_dialog(
-            webview.SAVE_DIALOG, save_filename=default_name,
+            SAVE_DIALOG, save_filename=default_name,
             file_types=("CSV files (*.csv)", "All files (*.*)"),
         )
         if not path:
@@ -876,7 +875,7 @@ class Api(PhraseApi):
             return {"ok": False, "error": "Window not ready."}
         name = re.sub(r"[^\w]+", "_", title).strip("_") or "diagrams"
         path = self._window.create_file_dialog(
-            webview.SAVE_DIALOG, save_filename=f"{name}.{fmt}",
+            SAVE_DIALOG, save_filename=f"{name}.{fmt}",
             file_types=(f"{fmt.upper()} files (*.{fmt})", "All files (*.*)"),
         )
         if not path:
@@ -915,7 +914,7 @@ class Api(PhraseApi):
             return {"ok": False, "error": "Window not ready."}
         name = f"ammud_{unique[0]:03d}" if len(unique) == 1 else f"ammudim_{unique[0]:03d}-{unique[-1]:03d}"
         path = self._window.create_file_dialog(
-            webview.SAVE_DIALOG, save_filename=f"{name}.{fmt}",
+            SAVE_DIALOG, save_filename=f"{name}.{fmt}",
             file_types=(f"{fmt.upper()} files (*.{fmt})", "All files (*.*)"),
         )
         if not path:
@@ -934,16 +933,17 @@ class Api(PhraseApi):
     # =============================================================
     #  Secondary windows
     # =============================================================
+    def _create_window(self, title: str, page: str, js_api, width: int, height: int):
+        """A window showing ``page`` of static/ with ``js_api`` as its
+        bridge. ``ankipasuk --serve`` puts its own in place of this one,
+        which shows the page inside the browser's (see .serve)."""
+        return webview.create_window(
+            title, str(_STATIC_DIR / page), js_api=js_api, width=width, height=height, text_select=True,
+        )
+
     def open_anki_connect_window(self) -> dict:
         anki_api = AnkiConnectApi()
-        window = webview.create_window(
-            "Anki tools",
-            str(_STATIC_DIR / "anki_connect.html"),
-            js_api=anki_api,
-            width=780,
-            height=680,
-            text_select=True,
-        )
+        window = self._create_window("Anki tools", "anki_connect.html", anki_api, 780, 680)
         anki_api._window = window
         return {"ok": True}
 
@@ -954,14 +954,7 @@ class Api(PhraseApi):
         stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "",
                              cache=self._cache, settings=self._settings)
         stats_api._on_archive = self._on_archive
-        window = webview.create_window(
-            "Statistics",
-            str(_STATIC_DIR / "stats.html"),
-            js_api=stats_api,
-            width=1000,
-            height=760,
-            text_select=True,
-        )
+        window = self._create_window("Statistics", "stats.html", stats_api, 1000, 760)
         stats_api._window = window
         self._stats_windows.append(window)
         window.events.closed += lambda: self._stats_windows.remove(window)

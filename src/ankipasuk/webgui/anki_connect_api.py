@@ -13,13 +13,12 @@ from __future__ import annotations
 import json
 import threading
 
-import webview
-
 from ..anki_connect.client import DEFAULT_URL, invoke
 from ..anki_connect.scheduling import initialize_stems as scheduling_initialize_stems
 from ..anki_connect.scheduling import run_scheduling_cycle
 from ..anki_connect.tagging import apply_tagging_plan, compute_tagging_plan, migrate_legacy_tags
 from ..cache import SefariaCache
+from ._webview import webview
 
 
 class AnkiConnectApi:

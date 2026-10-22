@@ -8,8 +8,6 @@ statistics logic lives here, only adaptation for the JS side.
 
 from __future__ import annotations
 
-import webview
-
 from ..cache import SefariaCache
 from ..config import BOOK_HEBREW_NAMES, LEGARMEH_NAME, TROPE_HEBREW_NAMES, TROPE_UNICODE
 from ..diagram import pasuq_diagram
@@ -22,6 +20,7 @@ from ..structure import (
     group_verses_by_structure,
     group_verses_by_word_count_and_structure,
 )
+from ._webview import SAVE_DIALOG, webview
 from .phrase_api import PhraseApi
 
 
@@ -202,7 +201,7 @@ class StatsApi(PhraseApi):
             return {"ok": False, "error": "Window not ready."}
 
         path = self._window.create_file_dialog(
-            webview.SAVE_DIALOG,
+            SAVE_DIALOG,
             save_filename="verse_stats.csv",
             file_types=("CSV files (*.csv)", "All files (*.*)"),
         )

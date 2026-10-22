@@ -94,6 +94,34 @@ which minimal installs can lack (`libegl1 libgl1` on Debian/Ubuntu).
 If neither works, `ankipasuk` says what to install. `PYWEBVIEW_GUI=gtk`
 or `PYWEBVIEW_GUI=qt` forces one.
 
+### In a browser, and on iPhone or iPad
+
+`ankipasuk --serve` shows the app in your browser instead of a window: it
+serves the same pages at http://localhost:8770 and opens it. Anything you
+save goes to `~/Documents/AnkiPasuk` (`--exports DIR` picks another
+folder), and the page also offers it as a download. Statistics and Anki
+tools open over the page rather than in windows of their own. `--port`
+changes the port and `--no-browser` leaves the browser closed. Ctrl-C
+stops it.
+
+This is how the app runs on iOS, in [a-Shell](https://holzschu.github.io/a-Shell_iOS/),
+where pywebview can't be installed. Nothing needs installing but
+`requests`; run the app straight from the checkout:
+
+```bash
+git clone https://github.com/bjoraz/ankipasuk.git
+pip install requests
+cd ankipasuk/src
+python -m ankipasuk --serve
+```
+
+Without pywebview, `ankipasuk` does this by itself, so `--serve` is
+optional there. iOS pauses a-Shell soon after you switch to another app,
+and the server with it, so keep the page in a-Shell's own browser rather
+than Safari. Saved files are in Files, under *On My iPhone › a-Shell ›
+AnkiPasuk*. PDF export needs WeasyPrint, which a-Shell can't install;
+HTML export works.
+
 ### Optional extras
 
 - **PDF** (of the diagrams, or of 'ammudim as pages) needs WeasyPrint:
@@ -760,7 +788,9 @@ src/ankipasuk/
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
 ├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
 └── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
-    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, app.js)
+    ├── serve.py         the app in a browser instead (ankipasuk --serve), for iOS
+    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, app.js;
+                         bridge.js stands in for pywebview's bridge in the browser)
 scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
 docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
 ```

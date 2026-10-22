@@ -1,7 +1,9 @@
 """Entry point for the web-based GUI: a pywebview window (native window
 chrome, but rendered by the OS's own web engine -- WebView2 on Windows,
 WebKitGTK on Linux, WKWebView on macOS) showing the HTML/CSS/JS frontend
-in ``static/``, backed by :class:`ankipasuk.webgui.api.Api`.
+in ``static/``, backed by :class:`ankipasuk.webgui.api.Api`. With
+``--serve``, or where pywebview isn't installed, the same pages are
+served to a browser instead (see :mod:`ankipasuk.webgui.serve`).
 
 Runs fully offline except for the same Sefaria network calls the app
 always needed (cached locally afterward, same as before) -- nothing about
@@ -10,18 +12,19 @@ using a web view for the UI itself requires or uses the internet.
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import sys
 import threading
 from pathlib import Path
 
-import webview
-
 from .. import phrases
 from ..cache import default_cache_dir
+from ._webview import webview
 from .api import Api
 from .backend import NoWebViewBackendError, choose_backend
+from .serve import DEFAULT_HOST, DEFAULT_PORT, serve
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
@@ -82,7 +85,27 @@ def _exit_even_if_threads_linger(status: int) -> int:
     return status
 
 
-def main() -> int:
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="ankipasuk", description="Anki cards for qeriya.")
+    parser.add_argument("--serve", action="store_true",
+                        help="show the app in a browser instead of a window (e.g. on iOS, in a-Shell)")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT,
+                        help=f"with --serve, the port to listen on (default {DEFAULT_PORT})")
+    parser.add_argument("--host", default=DEFAULT_HOST,
+                        help="with --serve, the address to listen on (default %(default)s: this device only)")
+    parser.add_argument("--no-browser", action="store_true", help="with --serve, don't open a browser")
+    parser.add_argument("--exports", type=Path, metavar="DIR",
+                        help="with --serve, where saved files go (default ~/Documents/AnkiPasuk)")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    if args.serve or webview is None:
+        if not args.serve:
+            print("pywebview isn't installed, so the app opens in a browser instead.", file=sys.stderr)
+        return serve(args.host, args.port, not args.no_browser, args.exports)
+
     #  Checked before building anything: on Linux the rendering backend is
     #  a separate install (see .backend), and finding that out only once
     #  webview.start() is reached buries the one actionable line under
