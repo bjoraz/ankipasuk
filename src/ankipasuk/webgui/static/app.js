@@ -358,13 +358,27 @@ function renderRootsList() {
         const ratio = sort === "key" && info.total
             ? `<span class="root-ratio${info.keyness > 0 ? "" : " under"}">${ratioText(info.ratio)}</span>` : "";
         const last = i === coloured.length - 1 && rest.length ? ' class="last-coloured"' : "";
+        const colour = rootColours.colours.get(g);
+        const spark = colour === undefined ? "" : sparklineHtml(rootPlaces(g), currentVerseData.length,
+            ROOT_PALETTE[colour], `In ${plural(info.verses.length, "pasuq", "pesuqim")} of ${currentVerseData.length}: `
+            + "click to go to the nearest");
         return `<li data-root="${g}"${last} title="${diagramEscape(`${words}\n${rootCountsText(info)}`)}">`
             + `<span class="root-label" data-g="${g}">${rootLabelHtml(info)}</span>`
             + `<span class="root-gloss">${glossHtml(info.gloss, info.meaning)}${kind}</span>`
-            + `<span class="root-count">${info.count}</span>${ratio}</li>`;
+            + `<span class="root-count">${info.count}</span>${ratio}${spark}</li>`;
     }).join("");
     rootColours.paintAll(list);
     document.getElementById("roots-count").textContent = shown.length ? `(${shown.length})` : "";
+}
+
+// Where a root's words are: pasuq index -> how many.
+function rootPlaces(g) {
+    const places = new Map();
+    (currentShorashim ? currentShorashim.verses : []).forEach((words, v) => {
+        const n = words.filter((w) => String(w[2]) === g).length;  // (the list's keys are strings)
+        if (n) places.set(v, n);
+    });
+    return places;
 }
 
 // Colouring a root colours its words in the text, and brings its entry in
@@ -421,19 +435,29 @@ function renderPhrasesList() {
             : `No phrases: ${currentPhrases.error}`;
         return;
     }
-    renderPhrasePane(currentPhrases, phraseKind, els);
+    renderPhrasePane(currentPhrases, phraseKind, els, [...phraseMarks.colours.keys()]);
     paintPhraseList();
 }
 
-// A picked phrase's row, marked in its colour; with more than one
-// occurrence here, arrows to go from one to the next in the text.
+// A picked phrase's row, marked in its colour, with where it is in the
+// passage (a sparkline); with more than one occurrence here, arrows to go
+// from one to the next in the text.
 function paintPhraseList() {
     for (const el of document.querySelectorAll("#phrases-list li.ph")) {
         const id = Number(el.dataset.id);
         const colour = phraseMarks.colours.get(id);
         el.classList.toggle("picked", colour !== undefined);
         el.style.borderRightColor = colour === undefined ? "" : ROOT_PALETTE[colour];
-        const n = currentPhrases.phrases[id].spans.length;
+        const spans = currentPhrases.phrases[id].spans;
+        const old = el.querySelector(".spark");
+        if (old) old.remove();
+        if (colour !== undefined) {
+            const places = new Map();
+            for (const [v] of spans) places.set(v, (places.get(v) || 0) + 1);
+            el.insertAdjacentHTML("beforeend", sparklineHtml(places, currentVerseData.length, ROOT_PALETTE[colour],
+                `In ${plural(places.size, "pasuq", "pesuqim")} of ${currentVerseData.length}: click to go to the nearest`));
+        }
+        const n = spans.length;
         let nav = el.querySelector(".ph-jump");
         if (colour === undefined || n < 2) {
             if (nav) nav.remove();
@@ -462,13 +486,18 @@ function jumpToPhrase(p, k) {
     phraseAt.set(p.id, k);
     paintPhraseList();
     const [v, w] = p.spans[k];
+    showInText(v, w, (box) => flashSpan(box, p.spans[k]));
+}
+
+// Bring word ``w`` of pasuq ``v`` into view in the text, if it isn't, then
+// call ``then(box)``. Lines are filled as they near the view and move
+// what's below them: placed again once they are.
+function showInText(v, w, then) {
     const box = document.getElementById("text-box");
-    // Lines are filled as they near the view and move what's below them:
-    // placed again once they are, then flashed.
     const place = () => {
         const line = box.querySelector(`[data-i="${v}"]`);
         if (!line) return;
-        const target = line.querySelector(`[data-k="${w}"]`) || line;
+        const target = (w === undefined ? null : line.querySelector(`[data-k="${w}"]`)) || line;
         const b = box.getBoundingClientRect(), r = target.getBoundingClientRect();
         if (r.top < b.top + 4 || r.bottom > b.bottom - 4) box.scrollTop += r.top - b.top - box.clientHeight / 3;
     };
@@ -476,8 +505,15 @@ function jumpToPhrase(p, k) {
     setTimeout(place, 60);
     setTimeout(() => {
         place();
-        flashSpan(box, p.spans[k]);
+        then(box);
     }, 160);
+}
+
+// Briefly highlight elements of the text (after any flashed before).
+function flashElements(box, els) {
+    for (const el of box.querySelectorAll(".ph-flash")) el.classList.remove("ph-flash");
+    void box.offsetWidth;  // so the same words flash again
+    for (const el of els) el.classList.add("ph-flash");
 }
 
 // The first occurrence of a phrase in view, if one is.
@@ -494,17 +530,17 @@ function phraseInView(p) {
 // Briefly highlight words ``[pasuq, word]`` to ``[pasuq2, word2]``, and
 // what's between them.
 function flashSpan(box, [v, k, v2, k2]) {
-    for (const el of box.querySelectorAll(".ph-flash")) el.classList.remove("ph-flash");
-    void box.offsetWidth;  // so the same words flash again
+    const els = [];
     for (let i = v; i <= v2; i++) {
         const line = box.querySelector(`.tv-line[data-i="${i}"]`);
         if (!line) continue;
         const from = i === v ? k : -1, to = i === v2 ? k2 : Infinity;
         for (const el of line.querySelectorAll("[data-k], [data-s]")) {
             const x = Number(el.dataset.k ?? el.dataset.s);  // a separator: after its word
-            if (x >= from && (el.dataset.k !== undefined ? x <= to : x < to)) el.classList.add("ph-flash");
+            if (x >= from && (el.dataset.k !== undefined ? x <= to : x < to)) els.push(el);
         }
     }
+    flashElements(box, els);
 }
 
 const phraseCalls = {
@@ -514,7 +550,7 @@ const phraseCalls = {
 
 const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
-    paintPhraseList();
+    renderPhrasesList();  // the picked ones first
 });
 
 // =============================================================
@@ -1325,7 +1361,16 @@ window.addEventListener("pywebviewready", async () => {
     });
     document.getElementById("roots-list").addEventListener("click", (e) => {
         const item = e.target.closest("li[data-root]");
-        if (item) rootColours.toggle(item.dataset.root);
+        if (!item) return;
+        const spark = e.target.closest(".spark");
+        if (spark) {  // go to the nearest pasuq with the root, and flash its words there
+            const g = item.dataset.root, v = sparklinePasuq(spark, e.clientX);
+            const first = (currentShorashim.verses[v] || []).findIndex((word) => String(word[2]) === g);
+            showInText(v, first < 0 ? undefined : first, (box) => flashElements(box,
+                box.querySelectorAll(`.tv-line[data-i="${v}"] [data-g="${g}"]`)));
+            return;
+        }
+        rootColours.toggle(item.dataset.root);
     });
     addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g]);
     document.getElementById("btn-clear-roots").addEventListener("click", () => {
@@ -1362,6 +1407,12 @@ window.addEventListener("pywebviewready", async () => {
             openPhraseViewer(p, phraseKind, phraseCalls, Number(place.dataset.place));
             return;
         }
+        const spark = e.target.closest(".spark");
+        if (spark) {  // the occurrence in (or nearest) the pasuq clicked
+            const v = sparklinePasuq(spark, e.clientX);
+            jumpToPhrase(p, Math.max(p.spans.findIndex(([at]) => at === v), 0));
+            return;
+        }
         const jump = e.target.closest(".ph-jump button");
         if (jump) {
             jumpToPhrase(p, (phraseAt.get(p.id) || 0) + Number(jump.dataset.jump));
@@ -1369,8 +1420,12 @@ window.addEventListener("pywebviewready", async () => {
         }
         if (e.target.closest(".ph-jump")) return;
         phraseMarks.toggle(p.id);
-        if (phraseMarks.colours.has(p.id)) jumpToPhrase(p, Math.max(phraseInView(p), 0));
-        else phraseAt.delete(p.id);
+        if (phraseMarks.colours.has(p.id)) {
+            document.getElementById("phrases-list").scrollTop = 0;  // it's now at the top
+            jumpToPhrase(p, Math.max(phraseInView(p), 0));
+        } else {
+            phraseAt.delete(p.id);
+        }
     });
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("roots-sort"), renderRootsList);

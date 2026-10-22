@@ -212,7 +212,14 @@ body.sidebar-collapsed .sidebar { display: none; }
 .roots-sort .seg { display: flex; }
 .roots-sort .seg button { flex: 1; font-size: 11px; padding: 1px 6px; }
 #roots-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; }
-#roots-list li { display: flex; align-items: baseline; gap: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+#roots-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; padding: 2px 8px; cursor: pointer;
+                 font-size: 12px; }
+/* Where a coloured root or a picked phrase is in the passage: a tick a
+   pasuq, on a faint line the passage's length. */
+.spark { display: block; flex-basis: 100%; width: 100%; height: 9px; margin: 2px 0 1px; background: #eef1f4;
+         border-radius: 1px; cursor: pointer; shape-rendering: crispEdges; }
+.ph .spark { margin-top: 4px; }
+.ph.last-picked { border-bottom: 1px solid #c9d2da; }
 #roots-list li:hover { background: #f3f6fa; }
 #roots-list li.last-coloured { border-bottom: 1px solid #dde3e8; padding-bottom: 4px; margin-bottom: 3px; }
 .root-label { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 15px; padding: 0 4px;

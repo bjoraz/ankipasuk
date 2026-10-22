@@ -111,3 +111,33 @@ def test_an_echo_opens_in_its_chapter(main_window):
     assert page.locator(".ph-there .ph-hit").count() >= 1 and page.locator(".ph-here .ph-hit").count() >= 1
     page.keyboard.press("Escape")
     assert page.locator(".ph-viewer").count() == 0
+
+
+def test_a_coloured_shoresh_shows_where_it_is_and_goes_there(main_window):
+    load(main_window, 2, 3, 34)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.locator("#text-box .tv-line .w").nth(1).click()  # ברא: 1:1, 1:21, 1:27 (three times), 2:3
+    spark = page.locator("#roots-list .spark")
+    assert spark.count() == 1 and spark.locator("rect").count() == 4
+    assert spark.get_attribute("data-at") == "0,20,26,33"
+    box = spark.bounding_box()
+    page.mouse.click(box["x"] + 2, box["y"] + 4)  # the left end: the passage's last pasuq
+    page.wait_for_function("document.querySelectorAll('#text-box .ph-flash').length > 0")
+    lines = page.evaluate(
+        "[...document.querySelectorAll('#text-box .ph-flash')].map(e => e.closest('.tv-line').dataset.i)")
+    assert set(lines) == {"33"}
+
+
+def test_a_picked_phrase_moves_to_the_top_with_where_it_is(main_window):
+    load(main_window, 2, 3, 34)
+    show_phrases(main_window)
+    page = main_window.page
+    ids = lambda: [r.get_attribute("data-id") for r in page.locator("#phrases-list li.ph").all()]  # noqa: E731
+    before = ids()
+    page.locator("#phrases-list li.ph").nth(3).locator(".ph-text").click()
+    assert ids()[0] == before[3] and ids()[1:4] == before[:3]
+    assert page.locator("#phrases-list li.last-picked").count() == 1
+    assert page.locator("#phrases-list li.ph").first.locator(".spark").count() == 1
+    page.locator("#phrases-list li.ph").first.locator(".ph-text").click()  # unpicked: back in its place
+    assert ids()[:4] == before[:4] and page.locator("#phrases-list .spark").count() == 0

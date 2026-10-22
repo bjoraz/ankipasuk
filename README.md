@@ -487,9 +487,12 @@ Beside the text is the passage's list of shorashim, the most frequent
 first, each with a short gloss and how often it occurs. Clicking one
 colours it just like clicking a word, and a coloured shoresh is coloured
 in the list too, and moves up to the top: the coloured ones come first,
-in the order you coloured them, above a line. Particles are left out of
-the list unless you tick **particles** (one you colour in the text still
-comes up to the top). Hover over a word in the text to see its shoresh
+in the order you coloured them, above a line, each with a strip
+showing where it is in the passage: a tick at each pasuq it's in (taller
+where it's there more than once), the first pasuq on the right. Click the
+strip to go to the nearest of them; its words there flash. Particles are
+left out of the list unless you tick **particles** (one you colour in the
+text still comes up to the top). Hover over a word in the text to see its shoresh
 and gloss, and how often it occurs here and in the Tanakh.
 
 **Key words** sorts the list by how much more the passage uses each
@@ -551,9 +554,11 @@ In the **Text** view, switch the side panel from **Shorashim** to
 One section shows at a time, by its tab, with its 12 strongest phrases
 first; **Show all** lists the rest, and the app remembers which sections
 you opened in full. Click a phrase to underline it
-in the text, in its own colour, alongside the shorashim's colours; one
-that's here more than once gets arrows, ‹ 2/6 ›, to go from one
-occurrence to the next, each brought into view and flashed. Under
+in the text, in its own colour, alongside the shorashim's colours. A
+picked phrase moves to the top of its section, with the same strip as a
+coloured shoresh; one that's here more than once also gets arrows, ‹ 2/6
+›, to go from one occurrence to the next, each brought into view and
+flashed. Under
 each phrase are the places it shares (for an echo) or how many other
 pesuqim have it; click one to open the phrase's viewer: its pesuqim here
 on one side, and on the other the place in its whole chapter, fetched from

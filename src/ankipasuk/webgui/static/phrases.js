@@ -59,7 +59,7 @@ function exceptionalTitle(p) {
 
 // A phrase in a list: its text, then how often here and where else (a
 // link to its viewer: each place, for an echo).
-function phraseRowHtml(p, kind) {
+function phraseRowHtml(p, kind, lastPicked = false) {
     let where = "";
     if (kind === "echo") {
         where = p.places.map((x, k) => `<a href="#" class="ph-place" data-place="${k}" title="Read it in its chapter">`
@@ -70,7 +70,7 @@ function phraseRowHtml(p, kind) {
     }
     const rare = p.exceptional ? ` <span class="ph-rare" title="${diagramEscape(exceptionalTitle(p))}">`
         + `${p.exceptional === "rare" ? "rare" : "mostly here"}</span>` : "";
-    return `<li class="ph" data-id="${p.id}">`
+    return `<li class="ph${lastPicked ? " last-picked" : ""}" data-id="${p.id}">`
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
         + `<div class="ph-meta"><span class="ph-n" title="Times in these pesuqim">${p.here}×</span>`
         + (where ? ` · ${where}` : "") + rare + "</div></li>";
@@ -91,9 +91,10 @@ function togglePhrasesAll(kind) {
 }
 
 // The tabs, the picked section's line, and its list, into ``els`` ({tabs,
-// about, list}), from ``result`` (the bridge's get_phrases). A click on
-// the list's last row (.ph-more) is for togglePhrasesAll.
-function renderPhrasePane(result, kind, els) {
+// about, list}), from ``result`` (the bridge's get_phrases): ``first``, the
+// phrases picked (in the order picked), above the rest. A click on the
+// list's last row (.ph-more) is for togglePhrasesAll.
+function renderPhrasePane(result, kind, els, first = []) {
     els.tabs.innerHTML = PHRASE_SECTIONS.map(([k, name]) =>
         `<button type="button" data-kind="${k}"${k === kind ? ' class="active"' : ""}>${name}`
         + `<span class="ph-tab-n">${phraseCount(result, k)}</span></button>`).join("");
@@ -101,11 +102,16 @@ function renderPhrasePane(result, kind, els) {
     const n = phraseCount(result, kind);
     els.about.textContent = about(n, result.thresholds);
     const P = result.phrases;
+    const section = kind === "formula" ? result.sections.formula.flatMap(([, ids]) => ids) : result.sections[kind];
+    const inSection = new Set(section);
+    const top = first.filter((id) => inSection.has(id));
+    const shown = new Set(top);
+    const topRows = top.map((id, i) => phraseRowHtml(P[id], kind, i === top.length - 1)).join("");
     let room = phrasesAll.has(kind) ? Infinity : PHRASES_SHOWN;
     const take = (ids) => {
-        const shown = ids.slice(0, Math.max(room, 0));
-        room -= shown.length;
-        return shown;
+        const taken = ids.filter((id) => !shown.has(id)).slice(0, Math.max(room, 0));
+        room -= taken.length;
+        return taken;
     };
     const rows = kind === "formula"
         ? result.sections.formula.map(([name, ids]) => [name, take(ids)]).filter(([, ids]) => ids.length)
@@ -115,7 +121,7 @@ function renderPhrasePane(result, kind, els) {
     const more = n <= PHRASES_SHOWN ? ""
         : `<li class="ph-more"><button type="button" class="link">${phrasesAll.has(kind)
             ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n}`}</button></li>`;
-    els.list.innerHTML = (rows || '<li class="ph-none">None here.</li>') + more;
+    els.list.innerHTML = (topRows + rows || '<li class="ph-none">None here.</li>') + more;
 }
 
 // Words ([text, separator, (group,) marked]) as HTML, each run of marked

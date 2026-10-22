@@ -264,6 +264,10 @@ test):
     clears roots and phrases. Each underline is one line from a phrase's
     first word to its last, spaces and maqaf included; where picked
     phrases share words, each keeps its own depth below the text.
+  - A picked phrase moves to the top of its section (picked ones in the
+    order picked, above a line), with a strip showing where it is in the
+    passage: a tick at each pasuq it's in, the first pasuq on the right.
+    Clicking the strip goes to the occurrence nearest the click.
   - A picked phrase that's here more than once gets arrows, ‹ 2/6 ›, that
     go to its previous or next occurrence in the text (round from the
     last to the first), each flashed; a pasuq loaded twice has one in

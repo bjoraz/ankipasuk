@@ -26,6 +26,30 @@ const ROOT_PALETTE_DARK = new Set([0, 3, 5, 10, 12, 14, 16, 18]);
 // A group's name: its letters (א־מ־ר) or word, and where BDB has more
 // than one with the same letters, its number, in BDB's order (ל־ח־מ II).
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+// Where something occurs in the loaded pesuqim, as a strip under its entry:
+// a tick at each pasuq it's in (taller where it's there more than once),
+// the first pasuq on the right, as the text reads. ``counts`` is a Map of
+// pasuq index -> times; ``n`` how many pesuqim are loaded.
+function sparklineHtml(counts, n, colour, title) {
+    if (!n || !counts.size) return "";
+    const w = Math.max(1, n / 180);  // at least about a pixel wide
+    const ticks = [...counts].map(([v, times]) => {
+        const h = times > 1 ? 1 : 0.6;
+        return `<rect x="${n - v - w}" y="${1 - h}" width="${w}" height="${h}"/>`;
+    }).join("");
+    return `<svg class="spark" viewBox="0 0 ${n} 1" preserveAspectRatio="none" fill="${colour}"`
+        + ` data-n="${n}" data-at="${[...counts.keys()].join(",")}"><title>${diagramEscape(title)}</title>${ticks}</svg>`;
+}
+
+// The pasuq a click on a sparkline points to: the nearest one with a tick.
+function sparklinePasuq(svg, clientX) {
+    const r = svg.getBoundingClientRect();
+    const n = Number(svg.dataset.n);
+    const at = svg.dataset.at.split(",").map(Number);
+    const v = Math.floor(((r.right - clientX) / r.width) * n);
+    return at.reduce((best, x) => (Math.abs(x - v) < Math.abs(best - v) ? x : best), at[0]);
+}
+
 function rootLabelHtml(info) {
     const n = info.number ? ` <span class="root-n">${ROMAN[info.number] || info.number}</span>` : "";
     return diagramEscape(info.display) + n;
