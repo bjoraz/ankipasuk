@@ -23,8 +23,22 @@
     }
 
     async function call(name, args) {
-        const answer = await post(`/api/${session}/${name}`, args);
-        if (answer.error !== undefined) throw new Error(answer.error);
+        const id = ++lastCall;
+        pending.set(id, { name, since: Date.now() });
+        let answer;
+        try {
+            answer = await post(`/api/${session}/${name}`, args);
+        } catch (e) {
+            showStatus(`Lost contact with AnkiPasuk (${name}). Is a-Shell still running it?`, true);
+            throw e;
+        } finally {
+            pending.delete(id);
+            updateWaiting();
+        }
+        if (answer.error !== undefined) {
+            showStatus(`${name}: ${answer.error}`, true);
+            throw new Error(answer.error);
+        }
         if (answer.saved && answer.saved.length) offerDownloads(answer.saved);
         for (const page of answer.opened || []) openOver(page);
         return answer.result;
@@ -33,6 +47,46 @@
     window.pywebview = {
         api: new Proxy({}, { get: (_, name) => (...args) => call(name, args) }),
     };
+
+    // A call that takes a while is named in a corner of the page, so a
+    // page still loading says what it waits on; so is one that failed.
+    const pending = new Map();
+    let lastCall = 0;
+    let statusBox = null;
+    let statusIsError = false;
+
+    function showStatus(text, isError) {
+        if (!statusBox) {
+            statusBox = document.createElement("div");
+            statusBox.style.cssText =
+                "position:fixed;right:12px;bottom:48px;z-index:2147483647;max-width:calc(100% - 24px);" +
+                "padding:8px 12px;border-radius:8px;font:13px system-ui,sans-serif;" +
+                "box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;white-space:pre-wrap;";
+            statusBox.title = "Tap to dismiss";
+            statusBox.addEventListener("click", () => { statusBox.hidden = true; statusIsError = false; });
+            document.body.append(statusBox);
+        }
+        if (statusIsError && !isError) return; // an error stays until dismissed
+        statusIsError = isError;
+        statusBox.hidden = !text;
+        statusBox.textContent = text;
+        statusBox.style.background = isError ? "#b3261e" : "#333";
+        statusBox.style.color = "#fff";
+    }
+
+    function updateWaiting() {
+        if (!document.body) return;
+        const now = Date.now();
+        const slow = [...pending.values()].filter((c) => now - c.since > 3000);
+        if (slow.length) {
+            const oldest = slow.reduce((a, b) => (a.since < b.since ? a : b));
+            const more = slow.length > 1 ? ` and ${slow.length - 1} more` : "";
+            showStatus(`Waiting on ${oldest.name}${more}… ${Math.round((now - oldest.since) / 1000)} s`, false);
+        } else if (!statusIsError) {
+            showStatus("", false);
+        }
+    }
+    setInterval(updateWaiting, 1000);
 
     // Python's window.evaluate_js: the scripts it queued, run as they come.
     async function poll() {

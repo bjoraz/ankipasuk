@@ -32,6 +32,7 @@ import mimetypes
 import secrets
 import sys
 import threading
+import time
 import traceback
 import webbrowser
 from http import HTTPStatus
@@ -46,6 +47,7 @@ _STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8770  # AnkiConnect has 8765
 _POLL_SECONDS = 25.0  # how long a _poll waits for a script before answering with none
+_SLOW_SECONDS = 2.0  # a call that takes longer is logged, to see what a stuck page waits on
 
 #  What the bridge call running on this thread saved and opened, for its
 #  answer to report (see _App.call): the bridges run each call on the
@@ -181,13 +183,28 @@ class _App:
         if not callable(fn):
             return {"error": f"No such call: {method}"}
         _current.saved, _current.opened = [], []
+        started = time.monotonic()
         try:
-            return {"result": fn(*args), "saved": _current.saved, "opened": _current.opened}
+            result = fn(*args)
         except Exception as e:  # noqa: BLE001 -- rejects the call's promise, as pywebview does
             traceback.print_exc()
             return {"error": f"{type(e).__name__}: {e}"}
+        else:
+            _log_call(method, time.monotonic() - started, result)
+            return {"result": result, "saved": _current.saved, "opened": _current.opened}
         finally:
             del _current.saved, _current.opened
+
+
+def _log_call(method: str, seconds: float, result) -> None:
+    """A line in the terminal for a call that was slow or answered with an
+    error: on a phone the terminal is the one place to see why a page is
+    still loading."""
+    error = result.get("error") if isinstance(result, dict) and result.get("ok") is False else None
+    if error:
+        print(f"{method}: {error}", file=sys.stderr, flush=True)
+    elif seconds >= _SLOW_SECONDS:
+        print(f"{method} took {seconds:.1f} s", file=sys.stderr, flush=True)
 
 
 def _inject_bridge(html: str) -> str:
