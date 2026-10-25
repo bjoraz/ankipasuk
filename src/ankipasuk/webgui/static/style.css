@@ -427,6 +427,29 @@ body.sidebar-collapsed .sidebar { display: none; }
 #text-box [data-f="s"]:not([class*="hl-"]) { color: var(--vf-s, inherit); }
 #text-box [data-f="a"]:not([class*="hl-"]) { color: var(--vf-a, inherit); }
 #text-box [data-f="c"]:not([class*="hl-"]) { color: var(--vf-c, inherit); }
+/* Semantic fields (fields.js): while their pane is open, the text shows
+   the fields' colours (a word in two coloured fields striped) instead of
+   the shorashim's; the list beside it, as the shorashim's. */
+#text-box.fields-mode [data-k] { background: var(--fd, transparent); color: var(--fd-text, inherit); }
+#text-box.fields-mode [data-d] { cursor: pointer; border-radius: 3px; }
+#text-box.fields-mode [data-d]:hover { box-shadow: 0 1px 0 #90a4ae; }
+#text-box.fields-mode .fd-striped { text-shadow: 0 0 2px white, 0 0 2px white, 0 0 1px white; }
+.fd-toggles { display: inline-flex; gap: 8px; }
+.fd-toggles label { font-weight: normal; gap: 3px; }
+#fields-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; }
+#fields-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; padding: 3px 8px; cursor: pointer;
+                  font-size: 12px; }
+#fields-list li:hover { background: #f3f6fa; }
+#fields-list li.last-coloured { border-bottom: 1px solid #dde3e8; padding-bottom: 5px; margin-bottom: 3px; }
+#fields-list li.fd-none { color: #90a4ae; cursor: default; }
+.fd-label { font-weight: 600; color: #37474f; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.fd-parent { flex: 1; min-width: 0; color: #90a4ae; font-size: 11px; overflow: hidden; text-overflow: ellipsis;
+             white-space: nowrap; }
+.fd-words { flex-basis: 100%; padding: 0 4px; color: #607d8b; font-family: "SBL Hebrew", "Noto Serif Hebrew", serif;
+            font-size: 14px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-foot { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; font-size: 11px;
+           border-top: 1px solid #f0f0f0; }
+.fd-foot button.link { font-size: 11px; }
 .vf-strip { padding: 8px 10px 0; }
 .vf-strip-svg { display: block; width: 100%; height: 30px; cursor: pointer; shape-rendering: crispEdges; }
 .vf-ends { display: flex; justify-content: space-between; padding: 1px 10px 4px; font-size: 10px; }
@@ -439,3 +462,4 @@ body.sidebar-collapsed .sidebar { display: none; }
 .vf-n { color: #555; font-variant-numeric: tabular-nums; }
 .vf-pct { width: 3em; text-align: right; color: #90a4ae; font-variant-numeric: tabular-nums; }
 .vf-note { margin: 4px 10px 8px; font-size: 11px; line-height: 1.4; }
+#fs-levels label { line-height: 1.5; padding: 3px 0; }

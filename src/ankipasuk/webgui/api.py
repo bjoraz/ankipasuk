@@ -102,13 +102,14 @@ from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
 from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards
 from .anki_connect_api import AnkiConnectApi
+from .field_api import FieldApi
 from .phrase_api import PhraseApi
 from .stats_api import StatsApi
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
 
-class Api(PhraseApi):
+class Api(PhraseApi, FieldApi):
     """Holds the mutable state a session needs (cache, accumulated verse
     data) -- one instance is created per app run and shared by every JS
     call, mirroring how ``AnkiPasukApp`` held this as instance state.

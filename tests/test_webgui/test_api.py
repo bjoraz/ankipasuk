@@ -924,6 +924,23 @@ def test_an_archived_phrase_is_kept_until_restored(tmp_path, genesis_1_1, genesi
     assert Settings(cache_dir=tmp_path).get("phrase_archive") == []
 
 
+def test_fields_and_their_level(tmp_path, genesis_1_1):
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""}]
+    result = api.get_fields()
+    assert result["ok"] is True and result["level"] == 4
+    assert "001002002" in result["fields"]  # Heaven
+    shown = api.get_field_settings()
+    assert shown["level"] == shown["default"] == 4 and shown["choices"] == [3, 4, 5]
+    assert api.save_field_settings({"level": 7})["ok"] is False
+    assert api.save_field_settings({"level": 3}) == {"ok": True, "level": 3}
+    assert Settings(cache_dir=tmp_path).get("fields") == {"level": 3}
+    assert api.get_fields()["level"] == 3
+    api.save_field_settings({"level": 4})
+    assert Settings(cache_dir=tmp_path).get("fields") == {}  # only what's not the default
+
+
 def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1, genesis_1_2):
     from dataclasses import asdict
 

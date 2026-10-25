@@ -7,6 +7,7 @@ let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only ho
 let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
 let currentShorashim = null; // ankipasuk.shorashim.passage for the loaded pesuqim, once it's in
 let currentPhrases = null; // ankipasuk.phrases.passage, likewise
+let currentFields = null; // ankipasuk.semantics.passage (the bridge's get_fields), likewise
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -336,15 +337,24 @@ function renderTextBox() {
         const end = breaks.filter((b) => !Array.isArray(b)).pop();
         const item = currentVerseData[i];
         const number = `<span class="tv-n" dir="ltr" title="${diagramEscape(pasuqLabel(item))}">${item.ch}:${item.vs}</span>`;
-        const line = number + (words ? rootWordsHtml(words[i], plain, inside)
+        const line = number + (words ? rootWordsHtml(words[i], plain, inside, fieldsOf(i))
             : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed))
             + (end ? ` ${sectionBreakHtml(end)}` : "");
         return `<div class="tv-line${end ? ` tv-end-${end.toLowerCase()}` : ""}">${line}</div>`;
     }, (lines) => {
-        for (const line of lines) rootColours.paintAll(line);
+        for (const line of lines) {
+            rootColours.paintAll(line);
+            fieldColours.paintAll(line);
+        }
         phraseMarks.paintLines(lines);
     }, textBox, false);
     renderRootsList();
+}
+
+// Pasuq ``i``'s words' fields, if they're in.
+function fieldsOf(i) {
+    const rows = currentFields && currentFields.verses;
+    return rows && rows.length === currentVerseData.length ? rows[i].map(([fields]) => fields) : null;
 }
 
 // The passage's roots: the coloured ones first, in the order they were
@@ -412,6 +422,141 @@ async function loadShorashim() {
     renderTextBox();
     renderVerbsPane();
     loadPhrases();
+    loadFields();
+}
+
+// =============================================================
+//  Fields: the passage's semantic fields (fields.js), beside the text.
+//  While their pane is open, the text shows the fields' colours rather
+//  than the shorashim's, and a click on a word colours its fields.
+// =============================================================
+// Also when the names or particles are switched, or the level changes.
+async function loadFields() {
+    const verses = currentVerseData;
+    currentFields = null;
+    renderFieldsList();  // "Finding fields…"
+    if (!verses.length) return;
+    const result = await api().get_fields(document.getElementById("fields-reference").checked,
+        document.getElementById("fields-particles").checked);
+    if (verses !== currentVerseData) return;  // other pesuqim were loaded meanwhile
+    currentFields = result.ok ? result : { error: result.error };
+    applyFields();
+    renderFieldsList();
+}
+
+function fieldsPaneOpen() {
+    return !document.querySelector('#roots-panel .panel-pane[data-pane="fields"]').hidden;
+}
+
+// The text's words already drawn get their fields (and their colours);
+// the rest get them when they're drawn (renderTextBox).
+function applyFields() {
+    for (const line of document.querySelectorAll("#text-box .tv-line")) {
+        const row = fieldsOf(Number(line.dataset.i));
+        for (const el of line.querySelectorAll("[data-k]")) {
+            const fields = row ? row[Number(el.dataset.k)] || [] : [];
+            if (fields.length) {
+                el.dataset.d = fields.join(" ");
+            } else if (el.dataset.d !== undefined) {
+                delete el.dataset.d;
+                el.style.removeProperty("--fd");
+                el.style.removeProperty("--fd-text");
+                el.classList.remove("fd-striped");
+            }
+        }
+        fieldColours.paintAll(line);
+    }
+}
+
+// The passage's fields: the coloured ones first, in the order coloured,
+// then the rest, the most used or the key fields first.
+function renderFieldsList() {
+    const list = document.getElementById("fields-list");
+    const count = document.getElementById("fields-count");
+    if (!currentFields || currentFields.error) {
+        const why = !currentFields ? (currentVerseData.length ? "Finding fields…" : "")
+            : `No fields: ${currentFields.error}`;
+        list.innerHTML = why ? `<li class="fd-none">${diagramEscape(why)}</li>` : "";
+        count.textContent = "";
+        return;
+    }
+    const fields = currentFields.fields;
+    const sort = document.querySelector("#fields-sort .active").dataset.sort;
+    const coloured = [...fieldColours.colours.keys()].filter((f) => f in fields);
+    const rest = Object.keys(fields).filter((f) => !fieldColours.colours.has(f))
+        .sort((a, b) => FIELD_ORDERS[sort](fields[a], fields[b]));
+    const n = currentVerseData.length;
+    list.innerHTML = [...coloured, ...rest].map((f, i) => {
+        const colour = fieldColours.colours.get(f);
+        const places = colour === undefined ? null : fieldPlaces(f);
+        const spark = places ? sparklineHtml(places, n, ROOT_PALETTE[colour],
+            `In ${plural(places.size, "pasuq", "pesuqim")} of ${n}: click to go to the nearest`) : "";
+        return fieldRowHtml(f, fields[f], colour, sort, i === coloured.length - 1 && rest.length > 0, spark);
+    }).join("") || '<li class="fd-none">No fields here.</li>';
+    count.textContent = `(${Object.keys(fields).length})`;
+    document.getElementById("fields-level").textContent = `Level ${currentFields.level}`;
+}
+
+// Where a field's words are: pasuq index -> how many.
+function fieldPlaces(f) {
+    const places = new Map();
+    currentFields.verses.forEach((row, v) => {
+        const n = row.filter(([fields]) => fields.includes(f)).length;
+        if (n) places.set(v, n);
+    });
+    return places;
+}
+
+const fieldColours = new FieldColours((changed) => {
+    fieldColours.paint(document.getElementById("text-box"), changed);
+    renderFieldsList();
+    if (changed.some((f) => fieldColours.colours.has(f))) document.getElementById("fields-list").scrollTop = 0;
+});
+
+// The text in the fields' colours, or the shorashim's.
+function setFieldsMode() {
+    const on = fieldsPaneOpen();
+    document.getElementById("text-box").classList.toggle("fields-mode", on);
+    document.getElementById("text-hint").textContent = `Click a word to colour its ${on ? "fields" : "shoresh"}`;
+    if (on) renderFieldsList();
+}
+
+// A word's senses, in its tooltip while the fields are shown.
+function wordSensesText(word) {
+    if (!fieldsPaneOpen() || !currentFields || currentFields.error) return "";
+    const line = word.closest(".tv-line");
+    const row = line ? currentFields.verses[Number(line.dataset.i)] : null;
+    const at = row ? row[Number(word.dataset.k)] : null;
+    return at && at[1].length ? sensesText(currentFields.senses, at[1]) : "";
+}
+
+// The field settings: the level the fields are compared at.
+let fieldSettings = null;
+async function openFieldSettings() {
+    fieldSettings = await api().get_field_settings();
+    document.getElementById("fs-levels").innerHTML = fieldLevelChoicesHtml(fieldSettings);
+    document.getElementById("fs-depths").textContent = fieldDepthsText(fieldSettings);
+    showFieldLevel(fieldSettings.level);
+    document.getElementById("field-settings-dialog").hidden = false;
+}
+
+function showFieldLevel(level) {
+    for (const radio of document.querySelectorAll('[name="fs-level"]')) radio.checked = Number(radio.value) === level;
+}
+
+function closeFieldSettings() {
+    document.getElementById("field-settings-dialog").hidden = true;
+}
+
+async function saveFieldSettings() {
+    const level = Number(document.querySelector('[name="fs-level"]:checked').value);
+    const result = await api().save_field_settings({ level });
+    if (!result.ok) return showToast(result.error, true);
+    closeFieldSettings();
+    if (level === fieldSettings.level) return;
+    showToast("Field settings saved.");
+    fieldColours.clear();  // at another level, the fields are others
+    if (currentVerseData.length) loadFields();
 }
 
 // =============================================================
@@ -733,6 +878,7 @@ async function doFetchAll() {
     currentVerseData = [];
     currentShorashim = null;
     currentPhrases = null;
+    currentFields = null;
     phraseMarks.use([]);
     currentTikkunHtml = { plain: "", pointed: "" };
     tikkunError = "";
@@ -1439,6 +1585,11 @@ window.addEventListener("pywebviewready", async () => {
     segmented(document.getElementById("text-kind"), renderTextBox);
     segmented(document.getElementById("diagram-kind"), renderVizBox);
     document.getElementById("text-box").addEventListener("click", (e) => {
+        if (fieldsPaneOpen()) {
+            const word = e.target.closest("[data-d]");
+            if (word) fieldColours.toggle(word.dataset.d.split(" "));
+            return;
+        }
         const word = e.target.closest(".w");
         if (word) rootColours.toggle(word.dataset.g);
     });
@@ -1455,16 +1606,50 @@ window.addEventListener("pywebviewready", async () => {
         }
         rootColours.toggle(item.dataset.root);
     });
-    addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g]);
+    addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g],
+        wordSensesText);
     document.getElementById("btn-clear-roots").addEventListener("click", () => {
         rootColours.clear();
         phraseMarks.clear();
+        fieldColours.clear();
+    });
+    document.getElementById("fields-list").addEventListener("click", (e) => {
+        const item = e.target.closest("li[data-field]");
+        if (!item) return;
+        const f = item.dataset.field;
+        const spark = e.target.closest(".spark");
+        if (spark) {  // go to the nearest pasuq with the field, and flash its words there
+            const v = sparklinePasuq(spark, e.clientX);
+            const first = (currentFields.verses[v] || []).findIndex(([fields]) => fields.includes(f));
+            showInText(v, first < 0 ? undefined : first, (box) => flashElements(box,
+                box.querySelectorAll(`.tv-line[data-i="${v}"] [data-d~="${f}"]`)));
+            return;
+        }
+        fieldColours.toggle([f]);
+    });
+    for (const id of ["fields-reference", "fields-particles"]) {
+        document.getElementById(id).addEventListener("change", loadFields);
+    }
+    segmented(document.getElementById("fields-sort"), renderFieldsList);
+    document.getElementById("btn-field-settings").addEventListener("click", openFieldSettings);
+    const fieldDialog = document.getElementById("field-settings-dialog");
+    fieldDialog.addEventListener("click", (e) => {
+        if (e.target === fieldDialog || e.target.closest("[data-close]")) closeFieldSettings();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !fieldDialog.hidden) closeFieldSettings();
+    });
+    document.getElementById("fs-reset").addEventListener("click", () => showFieldLevel(fieldSettings.default));
+    document.getElementById("field-settings-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveFieldSettings();
     });
     segmented(document.getElementById("panel-kind"), (btn) => {
         for (const pane of document.querySelectorAll("#roots-panel .panel-pane")) pane.hidden = pane.dataset.pane !== btn.dataset.pane;
         document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane !== "roots");
         if (btn.dataset.pane === "phrases") renderPhrasesList();
         renderVerbsPane();  // colours the verbs, or takes their colours off
+        setFieldsMode();
     });
     const verbsAll = document.getElementById("verbs-all");
     try { verbsAll.checked = localStorage.getItem(VERBS_ALL_KEY) === "1"; } catch (e) { /* none kept */ }

@@ -3,6 +3,8 @@
 
 import json
 
+from ankipasuk.settings import Settings
+
 from .conftest import in_view, load, show_phrases
 
 
@@ -260,6 +262,64 @@ def test_each_pasuq_in_the_text_has_its_chapter_and_verse(main_window):
     # One a pasuq, left out when the text is copied.
     assert page.locator("#text-box .tv-line .tv-n").count() == 8
     assert page.evaluate("getComputedStyle(document.querySelector('#text-box .tv-n')).userSelect") == "none"
+
+
+def test_the_fields_pane_colours_the_words_of_a_field(main_window):
+    load(main_window, 2, 3, 34)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.wait_for_selector("#text-box .tv-line .w")
+    page.click('#panel-kind [data-pane="fields"]')
+    page.wait_for_selector("#fields-list li[data-field]")
+    assert page.locator("#text-hint").inner_text() == "Click a word to colour its fields"
+    page.click('#fields-sort [data-sort="key"]')
+    assert page.locator("#fields-list li").first.get_attribute("data-field") == "001002002"  # Heaven
+    background = "(el) => getComputedStyle(el).backgroundImage + getComputedStyle(el).backgroundColor"
+    # מַיִם, in two fields
+    water = page.locator('#text-box .tv-line[data-i="1"] [data-d="001002006007 001002009"]')
+    plain = water.evaluate(background)
+    page.click('#fields-list li[data-field="001002006007"]')  # Liquids
+    one = water.evaluate(background)
+    assert one != plain and "gradient" not in one
+    page.click('#fields-list li[data-field="001002009"]')  # Waterbodies: now striped
+    assert "repeating-linear-gradient" in water.evaluate(background)
+    assert page.locator("#fields-list li").first.locator(".spark").count() == 1  # coloured ones first
+    # A word's click colours its fields, and again takes them off.
+    heaven = page.locator('#text-box .tv-line[data-i="0"] [data-d="001002002"]')
+    heaven.click()
+    label = page.locator('#fields-list li[data-field="001002002"] .fd-label')
+    assert "hl-" in (label.get_attribute("class") or "")
+    heaven.click()
+    assert page.locator('#fields-list li[data-field="001002002"] .spark').count() == 0
+    heaven.hover()  # its tooltip: its shoresh, then its sense
+    title = heaven.get_attribute("title")
+    assert "heaven, sky" in title and "Objects › Natural World › Heaven" in title
+    # Names come in when asked for: אֱלֹהִים gets a field.
+    god = page.locator('#text-box .tv-line[data-i="0"] [data-k="2"]')
+    assert god.get_attribute("data-d") is None
+    page.check("#fields-reference")
+    page.wait_for_function(
+        "document.querySelector('#text-box .tv-line[data-i=\"0\"] [data-k=\"2\"]').dataset.d")
+    # Back to the shorashim: their colours, not the fields'.
+    page.click('#panel-kind [data-pane="roots"]')
+    assert "fields-mode" not in (page.locator("#text-box").get_attribute("class") or "")
+
+
+def test_the_field_level_is_a_setting(main_window, offline):
+    load(main_window, 1, 5, 5)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    page.click('#panel-kind [data-pane="fields"]')
+    page.wait_for_selector("#fields-list li[data-field]")
+    page.click("#btn-field-settings")
+    levels = page.locator("#fs-levels label")
+    assert levels.count() == 3 and "Level 4 (the default)" in levels.nth(1).inner_text()
+    assert "% of the words are filed at it" in levels.nth(0).inner_text()
+    assert page.locator("#fs-depths").inner_text().startswith("How deep SDBH files")
+    page.check('[name="fs-level"][value="3"]')
+    page.click('#field-settings-form button[type="submit"]')
+    page.wait_for_function("document.getElementById('fields-level').textContent === 'Level 3'")
+    assert Settings(cache_dir=offline).get("fields") == {"level": 3}
 
 
 def test_the_verbs_pane_counts_the_forms_and_colours_them(main_window):

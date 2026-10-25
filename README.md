@@ -28,6 +28,9 @@ ta'amim come from [Sefaria](https://www.sefaria.org/).
   book's sections.
 - **Verb forms**: wayyiqtol, qatal, yiqtol and the rest, counted and drawn
   as a strip of the passage, and coloured in the text.
+- **Semantic fields**: each word's domain in the Semantic Dictionary of
+  Biblical Hebrew (heaven, light, time, water…), the passage's key fields,
+  and their words coloured in the text.
 - **Statistics**: counts and distributions, the mafsiqim, and pesuqim
   grouped by the shape of their ta'amim.
 
@@ -46,7 +49,8 @@ Each study tool is also a Python function, usable from a script (see
   [Tiqqun cards](#tiqqun-cards) ·
   [Tools that work on your Anki collection](#tools-that-work-on-your-anki-collection-optional)
 - **Studying the text:** [The diagram](#the-diagram) · [Shorashim](#shorashim) ·
-  [Phrases](#phrases) · [Verb forms](#verb-forms) · [Statistics](#statistics)
+  [Phrases](#phrases) · [Verb forms](#verb-forms) · [Semantic fields](#semantic-fields) ·
+  [Statistics](#statistics)
 - [Spelling](#spelling) · [Cache](#cache) · [For developers](#for-developers) · [Credits](#credits)
 
 ## Installing
@@ -621,6 +625,38 @@ to mean: reading a run of wayyiqtol as a story's mainline, and the rest
 as background, is an interpretation (Longacre's, Niccacci's), not part
 of the data.
 
+## Semantic fields
+
+In the **Text** view, the side panel's **Fields** pane shows the
+passage's words by their meaning: each word's sense in the
+[Semantic Dictionary of Biblical Hebrew](https://github.com/ubsicap/ubs-open-license)
+(SDBH, by the United Bible Societies), and the *domain* it files that
+sense in. The domains are a tree: Objects › Natural World › Heaven; Events
+› Description › Attribute › Shine. Every word is brought to one level of
+it, the fourth (or the third or fifth, in **Settings…**): a deeper domain
+is cut back to it, and a shallower one stands for itself, its last level
+repeated (Heaven › Heaven). The settings show how many words that cuts
+back or fills in at each level.
+
+Each field has its count and, with **Key fields**, how many times its rate
+in the Tanakh it's used here, the strongest first (the same measure as the
+shorashim's key words). In Bereshit 1:1–2:3 the key fields are Heaven
+(שָׁמַיִם, רָקִיעַ), Shine (אוֹר, מָאוֹר), Time (יוֹם, עֶרֶב, בֹּקֶר), Exist
+(בָּרָא, עָשָׂה), Waterbodies, Land and Plants. Click a field, or a word, to
+colour its words in the text; a word in two coloured fields (מַיִם is both
+Liquids and Waterbodies) is striped in both colours, and a coloured field
+moves to the top with a strip of where it is in the passage, as a coloured
+shoresh does. While the pane is open the text shows the fields' colours
+rather than the shorashim's, and a word's tooltip gives its sense and its
+domains.
+
+Names, pronouns and pointing words (SDBH's *Reference*) are left out
+unless you tick **names**, and particles unless you tick **particles**.
+SDBH doesn't yet cover some common function words (עַל, אֶל, כִּי, כֹּל), and
+two senses of one word are both kept: רוּחַ אֱלֹהִים in Bereshit 1:2 is
+"the Spirit of God" and "a mighty wind". How the dictionary was lined up
+with the text, and what it covers, is in [`docs/semantics.md`](docs/semantics.md).
+
 ## Statistics
 
 **Statistics** opens a window on whatever is loaded, at your current *N*.
@@ -764,8 +800,8 @@ src/ankipasuk/
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
 ├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases, sections, senses
-└── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
-    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, app.js)
+└── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, field_api.py, …)
+    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, fields.js, app.js)
 scripts/                 double-clickable wrappers for the Anki tools; the data's builds (build_*.py)
 docs/                    scheduling, tagging, the transliteration rules, phrases, semantics, screenshots
 ```

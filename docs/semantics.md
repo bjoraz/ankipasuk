@@ -11,7 +11,8 @@ for the shorashim), so every word the app shows can have its sense.
 
 The data is made by `scripts/build_semantics.py`
 (`src/ankipasuk/semantics_build.py`) and read by `src/ankipasuk/semantics.py`.
-The app doesn't show it yet: this is the data the semantic tools will use.
+The app shows it in the Text view's **Fields** pane ([below](#in-the-app),
+and the README's Semantic fields section).
 
 ## What SDBH gives
 
@@ -86,6 +87,29 @@ editors say), and what's missing is mostly function words:
 
 1,403 words have two senses in one place, like רוּחַ and אֱלֹהִים in
 Bereshit 1:2.
+
+## In the app
+
+A passage's **fields** (`semantics.passage`) are its words' domains, all
+brought to one level of the tree: 4 by default, 3 or 5 in the settings.
+
+- A deeper domain is cut back to the level: Events › Description ›
+  Attribute › Shine stays Shine at level 4, and is Attribute at level 3.
+- A shallower one stands for itself, its last level repeated: Objects ›
+  Natural World › Heaven is Heaven › Heaven at level 4. It's a field of its
+  own, apart from any domain under it: a word filed at People isn't in
+  People › Relatives.
+- A word has a field for each of its senses' domains, so some have two
+  (מַיִם: Liquids and Waterbodies), shown striped when both are coloured.
+- Reference (names, pronouns, pointing words) is left out unless asked
+  for, and so are particles (the shorashim's), each by a switch in the
+  pane. A word keeps its other senses' fields: אֱלֹהִים in Bereshit 1:2 is
+  also "mighty" (Events › Description › Modification › Intense).
+
+**Key fields** are ranked as the shorashim's key words: Dunning's
+log-likelihood (G²) of the field's words here against the rest of the
+Tanakh's, counted the same way (the same level, the same things left
+out); its *ratio* is how many times its rate in the Tanakh it's used here.
 
 ## The data
 

@@ -85,7 +85,7 @@
           <span class="seg" id="text-kind">
             <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain">Letters only</button>
           </span>
-          <span class="muted">Click a word to colour its shoresh</span>
+          <span class="muted" id="text-hint">Click a word to colour its shoresh</span>
           <span class="inline-group">
             <button id="btn-clear-roots" type="button" class="link">Clear colours</button>
             <button id="btn-copy-text" type="button" class="link">Copy</button>
@@ -97,7 +97,8 @@
               <span class="seg" id="panel-kind">
                 <button class="active" data-pane="roots">Shorashim</button><button data-pane="phrases"
                   title="Word sequences of the passage that recur: refrains, echoes, idioms">Phrases</button><button
-                  data-pane="verbs" title="The verbs' forms: wayyiqtol, qatal, yiqtol, weqatal…">Verbs</button>
+                  data-pane="verbs" title="The verbs' forms: wayyiqtol, qatal, yiqtol, weqatal…">Verbs</button><button
+                  data-pane="fields" title="The words' semantic fields: their domains in the Semantic Dictionary of Biblical Hebrew">Fields</button>
               </span>
             </div>
             <div class="panel-pane" data-pane="roots">
@@ -133,6 +134,26 @@
               <ol id="verbs-list" class="vf-list"></ol>
               <p class="muted vf-note">The verbs' forms, as OSHB's morphology codes them, coloured in the text.
                 Click a form to hide or show it.</p>
+            </div>
+            <div class="panel-pane" data-pane="fields" hidden>
+              <div class="roots-head">
+                <span>Fields <span id="fields-count" class="muted"></span></span>
+                <span class="fd-toggles">
+                  <label class="muted" title="Names, pronouns and words that point (SDBH's Reference)"><input
+                    type="checkbox" id="fields-reference"> names</label>
+                  <label class="muted" title="אֵת, אֲשֶׁר, לֹא and the like"><input type="checkbox" id="fields-particles"> particles</label>
+                </span>
+              </div>
+              <div class="roots-sort">
+                <span class="seg" id="fields-sort">
+                  <button class="active" data-sort="count" title="The most used first">Most used</button><button data-sort="key"
+                    title="Key fields first: those this passage uses far more than the Tanakh as a whole does">Key fields</button>
+                </span>
+              </div>
+              <ol id="fields-list"></ol>
+              <div class="fd-foot muted"><span id="fields-level"></span>
+                <button type="button" id="btn-field-settings" class="link"
+                  title="The level of SDBH's tree the fields are compared at">Settings…</button></div>
             </div>
           </aside>
           <div id="text-box" class="pane pasuq-text" dir="rtl"></div>
@@ -228,6 +249,32 @@
 </footer>
 
 <!-- ============ Phrase settings: the tests' thresholds (docs/phrases.md) ============ -->
+<div id="field-settings-dialog" class="dialog-overlay" hidden>
+  <form id="field-settings-form" class="settings" role="dialog" aria-modal="true" aria-labelledby="fs-title">
+    <header class="settings-head">
+      <h3 id="fs-title">Field settings</h3>
+      <button type="button" class="ph-viewer-close" data-close title="Close (Esc)">×</button>
+    </header>
+    <div class="settings-body">
+      <p class="muted">The Semantic Dictionary of Biblical Hebrew files each word's sense in a tree of domains,
+        some deeper than others (Objects › Natural World › Heaven; Objects › Beings › People › Relatives). To
+        compare them, every word is brought to one level: a deeper domain is cut back to it, a shallower one
+        stands for itself, its last level repeated (People › People).</p>
+      <div class="st-group">
+        <div class="st-name">Level</div>
+        <div class="st-rules" id="fs-levels"></div>
+      </div>
+      <p class="muted" id="fs-depths"></p>
+    </div>
+    <footer class="settings-actions">
+      <button type="button" class="link" id="fs-reset" title="The default level (not saved until you save)">Reset to default</button>
+      <span class="spacer"></span>
+      <button type="button" data-close>Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </footer>
+  </form>
+</div>
+
 <div id="settings-dialog" class="dialog-overlay" hidden>
   <form id="settings-form" class="settings" role="dialog" aria-modal="true" aria-labelledby="st-title">
     <header class="settings-head">
@@ -348,6 +395,7 @@
 <script src="shorashim.js"></script>
 <script src="phrases.js"></script>
 <script src="verbs.js"></script>
+<script src="fields.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

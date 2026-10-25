@@ -108,29 +108,32 @@ function rootTitle(info) {
     return `\u200e${info.display}${n} \u00b7 ${glossText(info.gloss, info.meaning)}${kind}\n${rootCountsText(info)}`;
 }
 
-// Words get their tooltip when first pointed at, rather than one written
-// out for each of a passage's thousands. ``lookup`` gives a group's info.
-function addRootTooltips(container, lookup) {
+// Words get their tooltip when pointed at, rather than one written out
+// for each of a passage's thousands. ``lookup`` gives a group's info;
+// ``more(word)``, anything to add (a word's senses, fields.js).
+function addRootTooltips(container, lookup, more = () => "") {
     container.addEventListener("mouseover", (e) => {
-        const word = e.target.closest(".w");
-        if (!word || word.title) return;
-        const info = lookup(word.dataset.g);
-        if (info) word.title = rootTitle(info);
+        const word = e.target.closest(".w, [data-d]");
+        if (!word) return;
+        const info = word.dataset.g === undefined ? null : lookup(word.dataset.g);
+        const title = [info ? rootTitle(info) : "", more(word)].filter(Boolean).join("\n\n");
+        if (title !== word.title) word.title = title;
     });
 }
 
 // One pasuq's words as HTML: each word a span with its index (``data-k``),
-// a clickable one where it has a group (``.w``, ``data-g``), and what
-// follows it a span too (``data-s``, the word it follows), so a phrase's
-// underline can run on between its words; maqaf kept between words, or a
-// space for letters only.
-function rootWordsHtml(words, plain, extra = {}) {
+// a clickable one where it has a group (``.w``, ``data-g``), its fields
+// if given (``data-d``, fields.js), and what follows it a span too
+// (``data-s``, the word it follows), so a phrase's underline can run on
+// between its words; maqaf kept between words, or a space for letters only.
+function rootWordsHtml(words, plain, extra = {}, fields = null) {
     return words.map(([text, sep, g, form], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
         const between = after ? `<span data-s="${k}">${after}</span>` : "";
         if (!shown.trim()) return shown + between + (extra[k] || "");
-        const f = form ? ` data-f="${form}"` : "";  // a verb's form (verbs.js)
+        const f = (form ? ` data-f="${form}"` : "")  // a verb's form (verbs.js)
+            + (fields && fields[k] && fields[k].length ? ` data-d="${fields[k].join(" ")}"` : "");
         const word = g === null || g === undefined
             ? `<span data-k="${k}"${f}>${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}"${f}>${shown}</span>`;
         return word + between + (extra[k] || "");

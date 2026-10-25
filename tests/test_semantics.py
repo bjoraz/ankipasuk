@@ -90,3 +90,47 @@ def test_most_words_have_a_sense():
             have += sum(1 for s in senses if s)
             total += len(senses)
     assert have / total > 0.85
+
+
+def bereshit_1():
+    words = _book("Genesis")
+    return [{"book": "Genesis", "ch": ch, "vs": vs, "pointed": " ".join(w[0] for w in words[f"{ch}:{vs}"])}
+            for ch, last in ((1, 31), (2, 3)) for vs in range(1, last + 1)]
+
+
+HEAVEN, SHINE, LIQUIDS, WATERBODIES = "001002002", "002001001056", "001002006007", "001002009"
+
+
+def test_a_passages_fields_at_level_4():
+    out = se.passage(bereshit_1())
+    heaven = out["fields"][HEAVEN]
+    # Heaven is filed at level 3, so at level 4 it stands for itself.
+    assert heaven["path"] == ["Objects", "Natural World", "Heaven", "Heaven"] and heaven["label"] == "Heaven"
+    assert heaven["count"] == 20 and [w[0] for w in heaven["words"][:2]] == ["שָׁמַיִם", "רָקִיעַ"]
+    key = sorted(out["fields"], key=lambda f: -out["fields"][f]["keyness"])
+    assert key[:2] == [HEAVEN, SHINE] and out["fields"][SHINE]["ratio"] > 10
+    # מַיִם has two domains, so two fields. In 1:1, אֱלֹהִים (Reference) has
+    # none, nor אֵת (a particle), unless asked for; in 1:2 it has its other
+    # sense's, "mighty" (a mighty wind).
+    row = dict(zip([w[0] for w in _book("Genesis")["1:2"]], out["verses"][1]))
+    assert row["המים"][0] == [LIQUIDS, WATERBODIES] and row["אלהים"][0] == ["002001003010"]
+    words = [w[0] for w in _book("Genesis")["1:1"]]
+    first = dict(zip(words, out["verses"][0]))
+    assert first["אלהים"][0] == [] and first["אלהים"][1]  # (its senses are still given, for its tooltip)
+    assert first["את"][0] == []
+    out = se.passage(bereshit_1(), reference=True, particles=True)
+    first = dict(zip(words, out["verses"][0]))
+    assert first["אלהים"][0] and first["את"][0] == ["002001001023"]  # אֵת: Identify
+
+
+def test_other_levels_cut_back_or_repeat():
+    at3 = se.passage(bereshit_1(), level=3)
+    assert at3["level"] == 3 and SHINE[:9] in at3["fields"] and SHINE not in at3["fields"]
+    at5 = se.passage(bereshit_1(), level=5)
+    assert at5["fields"][HEAVEN]["path"] == ["Objects", "Natural World", "Heaven", "Heaven", "Heaven"]
+    assert se.passage(bereshit_1(), level=7)["level"] == se.DEFAULT_LEVEL
+
+
+def test_how_deep_words_are_filed():
+    depth = se.levels()
+    assert abs(sum(depth.values()) - 1) < 0.001 and max(depth, key=depth.get) == 4
