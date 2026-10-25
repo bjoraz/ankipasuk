@@ -34,7 +34,7 @@ from ankipasuk.shorashim import _book
 from ankipasuk.shorashim_build import ETNAHTA, KING
 
 STATIC = Path(__file__).resolve().parents[2] / "src" / "ankipasuk" / "webgui" / "static"
-SEEDED = [("Genesis", 1), ("Genesis", 2), ("Genesis", 3), ("Jeremiah", 4)]
+SEEDED = [("Genesis", 1), ("Genesis", 2), ("Genesis", 3), ("Jeremiah", 4), ("Exodus", 1), ("Exodus", 2)]
 
 # The bridge as pywebview gives it (window.pywebview.api.<method>(...) ->
 # a promise), each call going to __call; and pywebviewready once loaded.

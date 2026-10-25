@@ -6,6 +6,7 @@ from math import comb
 
 from ankipasuk import frames as fr
 from ankipasuk import phrases as ph
+from ankipasuk import semantics as se
 from ankipasuk import shorashim as sh
 
 # Strong's numbers: בָּרָא, אֱלֹהִים, יֶלֶד, רוּחַ.
@@ -113,3 +114,24 @@ def test_frames_where_the_passage_touches_their_unit():
     loaded = pesuqim("Genesis", 12, 1, 9)
     out = fr.add_to(ph.passage(loaded), loaded)
     assert all(p["frame"]["first"] != "Bereshit 1:1" for p in out["phrases"] if "frame" in p["kinds"])
+
+
+def test_a_field_frames_a_unit_in_other_words():
+    # Shemot 2:1-22: a marriage opens it and one closes it, in other words
+    # (וַיִּקַּח, 2:1; וַיִּתֵּן, 2:21). Its births are one word (וַתֵּלֶד) at
+    # both ends: that's a word's frame, not a field's.
+    c = ph.corpus()
+    found = {f["field"]: f for f in fr.book_frames("Exodus") if f["field"] and f["first"] == "2:1"}
+    marry = next(f for code, f in found.items() if se.field_path(code, 4)[-1] == "Marry")
+    assert (marry["last"], marry["unit"]) == ("2:22", "petuha") and marry["word"] is False
+    assert len({c.lem[t] for t in marry["ends"]}) == 2
+    assert all(se.field_path(code, 4)[-1] != "Birth" for code in found)
+
+
+def test_field_frames_are_listed_with_the_words():
+    loaded = pesuqim("Exodus", 2, 1, 22)
+    out = fr.add_to(ph.passage(loaded), loaded)
+    groups = dict(out["sections"]["frame"])
+    marry = next(p for p in (out["phrases"][i] for i in groups["fields"]) if "Marry" in p["frame"]["field"])
+    assert marry["frame"]["field"].endswith("Association › Marry") and " · " in marry["text"]
+    assert marry["key"].startswith("frame Exodus field ") and len(marry["spans"]) == 2

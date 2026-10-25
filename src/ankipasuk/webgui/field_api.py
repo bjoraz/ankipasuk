@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import traceback
 
-from ..semantics import DEFAULT_LEVEL, LEVELS, levels, passage
+from ..semantics import DEFAULT_LEVEL, LEVELS, levels, passage, saved_level
 from ..settings import Settings
 
 
@@ -22,9 +22,7 @@ class FieldApi:
         raise NotImplementedError
 
     def _field_level(self) -> int:
-        saved = self._settings.get("fields") if self._settings else None
-        level = saved.get("level", DEFAULT_LEVEL) if isinstance(saved, dict) else DEFAULT_LEVEL
-        return level if level in LEVELS else DEFAULT_LEVEL
+        return saved_level(self._settings.get("fields") if self._settings else None)
 
     def get_fields(self, reference: bool = False, particles: bool = False) -> dict:
         """The loaded pesuqim's fields, word by word, at the saved level;

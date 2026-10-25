@@ -265,7 +265,7 @@ The whole book is searched, whatever is loaded, and a frame is listed when
 its unit overlaps the passage. A break inside a pasuq doesn't end a unit.
 A book without section data (the Ketuvim but the Megillot) has no frames.
 
-There are two kinds, listed apart:
+There are three kinds, listed apart:
 
 - **Phrases**: a phrase of the book (as the tests above find them in the
   whole book, formulas left out) that is in the unit's first pasuq and its
@@ -281,6 +281,16 @@ There are two kinds, listed apart:
   child in her lap), רוח in Yona (1:4, 4:8), צלם and דמות in Bereshit (1:26
   and 5:1–3), והארכת ימים around Devarim's laws (22:7, 25:15). God's names
   are left out.
+- **Fields (candidates)**: a rare semantic field (see
+  [`semantics.md`](semantics.md), at the level the Fields pane uses), in at
+  most 25 of the book's pesuqim and 4 of the unit's, found only near the
+  unit's two ends as a word is, and said in other words at one end than
+  at the other: the same meaning, said differently. Marry around Shemot
+  2:1–22 (וַיִּקַּח, 2:1; וַיִּתֵּן, 2:21); signs and wonders around Shemot
+  10:1–11:10 (אֹתֹת, מוֹפְתִים); Festivals around Devarim 16:1–8 (פֶּסַח,
+  עֲצֶרֶת); writing around Devarim 10:1–11:21 (the tablets, and "write them
+  on the doorposts"). A field's frame in the same word at both ends is a
+  word's frame, and isn't listed again (Shemot 2's births, וַתֵּלֶד).
 
 **The chance** of each is how likely its places in the unit would fall so
 if they were spread at random over the unit's pesuqim:
@@ -302,9 +312,10 @@ stronger run's, and is found more easily. The list has the phrases framing
 a section first, then those framing a run, then the words, each in order
 of that chance (times the units).
 
-**Words are candidates**, not findings: about a third of them are the same
-rare word in two neighbouring stories, or two senses of one word. Their
-group is folded; click its header to show them. A frame shows its unit,
+**Words and fields are candidates**, not findings: about a third of the
+words are the same rare word in two neighbouring stories, or two senses of
+one word, and some fields are as much chance (bodily fluids around
+Yesha'yahu 36–38). Their groups are folded; click a header to show them. A frame shows its unit,
 what the unit is ("a petuḥa section with 2 setumot", "7 sections") and
 its chance; its ends outside the passage are links, each opening the
 frame's viewer on that pasuq in its chapter.

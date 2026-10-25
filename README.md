@@ -574,7 +574,9 @@ In the **Text** view, switch the side panel from **Shorashim** to
   Bereshit 2:4–3:21; then runs of sections: ברא אלהים, Bereshit 1:1–2:3.
   The whole book is searched; a frame shows if its unit reaches the
   passage, with its chance. A rare word at both ends, and nowhere between,
-  is listed too, as a candidate, folded: ילד in Ruth (1:5, 4:16).
+  is listed too, as a candidate, folded: ילד in Ruth (1:5, 4:16); and so is
+  a rare semantic field said in other words at either end: Marry around
+  Shemot 2:1–22 (וַיִּקַּח, וַיִּתֵּן).
 
 One section shows at a time, by its tab, with its 12 strongest phrases
 first; **Show all** lists the rest, and the app remembers which sections

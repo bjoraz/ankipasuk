@@ -15,6 +15,7 @@ from ..config import POINTED_VERSION
 from ..frames import add_to as add_frames
 from ..phrases import Thresholds, _name, context, here_verses, passage
 from ..sefaria import get_text_for_ref
+from ..semantics import saved_level
 from ..settings import Settings
 from ..shorashim import lined_up
 
@@ -39,9 +40,10 @@ class PhraseApi:
 
     def _phrase_data(self) -> dict:
         data, thresholds = self._phrase_pesuqim(), self._phrase_thresholds()
-        key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds)
+        level = saved_level(self._settings.get("fields") if self._settings else None)  # (fields' frames)
+        key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds, level)
         if self._phrase_result is None or self._phrase_result[0] != key:
-            self._phrase_result = (key, add_frames(passage(data, thresholds), data))
+            self._phrase_result = (key, add_frames(passage(data, thresholds), data, level))
         return self._phrase_result[1]
 
     def get_phrases(self) -> dict:

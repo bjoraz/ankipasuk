@@ -37,6 +37,13 @@ DEFAULT_LEVEL = 4
 REFERENCE = "003"  # the top domain of names, pronouns and pointing words
 
 
+def saved_level(saved: dict | None) -> int:
+    """The level the saved settings (their ``"fields"``) say, or the
+    default."""
+    level = saved.get("level", DEFAULT_LEVEL) if isinstance(saved, dict) else DEFAULT_LEVEL
+    return level if level in LEVELS else DEFAULT_LEVEL
+
+
 @cache
 def _table() -> dict:
     return json.loads(gzip.decompress((DATA_DIR / "senses.json.gz").read_bytes()))

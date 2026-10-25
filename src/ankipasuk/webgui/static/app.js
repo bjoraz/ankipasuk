@@ -556,7 +556,10 @@ async function saveFieldSettings() {
     if (level === fieldSettings.level) return;
     showToast("Field settings saved.");
     fieldColours.clear();  // at another level, the fields are others
-    if (currentVerseData.length) loadFields();
+    if (currentVerseData.length) {
+        loadFields();
+        loadPhrases();  // (the fields' frames)
+    }
 }
 
 // =============================================================

@@ -27,10 +27,12 @@ const PHRASE_SECTIONS = [
     ["formula", "Formulas", (n) => `${plural(n, "formula")}: phrases that only frame (who speaks, a name, a number, `
         + "God's names)."],
     ["frame", "Frames", (n) => `${plural(n, "frame")}: units of Masoretic sections that open and close with the same `
-        + "words, a single section or a petuḥa section first. A single word's frame is a candidate: some are chance."],
+        + "words, a single section or a petuḥa section first. A single word's or a field's frame is a candidate: "
+        + "some are chance."],
 ];
 // A frame section's groups (a formula's are its classes).
-const PHRASE_GROUPS = { sections: "Phrases: a section", runs: "Phrases: a run of sections", words: "Words (candidates)" };
+const PHRASE_GROUPS = { sections: "Phrases: a section", runs: "Phrases: a run of sections", words: "Words (candidates)",
+                        fields: "Fields (candidates)" };
 const PHRASE_KIND_NAMES = { refrain: "a refrain", echo: "an echo", idiom: "an idiom", formula: "a formula",
                             frame: "a frame" };
 
@@ -65,7 +67,7 @@ function phraseCount(result, kind, archived) {
 
 // Groups folded unless opened (words' frames), and those the user folded
 // or opened: remembered.
-const PHRASE_FOLDED = new Set(["frame:words"]);
+const PHRASE_FOLDED = new Set(["frame:words", "frame:fields"]);
 const PHRASE_GROUPS_KEY = "ankipasuk_phrase_groups";
 const phraseGroupsFlipped = new Set((() => {
     try { return JSON.parse(localStorage.getItem(PHRASE_GROUPS_KEY) || "[]"); } catch (e) { return []; }
@@ -110,8 +112,9 @@ function frameUnitText(f) {
 function phraseSummary(p, kind) {
     if (kind === "frame") {
         const f = p.frame;
-        return [`${f.word ? "A word's frame, a candidate" : "A frame"}: ${frameSpan(f, true)}`,
-                frameUnitText(f), `${oneIn(f.chance)} by chance`].join(" · ");
+        const what = f.field ? `A field's frame, a candidate (${f.field})` : f.word ? "A word's frame, a candidate"
+            : "A frame";
+        return [`${what}: ${frameSpan(f, true)}`, frameUnitText(f), `${oneIn(f.chance)} by chance`].join(" · ");
     }
     const what = kind === "formula" ? `A formula (${p.formula})` : PHRASE_KIND_NAMES[kind].replace(/^a/, "A");
     const parts = [what, p.here === 1 ? "once here" : `${p.here} times here`, `${p.total} in the Tanakh`];
@@ -159,7 +162,10 @@ function frameRowHtml(p, lastPicked) {
         + `${diagramEscape(x.ref.slice(x.ref.lastIndexOf(" ") + 1))}</a>`).join(", ");
     return `<li class="ph${lastPicked ? " last-picked" : ""}" data-id="${p.id}">`
         + `<div class="ph-text" dir="rtl" title="${diagramEscape(p.text)}">${diagramEscape(phraseShort(p.text))}</div>`
-        + `<div class="ph-meta"><span class="ph-n" title="${diagramEscape(frameSpan(f, true))}">${frameSpan(f)}</span>`
+        + `<div class="ph-meta">`
+        + (f.field ? `<span class="ph-field" title="${diagramEscape(f.field)}">`
+            + `${diagramEscape(f.field.split(" › ").pop())}</span> · ` : "")
+        + `<span class="ph-n" title="${diagramEscape(frameSpan(f, true))}">${frameSpan(f)}</span>`
         + ` · ${frameUnitText(f)} · <span title="How likely by chance">${oneIn(f.chance)}</span>`
         + (ends ? ` · also ${ends}` : "") + PHRASE_ARCHIVE_BUTTON + "</div></li>";
 }

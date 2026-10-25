@@ -189,6 +189,24 @@ def test_frames_are_listed_and_a_picked_one_goes_from_one_end_to_the_other(main_
     assert in_view(main_window, '#text-box .tv-line[data-i="33"]', "#text-box")
 
 
+def test_a_fields_frame_is_folded_with_the_candidates(main_window):
+    page = main_window.page
+    page.select_option(".range-book", "Exodus")
+    page.select_option(".range-start-ch", "2")
+    page.select_option(".range-end-ch", "2")
+    page.select_option(".range-end-vs", "22")
+    page.wait_for_function("document.getElementById('line-count').textContent === '22 pesuqim loaded'")
+    show_phrases(main_window)
+    page.click('#ph-tabs [data-kind="frame"]')
+    fields = page.locator('#phrases-list .ph-fold[data-group="fields"]')
+    assert "open" not in (fields.get_attribute("class") or "")
+    fields.click()
+    marry = page.locator("#phrases-list li.ph", has=page.locator('.ph-field:text-is("Marry")')).first
+    assert "2:1–2:22" in marry.locator(".ph-meta").inner_text() and "petuḥa section" in marry.inner_text()
+    marry.locator(".ph-text").click()
+    assert marry.locator(".ph-pos").inner_text() == "1/2"  # וַיִּקַּח (2:1), וַיִּתֵּן (2:21)
+
+
 def test_a_frames_other_end_opens_in_its_chapter(main_window):
     load(main_window, 1, 5, 5)
     show_phrases(main_window)
