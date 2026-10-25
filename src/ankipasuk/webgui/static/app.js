@@ -851,7 +851,16 @@ async function doGenerate() {
     const outputBox = document.getElementById("output-box");
     lazyFill(outputBox, result.output.split("\n"),
         (line) => `<div class="out-line">${diagramEscape(line)}</div>`, () => {}, outputBox, false);
-    renderDiagrams(document.getElementById("viz-box"), result.diagrams);
+    renderVizBox();
+}
+
+// The Diagram view, pointed or letters only.
+function diagramsPlain() {
+    return document.querySelector("#diagram-kind .active").dataset.kind === "plain";
+}
+
+function renderVizBox() {
+    renderDiagrams(document.getElementById("viz-box"), currentDiagrams, undefined, { plain: diagramsPlain() });
 }
 
 async function refreshNoteTypes(quiet) {
@@ -924,7 +933,7 @@ async function doExportClozeToAnki() {
 const PREVIEW_PESUQIM = 12;  // the preview shows the first few
 const PRINT_OPTIONS_KEY = "ankipasuk_print_options";
 // Which options are the drawing's (diagram.js); the rest are the page's.
-const DRAW_OPTIONS = ["textSize", "row", "labels", "labelSize", "grey", "bw"];
+const DRAW_OPTIONS = ["textSize", "row", "labels", "labelSize", "grey", "bw", "plain"];
 
 function optionInputs() {
     return [...document.querySelectorAll("#print-dialog [data-opt]")];
@@ -947,7 +956,9 @@ function showOptionValues() {
     for (const el of optionInputs()) {
         if (el.type === "range") el.nextElementSibling.textContent = el.value + (units[el.dataset.opt] || "");
     }
-    const labels = document.querySelector('[data-opt="labels"]').value !== "none";
+    const plain = document.querySelector('[data-opt="plain"]').checked;
+    const labels = !plain && document.querySelector('[data-opt="labels"]').value !== "none";
+    document.querySelector('[data-opt="labels"]').disabled = plain;  // (letters only: no labels)
     document.querySelector('[data-opt="labelSize"]').disabled = !labels;
 }
 
@@ -985,6 +996,8 @@ function openPrintDialog() {
     document.getElementById("pd-note").textContent = currentDiagrams.length > shown
         ? `The preview shows the first ${shown} of the ${currentDiagrams.length} pesuqim; the file has them all.`
         : "";
+    document.querySelector('[data-opt="plain"]').checked = diagramsPlain();  // as the view shows them
+    showOptionValues();
     document.getElementById("print-dialog").hidden = false;
     renderPrintPreview();
 }
@@ -1424,6 +1437,7 @@ window.addEventListener("pywebviewready", async () => {
         for (const view of document.querySelectorAll(".preview-body .view")) view.hidden = view.dataset.view !== btn.dataset.view;
     });
     segmented(document.getElementById("text-kind"), renderTextBox);
+    segmented(document.getElementById("diagram-kind"), renderVizBox);
     document.getElementById("text-box").addEventListener("click", (e) => {
         const word = e.target.closest(".w");
         if (word) rootColours.toggle(word.dataset.g);

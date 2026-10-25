@@ -69,6 +69,10 @@
     <div class="preview-body">
       <div class="view" data-view="diagram">
         <div class="view-tools">
+          <span class="seg" id="diagram-kind">
+            <button class="active" data-kind="pointed">Pointed</button><button data-kind="plain"
+              title="The letters alone, and the brackets without their ta'amim's names">Letters only</button>
+          </span>
           <span class="muted">Grey brackets: divisions the cards don't make at this setting.</span>
           <button id="btn-save-diagrams" type="button" class="link"
                   title="All the diagrams as pages, to read from or print, with a preview">Save as PDF / HTML…</button>
@@ -306,6 +310,7 @@
       <label class="field opt">Label size <input type="range" data-opt="labelSize" min="8" max="15" step="0.5" value="10.5"><output></output></label>
       <label class="field"><input type="checkbox" data-opt="grey" checked> Grey brackets (divisions the cards don't make)</label>
       <label class="field"><input type="checkbox" data-opt="bw"> Black and white</label>
+      <label class="field"><input type="checkbox" data-opt="plain"> Letters only (no pointing, no labels)</label>
 
       <h4>Page</h4>
       <label class="field opt">Paper

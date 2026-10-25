@@ -154,7 +154,9 @@ app remembers which you left it on.
 
 The preview has four views:
 
-- **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)).
+- **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)),
+  pointed or as bare letters (**Letters only**, the brackets without their
+  ta'amim's names: to read the division without the marks that give it).
 - **Text**: the pesuqim pointed or as bare letters, each with its chapter
   and verse, small, before it, and a Copy button (for the text alone).
   Click a word to colour every word of its shoresh, with the passage's
@@ -179,7 +181,8 @@ redrawn as you change the options beside it:
 
 - **Diagram:** text size, bracket spacing, labels (rank and name, name
   only, rank only, or none) and their size, whether to draw the grey
-  brackets, and black and white.
+  brackets, black and white, and letters only (as the view shows them,
+  to start with).
 - **Page:** A4 or Letter, portrait or landscape, margins, the space
   between pesuqim, and whether to show the references, the lines between
   pesuqim, and the title and legend.

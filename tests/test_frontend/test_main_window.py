@@ -14,6 +14,26 @@ def test_a_range_loads_and_each_pasuq_is_drawn(main_window):
     assert page.locator("#btn-export-cloze-anki").inner_text() == "Send 5 pesuqim to Anki"
 
 
+def test_the_diagrams_letters_only_have_no_pointing_and_no_labels(main_window):
+    load(main_window, 1, 5, 5)
+    page = main_window.page
+    page.wait_for_selector("#viz-box .dg-label")
+    marks = ("[...document.querySelectorAll('#viz-box .dg-word')]"
+             ".some(w => /[\\u0591-\\u05c7]/.test(w.textContent))")
+    assert page.evaluate(marks)  # (the seeded text has ta'amim)
+    page.click('#diagram-kind [data-kind="plain"]')
+    page.wait_for_selector("#viz-box .dg-line")
+    assert not page.evaluate(marks) and page.locator("#viz-box .dg-label").count() == 0
+    assert page.locator("#viz-box .dg-word").first.inner_text() == "בראשית"
+    # Saving starts as the view shows them, the labels' choice set aside.
+    page.click("#btn-save-diagrams")
+    assert page.locator('[data-opt="plain"]').is_checked()
+    assert page.locator('[data-opt="labels"]').is_disabled()
+    page.click("#pd-cancel")
+    page.click('#diagram-kind [data-kind="pointed"]')
+    page.wait_for_selector("#viz-box .dg-label")
+
+
 def test_a_range_that_cant_be_fetched_says_why(main_window):
     load(main_window, 3, 24, 80)
     main_window.page.select_option(".range-end-ch", "4")  # not in the cache, and offline

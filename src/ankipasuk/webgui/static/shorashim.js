@@ -119,10 +119,6 @@ function addRootTooltips(container, lookup) {
     });
 }
 
-function stripPointing(text) {
-    return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
-}
-
 // One pasuq's words as HTML: each word a span with its index (``data-k``),
 // a clickable one where it has a group (``.w``, ``data-g``), and what
 // follows it a span too (``data-s``, the word it follows), so a phrase's
