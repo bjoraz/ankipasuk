@@ -106,6 +106,10 @@ brought to one level of the tree: 4 by default, 3 or 5 in the settings.
   pane. A word keeps its other senses' fields: אֱלֹהִים in Bereshit 1:2 is
   also "mighty" (Events › Description › Modification › Intense).
 
+The fields also make frames: a rare field found only at the two ends of a
+Masoretic unit, in different words at each, is a candidate frame in the
+Phrases pane's Frames tab (`docs/phrases.md`, Frames).
+
 **Key fields** are ranked as the shorashim's key words: Dunning's
 log-likelihood (G²) of the field's words here against the rest of the
 Tanakh's, counted the same way (the same level, the same things left

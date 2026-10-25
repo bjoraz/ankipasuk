@@ -40,7 +40,7 @@ Each study tool is also a Python function, usable from a script (see
 
 ![The main window: Bereshit 1:1–8, each pasuq drawn as its diagram](docs/images/app-cloze.png)
 
-![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
+![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it, the verse numbers and the petuḥot marked](docs/images/app-text.png)
 
 ## Contents
 
@@ -163,8 +163,10 @@ The preview has four views:
   ta'amim's names: to read the division without the marks that give it).
 - **Text**: the pesuqim pointed or as bare letters, each with its chapter
   and verse, small, before it, and a Copy button (for the text alone).
-  Click a word to colour every word of its shoresh, with the passage's
-  shorashim listed beside the text (see [Shorashim](#shorashim)). The
+  Beside it, a side panel switches between four ways of studying the
+  passage: [Shorashim](#shorashim) (click a word to colour every word of
+  its shoresh), [Phrases](#phrases), [Verb forms](#verb-forms) and
+  [Semantic fields](#semantic-fields). The
   Masoretic sections are marked as in a printed Tanakh: פ after a pasuq
   that ends a petuḥa (an open section), ס after one that ends a setuma (a
   closed one), with a gap before the next pasuq; a break inside a pasuq
@@ -554,8 +556,8 @@ no shoresh and simply aren't clickable.
 
 ## Phrases
 
-In the **Text** view, switch the side panel from **Shorashim** to
-**Phrases** for the passage's recurring word sequences, in five sections:
+In the **Text** view, the side panel's **Phrases** pane has the passage's
+recurring word sequences, in five sections:
 
 - **Refrains**: repeated here more often than chance would give. ויהי ערב
   ויהי בקר in Bereshit 1, וישא משלו in Balaq, צוה יהוה את משה in Pequdei.
@@ -652,6 +654,8 @@ shoresh does. While the pane is open the text shows the fields' colours
 rather than the shorashim's, and a word's tooltip gives its sense and its
 domains.
 
+![The Fields pane: Bereshit 1:1–2:3 by key fields, Heaven, Liquids, Waterbodies and Shine coloured, מַיִם striped as both Liquids and Waterbodies](docs/images/app-fields.png)
+
 Names, pronouns and pointing words (SDBH's *Reference*) are left out
 unless you tick **names**, and particles unless you tick **particles**.
 SDBH doesn't yet cover some common function words (עַל, אֶל, כִּי, כֹּל), and
@@ -742,7 +746,7 @@ pasuq_diagram(pasuq, card_n=2)  # {"units": [{"words": [...], "boxes": [...]}, .
 The study tools work on a list of pesuqim, as the app loads them:
 
 ```python
-from ankipasuk import phrases, shorashim
+from ankipasuk import frames, phrases, sections, semantics, shorashim
 from ankipasuk.cache import SefariaCache
 from ankipasuk.sefaria import get_text_for_ref
 
@@ -753,9 +757,15 @@ roots = shorashim.passage(pesuqim)["groups"]  # each root: label, gloss, count, 
 sorted(roots.values(), key=lambda g: -g["keyness"])[0]["display"]  # 'מ־י־נ'
 found = phrases.passage(pesuqim)  # {"phrases": [...], "sections": {"refrain": [...], ...}}
 [found["phrases"][i]["text"] for i in found["sections"]["refrain"][:1]]  # ['וַֽיְהִי־עֶ֥רֶב וַֽיְהִי־בֹ֖קֶר']
+fields = semantics.passage(pesuqim)["fields"]  # each field: label, path, count, keyness, ...
+[f["label"] for f in sorted(fields.values(), key=lambda f: -f["keyness"])[:3]]  # ['Heaven', 'Shine', 'Waterbodies']
+sections.breaks("Genesis", 1, 5)  # ['P']: a petuḥa ends here
+frames.book_frames("Genesis")  # every frame of the book: its unit, its ends, its chance
 ```
 
-`phrases.passage` takes the tests' thresholds too (`phrases.Thresholds`).
+`phrases.passage` takes the tests' thresholds too (`phrases.Thresholds`),
+and `semantics.passage` the level and whether to count names and
+particles.
 
 - The rank table is plain data (`TROPE_UNICODE` in `config.py`).
 - Ranking and paseq, grouping, and splitting are separate functions in
@@ -825,16 +835,23 @@ pytest
 ruff check src tests scripts
 ```
 
+The data the app ships with (`src/ankipasuk/data/`) is made by scripts
+that need the network once: `scripts/build_shorashim.py` (the shorashim,
+verb forms and the phrases' index, from OSHB), `build_sections.py` (the
+Masoretic sections, from Sefaria) and `build_semantics.py` (the semantic
+domains, from SDBH, lined up with OSHB). Each writes the same files
+again from the same sources.
+
 The tests don't touch the network. They use hand-built pesuqim with real
 ta'am characters, fake tikkun.io pages (including lines shared between
 pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 
 `tests/test_frontend` drives the app's pages in headless Chromium, the
 way a user would: loading pesuqim, colouring a shoresh, picking and
-stepping through phrases, the phrase settings, the viewer, the statistics
-window. A stand-in for pywebview's bridge calls the real backend, on
-Bereshit 1–3 made from the bundled data, with the network and Anki
-refused. They need Playwright and its Chromium, and are skipped without
+stepping through phrases and frames, the archive, the verbs and fields
+panes, the settings, the viewer, the statistics window. A stand-in for
+pywebview's bridge calls the real backend, on Bereshit 1–3 and Shemot
+1–2 made from the bundled data, with the network and Anki refused. They need Playwright and its Chromium, and are skipped without
 them:
 
 ```bash

@@ -268,8 +268,8 @@ A book without section data (the Ketuvim but the Megillot) has no frames.
 There are three kinds, listed apart:
 
 - **Phrases**: a phrase of the book (as the tests above find them in the
-  whole book, formulas left out) that is in the unit's first pasuq and its
-  last. Sections: עשות יהוה אלהים, Bereshit 2:4–3:21; ביום אפו, Eikha 2;
+  whole book, with the same settings, formulas left out) that is in the
+  unit's first pasuq and its last. Sections: עשות יהוה אלהים, Bereshit 2:4–3:21; ביום אפו, Eikha 2;
   שמע ישראל, Devarim 5:1–6:3; each camp of Bemidbar 2 opens and closes with
   its מחנה. Runs: ברא אלהים frames the creation, Bereshit 1:1–2:3, seven
   petuḥa sections; Miryam's song closes as the song of the sea opens
@@ -284,13 +284,12 @@ There are three kinds, listed apart:
 - **Fields (candidates)**: a rare semantic field (see
   [`semantics.md`](semantics.md), at the level the Fields pane uses), in at
   most 25 of the book's pesuqim and 4 of the unit's, found only near the
-  unit's two ends as a word is, and said in other words at one end than
-  at the other: the same meaning, said differently. Marry around Shemot
-  2:1–22 (וַיִּקַּח, 2:1; וַיִּתֵּן, 2:21); signs and wonders around Shemot
-  10:1–11:10 (אֹתֹת, מוֹפְתִים); Festivals around Devarim 16:1–8 (פֶּסַח,
-  עֲצֶרֶת); writing around Devarim 10:1–11:21 (the tablets, and "write them
-  on the doorposts"). A field's frame in the same word at both ends is a
-  word's frame, and isn't listed again (Shemot 2's births, וַתֵּלֶד).
+  unit's two ends as a word is, and in no word that's at both ends: the
+  same meaning, said differently. Marry around Shemot 2:1–22 (וַיִּקַּח,
+  2:1; וַיִּתֵּן, 2:21); signs and wonders around Shemot 10:1–11:10 (אֹתֹת,
+  מוֹפְתִים); Festivals around Devarim 16:1–8 (פֶּסַח, עֲצֶרֶת). A field
+  whose ends share a word is that word's frame, and isn't listed again
+  (Shemot 2's births, וַתֵּלֶד at both ends).
 
 **The chance** of each is how likely its places in the unit would fall so
 if they were spread at random over the unit's pesuqim:
@@ -322,8 +321,8 @@ frame's viewer on that pasuq in its chapter.
 
 ## Display
 
-- **In the Text view.** The side panel switches between Shorashim and
-  Phrases. Phrases shows one section at a time, by its tab (each with its
+- **In the Text view.** The side panel's Phrases pane (beside Shorashim,
+  Verbs and Fields) shows one section at a time, by its tab (each with its
   count), under a line saying what the section holds. A section lists its
   first 12 phrases, in its ranking; **Show all** lists every one, and is
   remembered per section. The Statistics window lists them the same way.
@@ -336,7 +335,7 @@ frame's viewer on that pasuq in its chapter.
     colours (the shorashim's, in click order), and shows an occurrence:
     the first one in view, or else the first, brought into view and
     flashed. The row is marked in the same colour. **Clear colours**
-    clears roots and phrases. Each underline is one line from a phrase's
+    clears roots, phrases and fields. Each underline is one line from a phrase's
     first word to its last, spaces and maqaf included; where picked
     phrases share words, each keeps its own depth below the text.
   - A picked phrase moves to the top of its section (picked ones in the
@@ -352,7 +351,8 @@ frame's viewer on that pasuq in its chapter.
   - **The archive.** Hovering over a row shows **archive**: it puts the
     phrase away, out of every section it's in, in every passage, until
     it's restored. A phrase is archived by its dictionary words, so in all
-    its wordings; a frame is archived for its book. **Archive (n)**, below
+    its wordings; a frame is archived for its book, a field's frame by the
+    words at its ends (so at any level). **Archive (n)**, below
     the list, lists everything archived, the last first, with the section
     it was archived from, its pasuq (a frame's unit) and the day, each
     with **Restore** (and **Restore all**). It's kept with the settings,

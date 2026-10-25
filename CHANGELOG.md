@@ -2,7 +2,51 @@
 
 ## Unreleased
 
+More ways of studying the text: where things are in the passage, its
+Masoretic sections, its verb forms, the frames of a book's sections, and
+each word's meaning.
+
+### Added
+
+- **Semantic fields**, a new pane in the Text view: each word's sense and
+  domain in the Semantic Dictionary of Biblical Hebrew (the UBS open
+  release, CC BY-SA 4.0, bundled and lined up with OSHB's words; see
+  `docs/semantics.md`). The passage's fields, the most used or the key
+  ones first; click one, or a word, to colour its words, a word in two
+  coloured fields striped. All words are compared at one level of the
+  tree, 4 by default or 3 or 5 in **Field settings**. Names and particles
+  only when ticked. A word's tooltip gives its senses.
+- **Verb forms**, a new pane: the passage's verbs by form (wayyiqtol,
+  qatal, yiqtol, weqatal, …), in seven groups or all eleven, counted,
+  drawn as a strip of the passage, and coloured in the text; each form
+  explained on hover.
+- **Frames** (*inclusio*), a fifth tab in Phrases: the book's Masoretic
+  sections that open and close with the same phrase, a single section or
+  a petuḥa section first, then runs of sections (ברא אלהים, Bereshit
+  1:1–2:3). Rare words found only at a unit's two ends, and rare semantic
+  fields said in other words at either end, are listed as candidates,
+  folded. Each frame has its chance.
+- **Masoretic sections** in the Text view: פ or ס after a pasuq that ends
+  a petuḥa or a setuma, and a gap; inside a pasuq where the break is
+  there. From Sefaria's *Miqra according to the Masorah*, bundled; the
+  Decalogue and Eikha 1–4 count as one section each.
+- **An archive for phrases**: archive a phrase or frame that's wrong or
+  not needed now, and it's left out of every passage until you restore it
+  from **Archive**, below the list. The statistics window shares it.
+- **Where it is**: a coloured shoresh or field, or a picked phrase, shows
+  a strip of where it is in the passage; click it to go there.
+- **Verse numbers** before each pasuq in the Text view and in the phrase
+  viewer's chapter.
+- **Letters only** in the Diagram view, and in its PDF/HTML export: the
+  bare letters, and the brackets without their ta'amim's names.
+
 ### Changed
+
+- The Text view's side panel has four panes: Shorashim, Phrases, Verbs
+  and Fields.
+- A picked phrase moves to the top of its section, as a coloured shoresh
+  does. A section's groups (the formula classes, the frames' kinds) fold
+  by their header, and stay folded or open.
 
 - Phrases follow the ta'amim's division: a phrase that crosses a sof
   pasuq, an etnaḥta or a king (segolta, shalshelet, zaqef, tifḥa) starts
