@@ -53,6 +53,19 @@ The holiday table was trimmed down from Hebcal's full calendar data to one
 standard reading per occasion, independent of the year (see
 `docs/anki-tagging.md` for the list and what was left out).
 
+## Masoretic sections
+
+`src/ankipasuk/data/sections.json.gz` was made by
+`scripts/build_sections.py`: where each petuḥa and setuma falls, read from
+the `{פ}` and `{ס}` marks of *Miqra according to the Masorah* (מקרא על פי
+המסורה), as published by [Sefaria](https://www.sefaria.org/) from
+[Hebrew Wikisource](https://he.wikisource.org/), licensed under the
+[Creative Commons Attribution-ShareAlike license](https://creativecommons.org/licenses/by-sa/4.0/)
+(CC BY-SA). Only the places of the breaks are kept, not the text; the
+Decalogue's and Eikha 1–4's breaks inside them are left out
+(`ankipasuk.sections.ONE_SECTION`). The file is shared under the same
+license.
+
 ## Shorashim
 
 `src/ankipasuk/data/shorashim/` and `src/ankipasuk/data/phrases/` were made
@@ -68,8 +81,9 @@ by `scripts/build_shorashim.py` from two Open Scriptures projects:
   (`LexicalIndex.xml`): each lemma's part of speech, gloss, and place in
   Brown–Driver–Briggs (a public-domain work, 1906), from the same project.
 
-What's bundled is derived from them: each word's letters and the group
-(root, or the word itself) it belongs to, and each group's label, gloss,
+What's bundled is derived from them: each word's letters, the group
+(root, or the word itself) it belongs to and, for a verb, its form
+(wayyiqtol, qatal, …), and each group's label, gloss,
 words, and count in the whole of OSHB's Tanakh; and, for the phrases, each
 word of the Tanakh's dictionary entry (numbered, with its Strong's number
 and part of speech) and a few facts from its morphology and accents (a
@@ -82,3 +96,24 @@ own spelling. Some common words, whose BDB gloss is more an etymology
 than a meaning, also have a plain meaning added beside it (`MEANINGS` in
 `src/ankipasuk/shorashim_build.py`); their BDB gloss is kept.
 
+## Semantic domains
+
+`src/ankipasuk/data/semantics/` was made by `scripts/build_semantics.py`
+from the **UBS Dictionary of Biblical Hebrew**, version 0.9.4
+([ubsicap/ubs-open-license](https://github.com/ubsicap/ubs-open-license),
+`dictionaries/hebrew`): UBS Dictionary of Biblical Hebrew © United Bible
+Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew ©
+2000-2023 United Bible Societies. It is licensed under the
+[Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/)
+(CC BY-SA 4.0).
+
+What's bundled is adapted from it: the senses that have places in the
+Tanakh, each with its lemma (in Unicode's NFC), English glosses, short
+definition and lexical domain codes, and the English labels and
+descriptions of the lexical domains. The places themselves were lined up
+with the words of the Open Scriptures Hebrew Bible (see "Shorashim"
+above), so each of its words has its senses; the method is in
+`docs/semantics.md`, and a few places whose Strong's numbers differ were
+put where their neighbours place them. The other languages, the
+contextual domains, footnotes and the rest of each entry are left out.
+These files are shared under the same license, CC BY-SA 4.0.

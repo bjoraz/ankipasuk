@@ -268,7 +268,7 @@ async function loadShorashim() {
 }
 
 // =============================================================
-//  Phrases: refrains, echoes, idioms, and formulas (ankipasuk.phrases)
+//  Phrases: refrains, echoes, idioms, formulas and frames (ankipasuk.phrases)
 // =============================================================
 let phraseResult = null;  // the bridge's get_phrases
 let phraseKind = "refrain";
@@ -291,9 +291,22 @@ async function loadPhrases() {
     renderPhrasePane(phraseResult, phraseKind, els);
 }
 
+// The archive changed in another window (the main window's api._on_archive).
+async function phraseArchiveChanged() {
+    if (!phraseResult) return;
+    phraseResult.archive = await api().get_phrase_archive();
+    renderPhrasePane(phraseResult, phraseKind, phraseEls());
+    if (phraseArchiveDialog && phraseArchiveDialog.result === phraseResult) phraseArchiveDialog.render();
+}
+
 function wirePhrases() {
     const els = phraseEls();
-    const calls = { verses: (id) => api().get_phrase_verses(id), context: (id, place) => api().get_phrase_context(id, place) };
+    const calls = {
+        verses: (id) => api().get_phrase_verses(id),
+        context: (id, place) => api().get_phrase_context(id, place),
+        archive: (id, kind) => api().archive_phrase(id, kind),
+        restore: (keys) => api().restore_phrases(keys),
+    };
     els.tabs.addEventListener("click", (e) => {
         const tab = e.target.closest("button[data-kind]");
         if (!tab || !phraseResult) return;
@@ -302,13 +315,12 @@ function wirePhrases() {
     });
     // A row, or one of its places, opens the phrase's viewer.
     els.list.addEventListener("click", (e) => {
-        if (e.target.closest(".ph-more button") && phraseResult) {
-            togglePhrasesAll(phraseKind);
-            renderPhrasePane(phraseResult, phraseKind, els);
+        if (!phraseResult) return;
+        if (phrasePaneClick(e, phraseResult, phraseKind, calls, () => renderPhrasePane(phraseResult, phraseKind, els))) {
             return;
         }
         const item = e.target.closest("li.ph");
-        if (!item || !phraseResult) return;
+        if (!item) return;
         e.preventDefault();
         const place = e.target.closest(".ph-place");
         openPhraseViewer(phraseResult.phrases[Number(item.dataset.id)], phraseKind, calls, place ? Number(place.dataset.place) : 0);

@@ -13,6 +13,7 @@ const DIAGRAM_DEFAULTS = {
     labels: "full",   // "full" (1 אתנח), "name", "rank", or "none"
     labelSize: 10.5,  // px
     grey: true,       // draw the divisions the cards don't make
+    plain: false,     // letters only: no pointing, and no labels (they name the ta'amim)
 };
 const DIAGRAM_PAD = 3;
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -31,13 +32,22 @@ function diagramEscape(s) {
     return div.innerHTML;
 }
 
+// Just the letters: no vowels, ta'amim or dots, no sof pasuq or paseq.
+function stripPointing(text) {
+    return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
+}
+
 // One pasuq: its units (the atnaḥ half and the sof pasuq half) side by
-// side, wrapping onto a new line when they don't fit. The brackets are
-// drawn later, when it comes into view (see renderDiagrams).
-function diagramHtml(diagram, ref) {
+// side, wrapping onto a new line when they don't fit; ``plain``, letters
+// only (a maqaf a space). The brackets are drawn later, when it comes into
+// view (see renderDiagrams).
+function diagramHtml(diagram, ref, plain = false) {
     const units = diagram.units.map((unit) => {
         const words = unit.words
-            .map((w) => `<span class="dg-word" data-g="${w.g}">${diagramEscape(w.text)}</span>`)
+            .map((w) => {
+                const text = plain ? stripPointing(w.text).replace(/\u05be/g, " ").trim() : w.text;
+                return `<span class="dg-word" data-g="${w.g}">${diagramEscape(text)}</span>`;
+            })
             .join(" ");
         return `<div class="dg-unit"><div class="dg-inner" data-boxes='${diagramEscape(JSON.stringify(unit.boxes))}'>`
             + `<svg class="dg-brackets"></svg><div class="dg-text" dir="rtl">${words}</div></div></div>`;
@@ -147,6 +157,7 @@ function labelWidth(text, size) {
 
 function drawUnits(inners, options) {
     const o = { ...DIAGRAM_DEFAULTS, ...options };
+    if (o.plain) o.labels = "none";
     const labelHeight = labelHeightFor(o);
     const measured = inners.map(measureUnit);
     const labels = inners.flatMap((inner, i) => paintUnit(inner, measured[i], o));
@@ -257,10 +268,11 @@ function lazyFill(container, items, htmlFor, onFilled, root, refill) {
 }
 
 // Diagrams ([{diagram, ref}]) in ``container``, drawn as they come into
-// view while ``scrollRoot`` (the container itself, unless given) scrolls.
-function renderDiagrams(container, items, scrollRoot) {
-    lazyFill(container, items, (it) => diagramHtml(it.diagram, it.ref),
-        (pesuqim) => drawUnits(pesuqim.flatMap((p) => [...p.querySelectorAll(".dg-inner")])),
+// view while ``scrollRoot`` (the container itself, unless given) scrolls;
+// ``options`` as drawUnits's.
+function renderDiagrams(container, items, scrollRoot, options = {}) {
+    lazyFill(container, items, (it) => diagramHtml(it.diagram, it.ref, options.plain),
+        (pesuqim) => drawUnits(pesuqim.flatMap((p) => [...p.querySelectorAll(".dg-inner")]), options),
         scrollRoot || container, true);
 }
 
@@ -283,7 +295,7 @@ async function snapshotDiagrams(items, width, onProgress, options) {
     const parts = [];
     try {
         for (let i = 0; i < items.length; i += BATCH) {
-            box.innerHTML = items.slice(i, i + BATCH).map((it) => diagramHtml(it.diagram, it.ref)).join("");
+            box.innerHTML = items.slice(i, i + BATCH).map((it) => diagramHtml(it.diagram, it.ref, o.plain)).join("");
             const inners = [...box.querySelectorAll(".dg-inner")];
             for (const inner of inners) inner.querySelector(".dg-text").style.fontSize = o.textSize + "px";
             drawUnits(inners, o);

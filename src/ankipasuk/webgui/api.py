@@ -74,6 +74,7 @@ from ..qeriya import (
     tiqqun_ammud_deck,
     tiqqun_ammud_tag,
 )
+from ..sections import breaks as section_breaks
 from ..sefaria import (
     fetch_verse_range,
     get_aliyah_ref,
@@ -101,13 +102,14 @@ from ..tiqqun_export import pasuq_key as tiqqun_pasuq_key
 from ..tiqqun_export import row_key as tiqqun_row_key
 from ..verse_cards import build_amud_verse_cards
 from .anki_connect_api import AnkiConnectApi
+from .field_api import FieldApi
 from .phrase_api import PhraseApi
 from .stats_api import StatsApi
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
 
-class Api(PhraseApi):
+class Api(PhraseApi, FieldApi):
     """Holds the mutable state a session needs (cache, accumulated verse
     data) -- one instance is created per app run and shared by every JS
     call, mirroring how ``AnkiPasukApp`` held this as instance state.
@@ -214,8 +216,15 @@ class Api(PhraseApi):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
+
+    def _add_verses(self, new_verses: list[dict]) -> None:
+        """Append fetched pesuqim, each with its Masoretic breaks (``breaks``,
+        see ankipasuk.sections), to the accumulated verse data."""
+        for verse in new_verses:
+            verse["breaks"] = section_breaks(verse["book"], verse["ch"], verse["vs"])
+        self._current_verse_data.extend(new_verses)
 
     def get_parasha_span(
         self, book: str, from_parasha: str, from_aliyah: int, to_parasha: str, to_aliyah: int,
@@ -261,7 +270,7 @@ class Api(PhraseApi):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     def get_haftarot(self) -> dict:
@@ -294,7 +303,7 @@ class Api(PhraseApi):
         for pos, verse in enumerate(new_verses, 1):
             verse["haftara"] = slug
             verse["haftara_pos"] = pos
-        self._current_verse_data.extend(new_verses)
+        self._add_verses(new_verses)
         return {"ok": True, "verses": self._current_verse_data, "cache_status": self._cache_status_text()}
 
     # =============================================================
@@ -437,8 +446,8 @@ class Api(PhraseApi):
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-    def _phrase_pesuqim(self) -> list[dict]:
-        """The loaded pesuqim, for the Text view's phrases (PhraseApi)."""
+    def _loaded_pesuqim(self) -> list[dict]:
+        """The loaded pesuqim, for the Text view's phrases and fields (PhraseApi, FieldApi)."""
         return self._current_verse_data
 
     # =============================================================
@@ -543,12 +552,29 @@ class Api(PhraseApi):
             self._settings.set("phrases", {k: v for k, v in phrases.items() if v != defaults[k]})
         except OSError as e:
             return {"ok": False, "error": f"Couldn't save the settings: {e}"}
-        for window in list(self._stats_windows):
+        self._run_in_windows("loadPhrases()", self._stats_windows)
+        return {"ok": True, "phrases": phrases}
+
+    def _run_in_windows(self, script: str, windows) -> None:
+        for window in list(windows):
             try:
-                window.evaluate_js("loadPhrases()")
+                window.evaluate_js(script)
             except Exception:  # noqa: BLE001 -- closing as we speak
                 traceback.print_exc()
-        return {"ok": True, "phrases": phrases}
+
+    def save_field_settings(self, values: dict) -> dict:
+        """As FieldApi's, and the open statistics windows find their phrases
+        again (the fields' frames change with the level)."""
+        out = FieldApi.save_field_settings(self, values)
+        if out["ok"]:
+            self._run_in_windows("loadPhrases()", self._stats_windows)
+        return out
+
+    def _on_archive(self, source: PhraseApi) -> None:
+        """The phrase archive changed in ``source``'s window (this one's or
+        a statistics window's): the others show it as it is now."""
+        self._run_in_windows("phraseArchiveChanged()", [w for w in (self._window, *self._stats_windows)
+                                                        if w is not None and w is not source._window])
 
     # =============================================================
     #  Cloze export straight to Anki (AnkiConnect)
@@ -936,6 +962,7 @@ class Api(PhraseApi):
         font = self.get_tikkun_font_css()
         stats_api = StatsApi(self._current_verse_data, max_leaf_disj, font["css"] if font["ok"] else "",
                              cache=self._cache, settings=self._settings)
+        stats_api._on_archive = self._on_archive
         window = webview.create_window(
             "Statistics",
             str(_STATIC_DIR / "stats.html"),

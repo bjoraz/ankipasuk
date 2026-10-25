@@ -87,6 +87,11 @@ button:disabled { opacity: 0.6; cursor: default; }
 #output-box .dg-pending { height: 3.2em; }
 #text-box .dg-pending { height: 1.7em; }
 #text-box .tv-line { margin-bottom: 4px; }
+/* A Masoretic break: its letter after the pasuq (or the word, inside one),
+   and a gap before the next pasuq, wider after a petuḥa. */
+#text-box .tv-line.tv-end-p { margin-bottom: 1.1em; }
+#text-box .tv-line.tv-end-s { margin-bottom: 0.55em; }
+.tv-break { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 0.8em; color: #8d6e63; cursor: default; }
 #output-box .out-line { margin-bottom: 0.4em; }
 
 /* ================================================================
@@ -188,6 +193,7 @@ body.sidebar-collapsed .sidebar { display: none; }
 .seg button:first-child { border-radius: 3px 0 0 3px; }
 .seg button:last-child { border-radius: 0 3px 3px 0; border-left: none; }
 .seg button.active { background: #e3f2fd; border-color: #90caf9; color: var(--accent); }
+.seg button + button { border-left: none; }
 .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
          color: #999; font-size: 14px; background: white; }
 .empty[hidden] { display: none; }
@@ -204,7 +210,7 @@ body.sidebar-collapsed .sidebar { display: none; }
 .w[class*="hl-"] { padding: 0 1px; }
 .text-split { flex: 1; min-height: 0; display: flex; }
 .text-split .pane { flex: 1; min-width: 0; }
-.roots-panel { width: 210px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #eee; }
+.roots-panel { width: 224px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #eee; }
 .roots-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 8px;
               font-size: 12px; font-weight: 600; color: #455a64; border-bottom: 1px solid #f0f0f0; }
 .roots-head label { font-weight: normal; gap: 3px; }
@@ -212,7 +218,14 @@ body.sidebar-collapsed .sidebar { display: none; }
 .roots-sort .seg { display: flex; }
 .roots-sort .seg button { flex: 1; font-size: 11px; padding: 1px 6px; }
 #roots-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; }
-#roots-list li { display: flex; align-items: baseline; gap: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+#roots-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; padding: 2px 8px; cursor: pointer;
+                 font-size: 12px; }
+/* Where a coloured root or a picked phrase is in the passage: a tick a
+   pasuq, on a faint line the passage's length. */
+.spark { display: block; flex-basis: 100%; width: 100%; height: 9px; margin: 2px 0 1px; background: #eef1f4;
+         border-radius: 1px; cursor: pointer; shape-rendering: crispEdges; }
+.ph .spark { margin-top: 4px; }
+.ph.last-picked { border-bottom: 1px solid #c9d2da; }
 #roots-list li:hover { background: #f3f6fa; }
 #roots-list li.last-coloured { border-bottom: 1px solid #dde3e8; padding-bottom: 4px; margin-bottom: 3px; }
 .root-label { font-family: "SBL Hebrew", "Noto Serif Hebrew", serif; font-size: 15px; padding: 0 4px;
@@ -229,7 +242,10 @@ body.sidebar-collapsed .sidebar { display: none; }
 .roots-panel.wide { width: 320px; }
 .panel-switch { padding: 6px 8px 4px; border-bottom: 1px solid #f0f0f0; }
 .panel-switch .seg { display: flex; }
-.panel-switch .seg button { flex: 1; font-size: 12px; padding: 2px 6px; }
+/* Four panes' buttons in the narrow panel: each may shrink to fit (its
+   name cut short, in the worst case), never past the panel's edge. */
+.panel-switch .seg button { flex: 1 1 auto; min-width: 0; font-size: 11.5px; padding: 2px 4px; overflow: hidden;
+                            text-overflow: ellipsis; white-space: nowrap; }
 .panel-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel-pane[hidden] { display: none; }
 /* Phrases (phrases.js): a section's tabs, a line on what it holds, its
@@ -255,6 +271,7 @@ body.sidebar-collapsed .sidebar { display: none; }
            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .ph-meta { font-size: 11px; color: #90a4ae; margin-top: 1px; font-variant-numeric: tabular-nums; }
 .ph-n { color: #607d8b; }
+.ph-field { color: #37474f; font-weight: 600; }
 .ph-place { color: var(--accent); text-decoration: none; }
 .ph-place:hover { text-decoration: underline; }
 .ph-jump { float: right; display: inline-flex; align-items: center; gap: 1px; margin: -2px 0 0 6px; }
@@ -265,7 +282,28 @@ body.sidebar-collapsed .sidebar { display: none; }
 .ph-rare { font-size: 10px; color: #8d6e63; border: 1px solid #e0d6d0; border-radius: 3px; padding: 0 3px; margin-left: 4px; }
 .ph-class { padding: 8px 10px 3px; font-size: 11px; color: #78909c; font-weight: 600; text-transform: uppercase;
             letter-spacing: 0.04em; cursor: default; }
+.ph-fold { cursor: pointer; }
+.ph-fold::before { content: "▸"; display: inline-block; width: 1em; color: #90a4ae; }
+.ph-fold.open::before { content: "▾"; }
+.ph-fold:hover { color: #455a64; }
+.ph-class-n { font-weight: normal; color: #90a4ae; margin-left: 3px; }
 .ph-none { padding: 10px; color: #90a4ae; font-size: 12px; }
+/* A row's archive button, shown on the row's hover; the archive's link
+   below the list, and the archive itself. */
+.ph-archive { visibility: hidden; margin-left: 6px; padding: 0 5px; font-size: 10px; line-height: 1.5; color: #78909c;
+              background: white; border: 1px solid #dfe5e8; border-radius: 3px; }
+.ph:hover .ph-archive, .ph-archive:focus-visible { visibility: visible; }
+.ph-archive:hover { color: #37474f; border-color: #b0bec5; }
+.ph-archived { padding: 8px 10px; font-size: 11px; text-align: center; }
+.ph-archived button { font-size: 11px; }
+.ph-viewer.ph-archive-box { width: min(640px, calc(100vw - 40px)); height: auto; max-height: min(640px, calc(100vh - 40px)); }
+.ph-archive-title { font-size: 17px; font-weight: 600; color: #37474f; }
+.ph-archive-list { flex: 1; overflow-y: auto; }
+.ph-archive-list .ph { cursor: default; }
+.ph-restore { margin-left: 6px; padding: 0 7px; font-size: 11px; line-height: 1.5; }
+.ph-here-tag { color: var(--accent); }
+.ph-archive-foot { padding: 8px 18px; border-top: 1px solid #eceff1; text-align: right; font-size: 12px; }
+.ph-archive-foot button { font-size: 12px; }
 .ph-more { padding: 7px 10px; text-align: center; }
 .ph-more button { font-size: 12px; }
 .ph-head { display: flex; align-items: baseline; gap: 8px; padding-right: 10px; border-bottom: 1px solid #f0f0f0; }
@@ -308,7 +346,11 @@ body.sidebar-collapsed .sidebar { display: none; }
 .ph-chapter-title { font-size: 12px; font-weight: 600; color: #455a64; margin-bottom: 4px; }
 .ph-vs { margin: 0; padding: 2px 6px; border-radius: 4px; font-size: 18px; }
 .ph-vs.hit { background: #fff8e1; }
-.ph-vs-n { font-family: Georgia, serif; font-size: 11px; color: #90a4ae; margin-left: 6px; vertical-align: 3px; }
+/* A pasuq's chapter:verse, small, before it (and not copied with it). */
+.ph-vs-n, .tv-n {
+  font-family: Georgia, serif; font-size: 11px; font-weight: normal; color: #90a4ae; margin-left: 6px;
+  vertical-align: 3px; unicode-bidi: isolate; -webkit-user-select: none; user-select: none; cursor: default;
+}
 @media (max-width: 760px) {
   .ph-viewer-body { flex-direction: column; }
   .ph-viewer-body section + section { border-right: none; border-top: 1px solid #eceff1; }
@@ -374,3 +416,54 @@ body.sidebar-collapsed .sidebar { display: none; }
 .toast.error {
     background: #b71c1c;
 }
+
+/* The Verbs pane: the passage as a strip of its verbs, the kinds with
+   their counts; while it's open the text's verbs take their kind's colour
+   (not over a coloured shoresh's highlight). */
+#text-box [data-f="w"]:not([class*="hl-"]) { color: var(--vf-w, inherit); }
+#text-box [data-f="p"]:not([class*="hl-"]) { color: var(--vf-p, inherit); }
+#text-box [data-f="i"]:not([class*="hl-"]) { color: var(--vf-i, inherit); }
+#text-box [data-f="q"]:not([class*="hl-"]) { color: var(--vf-q, inherit); }
+#text-box [data-f="v"]:not([class*="hl-"]) { color: var(--vf-v, inherit); }
+#text-box [data-f="j"]:not([class*="hl-"]) { color: var(--vf-j, inherit); }
+#text-box [data-f="h"]:not([class*="hl-"]) { color: var(--vf-h, inherit); }
+#text-box [data-f="r"]:not([class*="hl-"]) { color: var(--vf-r, inherit); }
+#text-box [data-f="s"]:not([class*="hl-"]) { color: var(--vf-s, inherit); }
+#text-box [data-f="a"]:not([class*="hl-"]) { color: var(--vf-a, inherit); }
+#text-box [data-f="c"]:not([class*="hl-"]) { color: var(--vf-c, inherit); }
+/* Semantic fields (fields.js): while their pane is open, the text shows
+   the fields' colours (a word in two coloured fields striped) instead of
+   the shorashim's; the list beside it, as the shorashim's. */
+#text-box.fields-mode [data-k] { background: var(--fd, transparent); color: var(--fd-text, inherit); }
+#text-box.fields-mode [data-d] { cursor: pointer; border-radius: 3px; }
+#text-box.fields-mode [data-d]:hover { box-shadow: 0 1px 0 #90a4ae; }
+#text-box.fields-mode .fd-striped { text-shadow: 0 0 2px white, 0 0 2px white, 0 0 1px white; }
+.fd-toggles { display: inline-flex; gap: 8px; }
+.fd-toggles label { font-weight: normal; gap: 3px; }
+#fields-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; }
+#fields-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; padding: 3px 8px; cursor: pointer;
+                  font-size: 12px; }
+#fields-list li:hover { background: #f3f6fa; }
+#fields-list li.last-coloured { border-bottom: 1px solid #dde3e8; padding-bottom: 5px; margin-bottom: 3px; }
+#fields-list li.fd-none { color: #90a4ae; cursor: default; }
+.fd-label { font-weight: 600; color: #37474f; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.fd-parent { flex: 1; min-width: 0; color: #90a4ae; font-size: 11px; overflow: hidden; text-overflow: ellipsis;
+             white-space: nowrap; }
+.fd-words { flex-basis: 100%; padding: 0 4px; color: #607d8b; font-family: "SBL Hebrew", "Noto Serif Hebrew", serif;
+            font-size: 14px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-foot { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; font-size: 11px;
+           border-top: 1px solid #f0f0f0; }
+.fd-foot button.link { font-size: 11px; }
+.vf-strip { padding: 8px 10px 0; }
+.vf-strip-svg { display: block; width: 100%; height: 30px; cursor: pointer; shape-rendering: crispEdges; }
+.vf-ends { display: flex; justify-content: space-between; padding: 1px 10px 4px; font-size: 10px; }
+.vf-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; }
+.vf-list li { display: flex; align-items: center; gap: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.vf-list li:hover { background: #f3f6fa; }
+.vf-list li.off { opacity: 0.4; }
+.vf-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.vf-name { flex: 1; }
+.vf-n { color: #555; font-variant-numeric: tabular-nums; }
+.vf-pct { width: 3em; text-align: right; color: #90a4ae; font-variant-numeric: tabular-nums; }
+.vf-note { margin: 4px 10px 8px; font-size: 11px; line-height: 1.4; }
+#fs-levels label { line-height: 1.5; padding: 3px 0; }

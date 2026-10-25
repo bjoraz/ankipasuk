@@ -26,6 +26,30 @@ const ROOT_PALETTE_DARK = new Set([0, 3, 5, 10, 12, 14, 16, 18]);
 // A group's name: its letters (א־מ־ר) or word, and where BDB has more
 // than one with the same letters, its number, in BDB's order (ל־ח־מ II).
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+// Where something occurs in the loaded pesuqim, as a strip under its entry:
+// a tick at each pasuq it's in (taller where it's there more than once),
+// the first pasuq on the right, as the text reads. ``counts`` is a Map of
+// pasuq index -> times; ``n`` how many pesuqim are loaded.
+function sparklineHtml(counts, n, colour, title) {
+    if (!n || !counts.size) return "";
+    const w = Math.max(1, n / 180);  // at least about a pixel wide
+    const ticks = [...counts].map(([v, times]) => {
+        const h = times > 1 ? 1 : 0.6;
+        return `<rect x="${n - v - w}" y="${1 - h}" width="${w}" height="${h}"/>`;
+    }).join("");
+    return `<svg class="spark" viewBox="0 0 ${n} 1" preserveAspectRatio="none" fill="${colour}"`
+        + ` data-n="${n}" data-at="${[...counts.keys()].join(",")}"><title>${diagramEscape(title)}</title>${ticks}</svg>`;
+}
+
+// The pasuq a click on a sparkline points to: the nearest one with a tick.
+function sparklinePasuq(svg, clientX) {
+    const r = svg.getBoundingClientRect();
+    const n = Number(svg.dataset.n);
+    const at = svg.dataset.at.split(",").map(Number);
+    const v = Math.floor(((r.right - clientX) / r.width) * n);
+    return at.reduce((best, x) => (Math.abs(x - v) < Math.abs(best - v) ? x : best), at[0]);
+}
+
 function rootLabelHtml(info) {
     const n = info.number ? ` <span class="root-n">${ROMAN[info.number] || info.number}</span>` : "";
     return diagramEscape(info.display) + n;
@@ -84,36 +108,44 @@ function rootTitle(info) {
     return `\u200e${info.display}${n} \u00b7 ${glossText(info.gloss, info.meaning)}${kind}\n${rootCountsText(info)}`;
 }
 
-// Words get their tooltip when first pointed at, rather than one written
-// out for each of a passage's thousands. ``lookup`` gives a group's info.
-function addRootTooltips(container, lookup) {
+// Words get their tooltip when pointed at, rather than one written out
+// for each of a passage's thousands. ``lookup`` gives a group's info;
+// ``more(word)``, anything to add (a word's senses, fields.js).
+function addRootTooltips(container, lookup, more = () => "") {
     container.addEventListener("mouseover", (e) => {
-        const word = e.target.closest(".w");
-        if (!word || word.title) return;
-        const info = lookup(word.dataset.g);
-        if (info) word.title = rootTitle(info);
+        const word = e.target.closest(".w, [data-d]");
+        if (!word) return;
+        const info = word.dataset.g === undefined ? null : lookup(word.dataset.g);
+        const title = [info ? rootTitle(info) : "", more(word)].filter(Boolean).join("\n\n");
+        if (title !== word.title) word.title = title;
     });
 }
 
-function stripPointing(text) {
-    return text.normalize("NFD").replace(/\p{Mn}/gu, "").replace(/[\u05c3\u05c0]/g, "").normalize("NFC");
-}
-
 // One pasuq's words as HTML: each word a span with its index (``data-k``),
-// a clickable one where it has a group (``.w``, ``data-g``), and what
-// follows it a span too (``data-s``, the word it follows), so a phrase's
-// underline can run on between its words; maqaf kept between words, or a
-// space for letters only.
-function rootWordsHtml(words, plain) {
-    return words.map(([text, sep, g], k) => {
+// a clickable one where it has a group (``.w``, ``data-g``), its fields
+// if given (``data-d``, fields.js), and what follows it a span too
+// (``data-s``, the word it follows), so a phrase's underline can run on
+// between its words; maqaf kept between words, or a space for letters only.
+function rootWordsHtml(words, plain, extra = {}, fields = null) {
+    return words.map(([text, sep, g, form], k) => {
         const shown = diagramEscape(plain ? stripPointing(text) : text);
         const after = plain && sep === "\u05be" ? " " : sep;
         const between = after ? `<span data-s="${k}">${after}</span>` : "";
-        if (!shown.trim()) return shown + between;
+        if (!shown.trim()) return shown + between + (extra[k] || "");
+        const f = (form ? ` data-f="${form}"` : "")  // a verb's form (verbs.js)
+            + (fields && fields[k] && fields[k].length ? ` data-d="${fields[k].join(" ")}"` : "");
         const word = g === null || g === undefined
-            ? `<span data-k="${k}">${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}">${shown}</span>`;
-        return word + between;
+            ? `<span data-k="${k}"${f}>${shown}</span>` : `<span class="w" data-g="${g}" data-k="${k}"${f}>${shown}</span>`;
+        return word + between + (extra[k] || "");
     }).join("");
+}
+
+// A Masoretic break, as printed Tanakhs show it: פ for a petuḥa, ס for a
+// setuma (see ankipasuk.sections).
+function sectionBreakHtml(kind) {
+    const [letter, what] = kind === "P" ? ["פ", "Petuḥa: an open section ends here"]
+        : ["ס", "Setuma: a closed section ends here"];
+    return `<span class="tv-break" title="${what}">${letter}</span>`;
 }
 
 // Which roots are coloured, and with which colour: in the order they're

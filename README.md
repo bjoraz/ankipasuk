@@ -24,7 +24,13 @@ ta'amim come from [Sefaria](https://www.sefaria.org/).
 - **Shorashim**: click a word to colour its root through the passage, with
   glosses and the passage's key words.
 - **Phrases**: the passage's refrains, echoes of other places in the
-  Tanakh (each opened in its chapter) and idioms.
+  Tanakh (each opened in its chapter), idioms, and the frames of the
+  book's sections.
+- **Verb forms**: wayyiqtol, qatal, yiqtol and the rest, counted and drawn
+  as a strip of the passage, and coloured in the text.
+- **Semantic fields**: each word's domain in the Semantic Dictionary of
+  Biblical Hebrew (heaven, light, time, water…), the passage's key fields,
+  and their words coloured in the text.
 - **Statistics**: counts and distributions, the mafsiqim, and pesuqim
   grouped by the shape of their ta'amim.
 
@@ -34,7 +40,7 @@ Each study tool is also a Python function, usable from a script (see
 
 ![The main window: Bereshit 1:1–8, each pasuq drawn as its diagram](docs/images/app-cloze.png)
 
-![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it](docs/images/app-text.png)
+![The Text view: Bereshit 1:1–2:3, two shorashim coloured and a refrain underlined, the Phrases pane beside it, the verse numbers and the petuḥot marked](docs/images/app-text.png)
 
 ## Contents
 
@@ -43,7 +49,8 @@ Each study tool is also a Python function, usable from a script (see
   [Tiqqun cards](#tiqqun-cards) ·
   [Tools that work on your Anki collection](#tools-that-work-on-your-anki-collection-optional)
 - **Studying the text:** [The diagram](#the-diagram) · [Shorashim](#shorashim) ·
-  [Phrases](#phrases) · [Statistics](#statistics)
+  [Phrases](#phrases) · [Verb forms](#verb-forms) · [Semantic fields](#semantic-fields) ·
+  [Statistics](#statistics)
 - [Spelling](#spelling) · [Cache](#cache) · [For developers](#for-developers) · [Credits](#credits)
 
 ## Installing
@@ -151,10 +158,22 @@ app remembers which you left it on.
 
 The preview has four views:
 
-- **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)).
-- **Text**: the pesuqim pointed or as bare letters, with a Copy button.
-  Click a word to colour every word of its shoresh, with the passage's
-  shorashim listed beside the text (see [Shorashim](#shorashim)).
+- **Diagram**: each pasuq drawn as its division (see [The diagram](#the-diagram)),
+  pointed or as bare letters (**Letters only**, the brackets without their
+  ta'amim's names: to read the division without the marks that give it).
+- **Text**: the pesuqim pointed or as bare letters, each with its chapter
+  and verse, small, before it, and a Copy button (for the text alone).
+  Beside it, a side panel switches between four ways of studying the
+  passage: [Shorashim](#shorashim) (click a word to colour every word of
+  its shoresh), [Phrases](#phrases), [Verb forms](#verb-forms) and
+  [Semantic fields](#semantic-fields). The
+  Masoretic sections are marked as in a printed Tanakh: פ after a pasuq
+  that ends a petuḥa (an open section), ס after one that ends a setuma (a
+  closed one), with a gap before the next pasuq; a break inside a pasuq
+  (Bereshit 35:22) is marked after its word. They follow Sefaria's text,
+  Miqra according to the Masorah (after the Aleppo Codex). The Decalogue
+  and Eikha's acrostics count as one section each: their breaks are the
+  layout, not the structure.
 - **Tikkun**: the pesuqim as they're laid out in the sefer, pointed or not,
   with controls for text size, line spacing and width.
 - **Cloze markup**: exactly what goes into Anki, to copy.
@@ -168,7 +187,8 @@ redrawn as you change the options beside it:
 
 - **Diagram:** text size, bracket spacing, labels (rank and name, name
   only, rank only, or none) and their size, whether to draw the grey
-  brackets, and black and white.
+  brackets, black and white, and letters only (as the view shows them,
+  to start with).
 - **Page:** A4 or Letter, portrait or landscape, margins, the space
   between pesuqim, and whether to show the references, the lines between
   pesuqim, and the title and legend.
@@ -487,9 +507,12 @@ Beside the text is the passage's list of shorashim, the most frequent
 first, each with a short gloss and how often it occurs. Clicking one
 colours it just like clicking a word, and a coloured shoresh is coloured
 in the list too, and moves up to the top: the coloured ones come first,
-in the order you coloured them, above a line. Particles are left out of
-the list unless you tick **particles** (one you colour in the text still
-comes up to the top). Hover over a word in the text to see its shoresh
+in the order you coloured them, above a line, each with a strip
+showing where it is in the passage: a tick at each pasuq it's in (taller
+where it's there more than once), the first pasuq on the right. Click the
+strip to go to the nearest of them; its words there flash. Particles are
+left out of the list unless you tick **particles** (one you colour in the
+text still comes up to the top). Hover over a word in the text to see its shoresh
 and gloss, and how often it occurs here and in the Tanakh.
 
 **Key words** sorts the list by how much more the passage uses each
@@ -533,8 +556,8 @@ no shoresh and simply aren't clickable.
 
 ## Phrases
 
-In the **Text** view, switch the side panel from **Shorashim** to
-**Phrases** for the passage's recurring word sequences, in four sections:
+In the **Text** view, the side panel's **Phrases** pane has the passage's
+recurring word sequences, in five sections:
 
 - **Refrains**: repeated here more often than chance would give. ויהי ערב
   ויהי בקר in Bereshit 1, וישא משלו in Balaq, צוה יהוה את משה in Pequdei.
@@ -547,18 +570,32 @@ In the **Text** view, switch the side panel from **Shorashim** to
   אלהים), a name (בני ישראל), a number, God's names (יהוה אלהיך), unless
   the title is rare (אל שדי, 8 times in the Tanakh) or mostly in the
   passage (אדני יהוה in all of Yeḥezqel).
+- **Frames**: the book's Masoretic sections that open and close with the
+  same words, an *inclusio*. A single section or a petuḥa section (from
+  one petuḥa to the next, setumot and all) comes first: עשות יהוה אלהים,
+  Bereshit 2:4–3:21; then runs of sections: ברא אלהים, Bereshit 1:1–2:3.
+  The whole book is searched; a frame shows if its unit reaches the
+  passage, with its chance. A rare word at both ends, and nowhere between,
+  is listed too, as a candidate, folded: ילד in Ruth (1:5, 4:16); and so is
+  a rare semantic field said in other words at either end: Marry around
+  Shemot 2:1–22 (וַיִּקַּח, וַיִּתֵּן).
 
 One section shows at a time, by its tab, with its 12 strongest phrases
 first; **Show all** lists the rest, and the app remembers which sections
 you opened in full. Click a phrase to underline it
-in the text, in its own colour, alongside the shorashim's colours; one
-that's here more than once gets arrows, ‹ 2/6 ›, to go from one
-occurrence to the next, each brought into view and flashed. Under
+in the text, in its own colour, alongside the shorashim's colours. A
+picked phrase moves to the top of its section, with the same strip as a
+coloured shoresh; one that's here more than once also gets arrows, ‹ 2/6
+›, to go from one occurrence to the next, each brought into view and
+flashed. Under
 each phrase are the places it shares (for an echo) or how many other
 pesuqim have it; click one to open the phrase's viewer: its pesuqim here
 on one side, and on the other the place in its whole chapter, fetched from
-Sefaria, the pasuq tinted and the phrase marked. The statistics window has
-the same sections in its **Phrases** tab, a row opening the same viewer.
+Sefaria, the pasuq tinted and the phrase marked. A phrase that's wrong, or
+that you don't need for now, can be archived (hover over its row): it's
+left out of every passage until you restore it from **Archive**, below the
+list. The statistics window has the same sections in its **Phrases** tab,
+a row opening the same viewer.
 
 Phrases go by dictionary word, so the same words in different forms are
 the same phrase. They can be any length, and are found across the whole
@@ -572,6 +609,59 @@ echo may have, how widely an idiom must be used, and when a title of
 God counts as exceptional rather than a formula. Each shows its
 default; a changed one is marked, and **Reset to defaults** puts them all
 back. Saving finds the phrases again, in the statistics window too.
+
+## Verb forms
+
+In the **Text** view, the side panel's **Verbs** pane shows the passage's
+verbs by their form, as OSHB's morphology codes them, in seven groups:
+wayyiqtol, qatal, yiqtol, weqatal, volitive (imperative, jussive,
+cohortative), participle and infinitive; hover over one for what it is.
+Tick **all forms** to tell all eleven apart. Each has its colour and its count, and while the pane is
+open the text's verbs are coloured by it (a coloured shoresh keeps its
+own colour). Click a form to hide or show it.
+
+Above them, a strip draws the passage: a block per verb, in order, the
+first on the right, with a tick below where a Masoretic section ends.
+Click it to go to that verb in the text. Narrative and law look
+different at a glance: Bereshit's verbs are 42% wayyiqtol, Vayyiqra's
+mostly yiqtol and weqatal. The pane shows forms, not what they're taken
+to mean: reading a run of wayyiqtol as a story's mainline, and the rest
+as background, is an interpretation (Longacre's, Niccacci's), not part
+of the data.
+
+## Semantic fields
+
+In the **Text** view, the side panel's **Fields** pane shows the
+passage's words by their meaning: each word's sense in the
+[Semantic Dictionary of Biblical Hebrew](https://github.com/ubsicap/ubs-open-license)
+(SDBH, by the United Bible Societies), and the *domain* it files that
+sense in. The domains are a tree: Objects › Natural World › Heaven; Events
+› Description › Attribute › Shine. Every word is brought to one level of
+it, the fourth (or the third or fifth, in **Settings…**): a deeper domain
+is cut back to it, and a shallower one stands for itself, its last level
+repeated (Heaven › Heaven). The settings show how many words that cuts
+back or fills in at each level.
+
+Each field has its count and, with **Key fields**, how many times its rate
+in the Tanakh it's used here, the strongest first (the same measure as the
+shorashim's key words). In Bereshit 1:1–2:3 the key fields are Heaven
+(שָׁמַיִם, רָקִיעַ), Shine (אוֹר, מָאוֹר), Time (יוֹם, עֶרֶב, בֹּקֶר), Exist
+(בָּרָא, עָשָׂה), Waterbodies, Land and Plants. Click a field, or a word, to
+colour its words in the text; a word in two coloured fields (מַיִם is both
+Liquids and Waterbodies) is striped in both colours, and a coloured field
+moves to the top with a strip of where it is in the passage, as a coloured
+shoresh does. While the pane is open the text shows the fields' colours
+rather than the shorashim's, and a word's tooltip gives its sense and its
+domains.
+
+![The Fields pane: Bereshit 1:1–2:3 by key fields, Heaven, Liquids, Waterbodies and Shine coloured, מַיִם striped as both Liquids and Waterbodies](docs/images/app-fields.png)
+
+Names, pronouns and pointing words (SDBH's *Reference*) are left out
+unless you tick **names**, and particles unless you tick **particles**.
+SDBH doesn't yet cover some common function words (עַל, אֶל, כִּי, כֹּל), and
+two senses of one word are both kept: רוּחַ אֱלֹהִים in Bereshit 1:2 is
+"the Spirit of God" and "a mighty wind". How the dictionary was lined up
+with the text, and what it covers, is in [`docs/semantics.md`](docs/semantics.md).
 
 ## Statistics
 
@@ -590,8 +680,8 @@ diagram. There's also a per-pasuq CSV export.
   frequent first or the key words first, with its gloss and how many times
   it occurs, in how many pesuqim. Particles and names can be shown or
   hidden. Click a row to see its pesuqim, with its words highlighted.
-- **Phrases**: the loaded pesuqim's refrains, echoes, idioms and formulas
-  (see above). Click a row for its pesuqim and its other places.
+- **Phrases**: the loaded pesuqim's refrains, echoes, idioms, formulas
+  and frames (see above). Click a row for its pesuqim and its other places.
 
 ### Pesuqim with the same shape
 
@@ -656,7 +746,7 @@ pasuq_diagram(pasuq, card_n=2)  # {"units": [{"words": [...], "boxes": [...]}, .
 The study tools work on a list of pesuqim, as the app loads them:
 
 ```python
-from ankipasuk import phrases, shorashim
+from ankipasuk import frames, phrases, sections, semantics, shorashim
 from ankipasuk.cache import SefariaCache
 from ankipasuk.sefaria import get_text_for_ref
 
@@ -667,9 +757,15 @@ roots = shorashim.passage(pesuqim)["groups"]  # each root: label, gloss, count, 
 sorted(roots.values(), key=lambda g: -g["keyness"])[0]["display"]  # 'מ־י־נ'
 found = phrases.passage(pesuqim)  # {"phrases": [...], "sections": {"refrain": [...], ...}}
 [found["phrases"][i]["text"] for i in found["sections"]["refrain"][:1]]  # ['וַֽיְהִי־עֶ֥רֶב וַֽיְהִי־בֹ֖קֶר']
+fields = semantics.passage(pesuqim)["fields"]  # each field: label, path, count, keyness, ...
+[f["label"] for f in sorted(fields.values(), key=lambda f: -f["keyness"])[:3]]  # ['Heaven', 'Shine', 'Waterbodies']
+sections.breaks("Genesis", 1, 5)  # ['P']: a petuḥa ends here
+frames.book_frames("Genesis")  # every frame of the book: its unit, its ends, its chance
 ```
 
-`phrases.passage` takes the tests' thresholds too (`phrases.Thresholds`).
+`phrases.passage` takes the tests' thresholds too (`phrases.Thresholds`),
+and `semantics.passage` the level and whether to count names and
+particles.
 
 - The rank table is plain data (`TROPE_UNICODE` in `config.py`).
 - Ranking and paseq, grouping, and splitting are separate functions in
@@ -702,8 +798,12 @@ src/ankipasuk/
 ├── ammud_pages.py       'ammudim as HTML/PDF pages
 ├── diagram_pages.py     the diagram view as HTML/PDF pages
 ├── shorashim.py         each word's shoresh: OSHB's data lined up with the text
-├── shorashim_build.py   making that data, and the phrases', from OSHB (scripts/build_shorashim.py)
+├── shorashim_build.py   making that data (verb forms too), and the phrases', from OSHB (scripts/build_shorashim.py)
 ├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
+├── sections.py          the Masoretic sections (scripts/build_sections.py makes their data)
+├── frames.py            frames: sections that open and close with the same words (docs/phrases.md)
+├── semantics.py         each word's sense and semantic domains, from SDBH (docs/semantics.md)
+├── semantics_build.py   making that data: SDBH's places lined up with OSHB's words (scripts/build_semantics.py)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
@@ -711,11 +811,11 @@ src/ankipasuk/
 ├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
-├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
-└── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
-    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, app.js)
-scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
-docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
+├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases, sections, senses
+└── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, field_api.py, …)
+    └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, fields.js, app.js)
+scripts/                 double-clickable wrappers for the Anki tools; the data's builds (build_*.py)
+docs/                    scheduling, tagging, the transliteration rules, phrases, semantics, screenshots
 ```
 
 Only `webgui/` touches anything graphical. The AnkiConnect client
@@ -735,16 +835,23 @@ pytest
 ruff check src tests scripts
 ```
 
+The data the app ships with (`src/ankipasuk/data/`) is made by scripts
+that need the network once: `scripts/build_shorashim.py` (the shorashim,
+verb forms and the phrases' index, from OSHB), `build_sections.py` (the
+Masoretic sections, from Sefaria) and `build_semantics.py` (the semantic
+domains, from SDBH, lined up with OSHB). Each writes the same files
+again from the same sources.
+
 The tests don't touch the network. They use hand-built pesuqim with real
 ta'am characters, fake tikkun.io pages (including lines shared between
 pesuqim and across 'ammudim), and an in-memory stand-in for AnkiConnect.
 
 `tests/test_frontend` drives the app's pages in headless Chromium, the
 way a user would: loading pesuqim, colouring a shoresh, picking and
-stepping through phrases, the phrase settings, the viewer, the statistics
-window. A stand-in for pywebview's bridge calls the real backend, on
-Bereshit 1–3 made from the bundled data, with the network and Anki
-refused. They need Playwright and its Chromium, and are skipped without
+stepping through phrases and frames, the archive, the verbs and fields
+panes, the settings, the viewer, the statistics window. A stand-in for
+pywebview's bridge calls the real backend, on Bereshit 1–3 and Shemot
+1–2 made from the bundled data, with the network and Anki refused. They need Playwright and its Chromium, and are skipped without
 them:
 
 ```bash
@@ -765,6 +872,11 @@ pytest tests/test_frontend
   (CC BY 4.0, on the public-domain Westminster Leningrad Codex) and its
   [HebrewLexicon](https://github.com/openscriptures/HebrewLexicon), after
   Brown–Driver–Briggs; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- Each word's sense and semantic domains come from the UBS Dictionary of
+  Biblical Hebrew, the open release of the
+  [Semantic Dictionary of Biblical Hebrew](https://github.com/ubsicap/ubs-open-license)
+  (© United Bible Societies; CC BY-SA 4.0), lined up with OSHB's words;
+  see [`docs/semantics.md`](docs/semantics.md).
 - The 'ammud layout and the Shlomo semiStam font from
   [tikkun.io](https://github.com/akivajgordon/tikkun.io) (MIT; the font is
   by Shlomo Orbach under the SIL Open Font License).

@@ -873,7 +873,7 @@ def test_get_shorashim_gives_each_loaded_word_its_root(genesis_1_1):
     result = api.get_shorashim()
     assert result["ok"] is True
     (words,) = result["verses"]
-    assert [display(result["groups"][g]) for _t, _s, g in words][:2] == ["ר־א־שׁ", "ב־ר־א"]
+    assert [display(result["groups"][g]) for _t, _s, g, _f in words][:2] == ["ר־א־שׁ", "ב־ר־א"]
     assert all(info["count"] >= 1 and info["verses"] == ["Genesis 1:1"] for info in result["groups"].values())
     # Against the whole Tanakh: בָּרָא, rare, is a key word here; אֵת isn't.
     create = result["groups"][words[1][2]]
@@ -887,9 +887,69 @@ def test_get_phrases_gives_sections_and_marks(genesis_1_1, genesis_1_2):
                                {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
     result = api.get_phrases()
     assert result["ok"] is True
-    assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula"}
+    assert set(result["sections"]) == {"refrain", "echo", "idiom", "formula", "frame"}
     listed = {i for kind in ("refrain", "echo", "idiom") for i in result["sections"][kind]}
     assert listed and all(result["phrases"][i]["marks"] for i in listed)
+
+
+def test_an_archived_phrase_is_kept_until_restored(tmp_path, genesis_1_1, genesis_1_2):
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""},
+                               {"book": "Genesis", "ch": 1, "vs": 2, "pointed": genesis_1_2, "plain": ""}]
+
+    told = []
+
+    class Window:  # an open statistics window, and the main one
+        def __init__(self, name):
+            self.name = name
+
+        def evaluate_js(self, script):
+            told.append((self.name, script))
+
+    api._window, api._stats_windows = Window("main"), [Window("stats")]
+    result = api.get_phrases()
+    assert result["archive"] == []
+    pid = result["sections"]["echo"][0]
+    key = result["phrases"][pid]["key"]
+    out = api.archive_phrase(pid, "echo")
+    assert out["ok"] is True and [e["key"] for e in out["archive"]] == [key]
+    (entry,) = out["archive"]
+    assert entry["kind"] == "echo" and entry["where"].startswith("Bereshit 1:") and entry["text"]
+    assert told == [("stats", "phraseArchiveChanged()")]  # not the window that archived it
+    # Kept: another session, and every passage, has it.
+    assert Settings(cache_dir=tmp_path).get("phrase_archive") == out["archive"]
+    assert api.get_phrases()["archive"] == out["archive"]
+    assert api.restore_phrases([key]) == {"ok": True, "archive": []}
+    # A phrase that's gone (the phrases found again meanwhile) is said, not raised.
+    assert api.archive_phrase(10_000, "echo")["ok"] is False
+    assert Settings(cache_dir=tmp_path).get("phrase_archive") == []
+
+
+def test_fields_and_their_level(tmp_path, genesis_1_1):
+    api = Api()
+    api._settings = Settings(cache_dir=tmp_path)
+    api._current_verse_data = [{"book": "Genesis", "ch": 1, "vs": 1, "pointed": genesis_1_1, "plain": ""}]
+    result = api.get_fields()
+    assert result["ok"] is True and result["level"] == 4
+    assert "001002002" in result["fields"]  # Heaven
+    shown = api.get_field_settings()
+    assert shown["level"] == shown["default"] == 4 and shown["choices"] == [3, 4, 5]
+    assert api.save_field_settings({"level": 7})["ok"] is False
+
+    told = []
+
+    class Window:  # an open statistics window: its frames change with the level
+        def evaluate_js(self, script):
+            told.append(script)
+
+    api._stats_windows = [Window()]
+    assert api.save_field_settings({"level": 3}) == {"ok": True, "level": 3}
+    assert told == ["loadPhrases()"]
+    assert Settings(cache_dir=tmp_path).get("fields") == {"level": 3}
+    assert api.get_fields()["level"] == 3
+    api.save_field_settings({"level": 4})
+    assert Settings(cache_dir=tmp_path).get("fields") == {}  # only what's not the default
 
 
 def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1, genesis_1_2):
@@ -920,3 +980,15 @@ def test_settings_keep_only_the_changed_phrase_thresholds(tmp_path, genesis_1_1,
     api.save_settings({"phrases": shown["defaults"]["phrases"]})
     assert Settings(cache_dir=tmp_path).get("phrases") == {}
     assert api.get_phrases()["thresholds"]["echo_places"] == 3  # found again
+
+
+def test_fetched_pesuqim_carry_their_section_breaks(genesis_1_1, monkeypatch):
+    api = Api()
+
+    def fake_fetch(book, start_ch, start_vs, end_ch, end_vs, cache, version_param):
+        return [{"book": book, "ch": 1, "vs": vs, "pointed": genesis_1_1, "plain": genesis_1_1}
+                for vs in (4, 5)]
+
+    monkeypatch.setattr("ankipasuk.webgui.api.fetch_verse_range", fake_fetch)
+    verses = api.fetch_chapter_verse("Genesis", 1, 4, 1, 5)["verses"]
+    assert [v["breaks"] for v in verses] == [[], ["P"]]

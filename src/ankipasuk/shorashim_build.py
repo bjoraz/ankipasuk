@@ -422,10 +422,20 @@ def peoples(grouper: Grouper, xml_texts) -> set[str]:
     return {e for e, n in tagged.items() if 2 * n > seen[e]}
 
 
+def verb_form(morph: str) -> str | None:
+    """A verb's form, as OSHB's morphology codes its conjugation: w
+    wayyiqtol, p qatal, i yiqtol, q weqatal, v imperative, j jussive, h
+    cohortative, r / s active / passive participle, a / c infinitive
+    absolute / construct; None for any other word."""
+    main, _suffix = _morph(morph)
+    return main[2] if main.startswith("V") and len(main) >= 3 else None
+
+
 def book_words(xml_text: str, osis: str, grouper: Grouper) -> dict[str, list[list]]:
     """Each pasuq's words, in order, as ``[letters, group]``, or ``[letters,
     group, 1]`` for a qere (which follows its ketiv, as in Sefaria's
-    "(ketiv) [qere]"), keyed "chapter:verse"."""
+    "(ketiv) [qere]"); a verb as ``[letters, group, qere (0 or 1), form]``
+    (:func:`verb_form`). Keyed "chapter:verse"."""
     verses: dict[str, list[list]] = {}
     for key, v, el, letters in _verse_words(xml_text, osis):
         words = verses.setdefault(key, [])
@@ -433,7 +443,9 @@ def book_words(xml_text: str, osis: str, grouper: Grouper) -> dict[str, list[lis
             continue
         g = grouper.group_of(el.get("lemma", ""))
         ns = el.tag[:el.tag.index("}") + 1] if el.tag.startswith("{") else ""
-        words.append([letters, g, 1] if _is_qere(v, el, ns) else [letters, g])
+        qere = _is_qere(v, el, ns)
+        form = verb_form(el.get("morph", ""))
+        words.append([letters, g, int(qere), form] if form else [letters, g, 1] if qere else [letters, g])
     return verses
 
 

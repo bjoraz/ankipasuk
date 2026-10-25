@@ -7,6 +7,7 @@ let currentClozeOutput = ""; // the full cloze markup, for Copy (the box only ho
 let currentDiagrams = []; // [{ref, diagram}], for saving the diagram view
 let currentShorashim = null; // ankipasuk.shorashim.passage for the loaded pesuqim, once it's in
 let currentPhrases = null; // ankipasuk.phrases.passage, likewise
+let currentFields = null; // ankipasuk.semantics.passage (the bridge's get_fields), likewise
 let cachedBooks = null; // {"Tora": [...], "Nevi'im": [...], "Megillot": [...]}
 let cachedBookLabels = null; // {"Genesis": "Bereshit · בראשית", ...}
 
@@ -328,14 +329,32 @@ function renderTextBox() {
     const words = currentShorashim && currentShorashim.verses.length === currentVerseData.length
         ? currentShorashim.verses : null;
     lazyFill(textBox, currentVerseData.map((_item, i) => i), (i) => {
-        const line = words ? rootWordsHtml(words[i], plain)
-            : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed);
-        return `<div class="tv-line">${line}</div>`;
+        // Its Masoretic breaks: one inside the pasuq after its word, one
+        // after it at its end, and a gap before the next pasuq.
+        const breaks = currentVerseData[i].breaks || [];
+        const inside = {};
+        for (const b of breaks) if (Array.isArray(b) && words) inside[b[1] - 1] = sectionBreakHtml(b[0]) + " ";
+        const end = breaks.filter((b) => !Array.isArray(b)).pop();
+        const item = currentVerseData[i];
+        const number = `<span class="tv-n" dir="ltr" title="${diagramEscape(pasuqLabel(item))}">${item.ch}:${item.vs}</span>`;
+        const line = number + (words ? rootWordsHtml(words[i], plain, inside, fieldsOf(i))
+            : diagramEscape(plain ? currentVerseData[i].plain : currentVerseData[i].pointed))
+            + (end ? ` ${sectionBreakHtml(end)}` : "");
+        return `<div class="tv-line${end ? ` tv-end-${end.toLowerCase()}` : ""}">${line}</div>`;
     }, (lines) => {
-        for (const line of lines) rootColours.paintAll(line);
+        for (const line of lines) {
+            rootColours.paintAll(line);
+            fieldColours.paintAll(line);
+        }
         phraseMarks.paintLines(lines);
     }, textBox, false);
     renderRootsList();
+}
+
+// Pasuq ``i``'s words' fields, if they're in.
+function fieldsOf(i) {
+    const rows = currentFields && currentFields.verses;
+    return rows && rows.length === currentVerseData.length ? rows[i].map(([fields]) => fields) : null;
 }
 
 // The passage's roots: the coloured ones first, in the order they were
@@ -358,13 +377,27 @@ function renderRootsList() {
         const ratio = sort === "key" && info.total
             ? `<span class="root-ratio${info.keyness > 0 ? "" : " under"}">${ratioText(info.ratio)}</span>` : "";
         const last = i === coloured.length - 1 && rest.length ? ' class="last-coloured"' : "";
+        const colour = rootColours.colours.get(g);
+        const spark = colour === undefined ? "" : sparklineHtml(rootPlaces(g), currentVerseData.length,
+            ROOT_PALETTE[colour], `In ${plural(info.verses.length, "pasuq", "pesuqim")} of ${currentVerseData.length}: `
+            + "click to go to the nearest");
         return `<li data-root="${g}"${last} title="${diagramEscape(`${words}\n${rootCountsText(info)}`)}">`
             + `<span class="root-label" data-g="${g}">${rootLabelHtml(info)}</span>`
             + `<span class="root-gloss">${glossHtml(info.gloss, info.meaning)}${kind}</span>`
-            + `<span class="root-count">${info.count}</span>${ratio}</li>`;
+            + `<span class="root-count">${info.count}</span>${ratio}${spark}</li>`;
     }).join("");
     rootColours.paintAll(list);
     document.getElementById("roots-count").textContent = shown.length ? `(${shown.length})` : "";
+}
+
+// Where a root's words are: pasuq index -> how many.
+function rootPlaces(g) {
+    const places = new Map();
+    (currentShorashim ? currentShorashim.verses : []).forEach((words, v) => {
+        const n = words.filter((w) => String(w[2]) === g).length;  // (the list's keys are strings)
+        if (n) places.set(v, n);
+    });
+    return places;
 }
 
 // Colouring a root colours its words in the text, and brings its entry in
@@ -387,7 +420,151 @@ async function loadShorashim() {
     currentShorashim = result.ok ? result : null;
     if (!result.ok) console.warn("No shorashim:", result.error);
     renderTextBox();
+    renderVerbsPane();
     loadPhrases();
+    if (fieldsPaneOpen()) loadFields();  // (else when the pane is opened)
+}
+
+// =============================================================
+//  Fields: the passage's semantic fields (fields.js), beside the text.
+//  While their pane is open, the text shows the fields' colours rather
+//  than the shorashim's, and a click on a word colours its fields.
+// =============================================================
+// Also when the names or particles are switched, or the level changes.
+let fieldsFor = null; // the pesuqim the fields were last asked for
+let fieldsAsked = 0; // so an earlier answer coming late is set aside
+async function loadFields() {
+    const verses = currentVerseData;
+    const asked = ++fieldsAsked;
+    fieldsFor = verses;
+    currentFields = null;
+    renderFieldsList();  // "Finding fields…"
+    if (!verses.length) return;
+    const result = await api().get_fields(document.getElementById("fields-reference").checked,
+        document.getElementById("fields-particles").checked);
+    if (asked !== fieldsAsked || verses !== currentVerseData) return;  // asked again meanwhile
+    currentFields = result.ok ? result : { error: result.error };
+    applyFields();
+    renderFieldsList();
+}
+
+function fieldsPaneOpen() {
+    return !document.querySelector('#roots-panel .panel-pane[data-pane="fields"]').hidden;
+}
+
+// The text's words already drawn get their fields (and their colours);
+// the rest get them when they're drawn (renderTextBox).
+function applyFields() {
+    for (const line of document.querySelectorAll("#text-box .tv-line")) {
+        const row = fieldsOf(Number(line.dataset.i));
+        for (const el of line.querySelectorAll("[data-k]")) {
+            const fields = row ? row[Number(el.dataset.k)] || [] : [];
+            if (fields.length) {
+                el.dataset.d = fields.join(" ");
+            } else if (el.dataset.d !== undefined) {
+                delete el.dataset.d;
+                el.style.removeProperty("--fd");
+                el.style.removeProperty("--fd-text");
+                el.classList.remove("fd-striped");
+            }
+        }
+        fieldColours.paintAll(line);
+    }
+}
+
+// The passage's fields: the coloured ones first, in the order coloured,
+// then the rest, the most used or the key fields first.
+function renderFieldsList() {
+    const list = document.getElementById("fields-list");
+    const count = document.getElementById("fields-count");
+    if (!currentFields || currentFields.error) {
+        const why = !currentFields ? (currentVerseData.length ? "Finding fields…" : "")
+            : `No fields: ${currentFields.error}`;
+        list.innerHTML = why ? `<li class="fd-none">${diagramEscape(why)}</li>` : "";
+        count.textContent = "";
+        return;
+    }
+    const fields = currentFields.fields;
+    const sort = document.querySelector("#fields-sort .active").dataset.sort;
+    const coloured = [...fieldColours.colours.keys()].filter((f) => f in fields);
+    const rest = Object.keys(fields).filter((f) => !fieldColours.colours.has(f))
+        .sort((a, b) => FIELD_ORDERS[sort](fields[a], fields[b]));
+    const n = currentVerseData.length;
+    list.innerHTML = [...coloured, ...rest].map((f, i) => {
+        const colour = fieldColours.colours.get(f);
+        const places = colour === undefined ? null : fieldPlaces(f);
+        const spark = places ? sparklineHtml(places, n, ROOT_PALETTE[colour],
+            `In ${plural(places.size, "pasuq", "pesuqim")} of ${n}: click to go to the nearest`) : "";
+        return fieldRowHtml(f, fields[f], colour, sort, i === coloured.length - 1 && rest.length > 0, spark);
+    }).join("") || '<li class="fd-none">No fields here.</li>';
+    count.textContent = `(${Object.keys(fields).length})`;
+    document.getElementById("fields-level").textContent = `Level ${currentFields.level}`;
+}
+
+// Where a field's words are: pasuq index -> how many.
+function fieldPlaces(f) {
+    const places = new Map();
+    currentFields.verses.forEach((row, v) => {
+        const n = row.filter(([fields]) => fields.includes(f)).length;
+        if (n) places.set(v, n);
+    });
+    return places;
+}
+
+const fieldColours = new FieldColours((changed) => {
+    fieldColours.paint(document.getElementById("text-box"), changed);
+    renderFieldsList();
+    if (changed.some((f) => fieldColours.colours.has(f))) document.getElementById("fields-list").scrollTop = 0;
+});
+
+// The text in the fields' colours, or the shorashim's.
+function setFieldsMode() {
+    const on = fieldsPaneOpen();
+    document.getElementById("text-box").classList.toggle("fields-mode", on);
+    document.getElementById("text-hint").textContent = `Click a word to colour its ${on ? "fields" : "shoresh"}`;
+    if (on && fieldsFor !== currentVerseData && currentShorashim) loadFields();
+    else if (on) renderFieldsList();
+}
+
+// A word's senses, in its tooltip while the fields are shown.
+function wordSensesText(word) {
+    if (!fieldsPaneOpen() || !currentFields || currentFields.error) return "";
+    const line = word.closest(".tv-line");
+    const row = line ? currentFields.verses[Number(line.dataset.i)] : null;
+    const at = row ? row[Number(word.dataset.k)] : null;
+    return at && at[1].length ? sensesText(currentFields.senses, at[1]) : "";
+}
+
+// The field settings: the level the fields are compared at.
+let fieldSettings = null;
+async function openFieldSettings() {
+    fieldSettings = await api().get_field_settings();
+    document.getElementById("fs-levels").innerHTML = fieldLevelChoicesHtml(fieldSettings);
+    document.getElementById("fs-depths").textContent = fieldDepthsText(fieldSettings);
+    showFieldLevel(fieldSettings.level);
+    document.getElementById("field-settings-dialog").hidden = false;
+}
+
+function showFieldLevel(level) {
+    for (const radio of document.querySelectorAll('[name="fs-level"]')) radio.checked = Number(radio.value) === level;
+}
+
+function closeFieldSettings() {
+    document.getElementById("field-settings-dialog").hidden = true;
+}
+
+async function saveFieldSettings() {
+    const level = Number(document.querySelector('[name="fs-level"]:checked').value);
+    const result = await api().save_field_settings({ level });
+    if (!result.ok) return showToast(result.error, true);
+    closeFieldSettings();
+    if (level === fieldSettings.level) return;
+    showToast("Field settings saved.");
+    fieldColours.clear();  // at another level, the fields are others
+    if (currentVerseData.length) {
+        loadFields();
+        loadPhrases();  // (the fields' frames)
+    }
 }
 
 // =============================================================
@@ -421,19 +598,29 @@ function renderPhrasesList() {
             : `No phrases: ${currentPhrases.error}`;
         return;
     }
-    renderPhrasePane(currentPhrases, phraseKind, els);
+    renderPhrasePane(currentPhrases, phraseKind, els, [...phraseMarks.colours.keys()]);
     paintPhraseList();
 }
 
-// A picked phrase's row, marked in its colour; with more than one
-// occurrence here, arrows to go from one to the next in the text.
+// A picked phrase's row, marked in its colour, with where it is in the
+// passage (a sparkline); with more than one occurrence here, arrows to go
+// from one to the next in the text.
 function paintPhraseList() {
     for (const el of document.querySelectorAll("#phrases-list li.ph")) {
         const id = Number(el.dataset.id);
         const colour = phraseMarks.colours.get(id);
         el.classList.toggle("picked", colour !== undefined);
         el.style.borderRightColor = colour === undefined ? "" : ROOT_PALETTE[colour];
-        const n = currentPhrases.phrases[id].spans.length;
+        const spans = currentPhrases.phrases[id].spans;
+        const old = el.querySelector(".spark");
+        if (old) old.remove();
+        if (colour !== undefined) {
+            const places = new Map();
+            for (const [v] of spans) places.set(v, (places.get(v) || 0) + 1);
+            el.insertAdjacentHTML("beforeend", sparklineHtml(places, currentVerseData.length, ROOT_PALETTE[colour],
+                `In ${plural(places.size, "pasuq", "pesuqim")} of ${currentVerseData.length}: click to go to the nearest`));
+        }
+        const n = spans.length;
         let nav = el.querySelector(".ph-jump");
         if (colour === undefined || n < 2) {
             if (nav) nav.remove();
@@ -462,13 +649,18 @@ function jumpToPhrase(p, k) {
     phraseAt.set(p.id, k);
     paintPhraseList();
     const [v, w] = p.spans[k];
+    showInText(v, w, (box) => flashSpan(box, p.spans[k]));
+}
+
+// Bring word ``w`` of pasuq ``v`` into view in the text, if it isn't, then
+// call ``then(box)``. Lines are filled as they near the view and move
+// what's below them: placed again once they are.
+function showInText(v, w, then) {
     const box = document.getElementById("text-box");
-    // Lines are filled as they near the view and move what's below them:
-    // placed again once they are, then flashed.
     const place = () => {
         const line = box.querySelector(`[data-i="${v}"]`);
         if (!line) return;
-        const target = line.querySelector(`[data-k="${w}"]`) || line;
+        const target = (w === undefined ? null : line.querySelector(`[data-k="${w}"]`)) || line;
         const b = box.getBoundingClientRect(), r = target.getBoundingClientRect();
         if (r.top < b.top + 4 || r.bottom > b.bottom - 4) box.scrollTop += r.top - b.top - box.clientHeight / 3;
     };
@@ -476,8 +668,15 @@ function jumpToPhrase(p, k) {
     setTimeout(place, 60);
     setTimeout(() => {
         place();
-        flashSpan(box, p.spans[k]);
+        then(box);
     }, 160);
+}
+
+// Briefly highlight elements of the text (after any flashed before).
+function flashElements(box, els) {
+    for (const el of box.querySelectorAll(".ph-flash")) el.classList.remove("ph-flash");
+    void box.offsetWidth;  // so the same words flash again
+    for (const el of els) el.classList.add("ph-flash");
 }
 
 // The first occurrence of a phrase in view, if one is.
@@ -494,28 +693,87 @@ function phraseInView(p) {
 // Briefly highlight words ``[pasuq, word]`` to ``[pasuq2, word2]``, and
 // what's between them.
 function flashSpan(box, [v, k, v2, k2]) {
-    for (const el of box.querySelectorAll(".ph-flash")) el.classList.remove("ph-flash");
-    void box.offsetWidth;  // so the same words flash again
+    const els = [];
     for (let i = v; i <= v2; i++) {
         const line = box.querySelector(`.tv-line[data-i="${i}"]`);
         if (!line) continue;
         const from = i === v ? k : -1, to = i === v2 ? k2 : Infinity;
         for (const el of line.querySelectorAll("[data-k], [data-s]")) {
             const x = Number(el.dataset.k ?? el.dataset.s);  // a separator: after its word
-            if (x >= from && (el.dataset.k !== undefined ? x <= to : x < to)) el.classList.add("ph-flash");
+            if (x >= from && (el.dataset.k !== undefined ? x <= to : x < to)) els.push(el);
         }
     }
+    flashElements(box, els);
 }
 
 const phraseCalls = {
     verses: (id) => api().get_phrase_verses(id),
     context: (id, place) => api().get_phrase_context(id, place),
+    archive: (id, kind) => api().archive_phrase(id, kind),
+    restore: (keys) => api().restore_phrases(keys),
 };
+
+// A phrase archived is no longer picked.
+function unpickPhrase(p) {
+    if (phraseMarks.colours.has(p.id)) phraseMarks.toggle(p.id);
+    phraseAt.delete(p.id);
+}
+
+// The archive changed in another window (api._on_archive).
+async function phraseArchiveChanged() {
+    if (!currentPhrases || currentPhrases.error) return;
+    currentPhrases.archive = await api().get_phrase_archive();
+    const archived = phraseArchived(currentPhrases);
+    for (const id of [...phraseMarks.colours.keys()]) {
+        if (archived.has(currentPhrases.phrases[id].key)) unpickPhrase(currentPhrases.phrases[id]);
+    }
+    renderPhrasesList();
+    if (phraseArchiveDialog && phraseArchiveDialog.result === currentPhrases) phraseArchiveDialog.render();
+}
 
 const phraseMarks = new PhraseMarks((words) => {
     phraseMarks.paint(document.getElementById("text-box"), words);
-    paintPhraseList();
+    renderPhrasesList();  // the picked ones first
 });
+
+// =============================================================
+//  Verbs: the Verbs pane (verbs.js) -- the passage's verb forms, counted
+//  and drawn as a strip; the text's verbs coloured while it's open.
+// =============================================================
+const VERBS_ALL_KEY = "ankipasuk_verbs_all";
+let verbsHidden = new Set(); // kinds hidden (by key), until the kinds change
+
+// "Bereshit 1:1": a loaded pasuq in the app's spelling.
+function pasuqLabel(item) {
+    const label = cachedBookLabels && cachedBookLabels[item.book];
+    return `${label ? label.split(" · ")[0] : item.book} ${item.ch}:${item.vs}`;
+}
+
+function verbsPaneOpen() {
+    return !document.querySelector('#roots-panel .panel-pane[data-pane="verbs"]').hidden;
+}
+
+function verbsAllForms() {
+    return document.getElementById("verbs-all").checked;
+}
+
+function renderVerbsPane() {
+    const box = document.getElementById("text-box");
+    if (!verbsPaneOpen()) {
+        colourVerbs(box, null);
+        return;
+    }
+    const kinds = verbKinds(verbsAllForms());
+    const sequence = verbSequence(currentShorashim ? currentShorashim.verses : []);
+    const breaks = currentVerseData.map((v) => v.breaks || []);
+    document.getElementById("verbs-strip").innerHTML = verbStripHtml(sequence, kinds, verbsHidden, breaks);
+    document.getElementById("verbs-list").innerHTML = verbListHtml(sequence, kinds, verbsHidden);
+    document.getElementById("verbs-count").textContent = sequence.length ? `(${sequence.length})` : "";
+    const ref = (v) => (v === undefined ? "" : pasuqLabel(currentVerseData[v]));
+    document.getElementById("verbs-first").textContent = ref(sequence.length ? sequence[0][0] : undefined);
+    document.getElementById("verbs-last").textContent = ref(sequence.length ? sequence[sequence.length - 1][0] : undefined);
+    colourVerbs(box, kinds, verbsHidden);
+}
 
 // =============================================================
 //  Settings: the phrase tests' thresholds (api.get_settings), in a
@@ -628,6 +886,7 @@ async function doFetchAll() {
     currentVerseData = [];
     currentShorashim = null;
     currentPhrases = null;
+    currentFields = null;
     phraseMarks.use([]);
     currentTikkunHtml = { plain: "", pointed: "" };
     tikkunError = "";
@@ -746,7 +1005,16 @@ async function doGenerate() {
     const outputBox = document.getElementById("output-box");
     lazyFill(outputBox, result.output.split("\n"),
         (line) => `<div class="out-line">${diagramEscape(line)}</div>`, () => {}, outputBox, false);
-    renderDiagrams(document.getElementById("viz-box"), result.diagrams);
+    renderVizBox();
+}
+
+// The Diagram view, pointed or letters only.
+function diagramsPlain() {
+    return document.querySelector("#diagram-kind .active").dataset.kind === "plain";
+}
+
+function renderVizBox() {
+    renderDiagrams(document.getElementById("viz-box"), currentDiagrams, undefined, { plain: diagramsPlain() });
 }
 
 async function refreshNoteTypes(quiet) {
@@ -819,7 +1087,7 @@ async function doExportClozeToAnki() {
 const PREVIEW_PESUQIM = 12;  // the preview shows the first few
 const PRINT_OPTIONS_KEY = "ankipasuk_print_options";
 // Which options are the drawing's (diagram.js); the rest are the page's.
-const DRAW_OPTIONS = ["textSize", "row", "labels", "labelSize", "grey", "bw"];
+const DRAW_OPTIONS = ["textSize", "row", "labels", "labelSize", "grey", "bw", "plain"];
 
 function optionInputs() {
     return [...document.querySelectorAll("#print-dialog [data-opt]")];
@@ -842,7 +1110,9 @@ function showOptionValues() {
     for (const el of optionInputs()) {
         if (el.type === "range") el.nextElementSibling.textContent = el.value + (units[el.dataset.opt] || "");
     }
-    const labels = document.querySelector('[data-opt="labels"]').value !== "none";
+    const plain = document.querySelector('[data-opt="plain"]').checked;
+    const labels = !plain && document.querySelector('[data-opt="labels"]').value !== "none";
+    document.querySelector('[data-opt="labels"]').disabled = plain;  // (letters only: no labels)
     document.querySelector('[data-opt="labelSize"]').disabled = !labels;
 }
 
@@ -880,6 +1150,8 @@ function openPrintDialog() {
     document.getElementById("pd-note").textContent = currentDiagrams.length > shown
         ? `The preview shows the first ${shown} of the ${currentDiagrams.length} pesuqim; the file has them all.`
         : "";
+    document.querySelector('[data-opt="plain"]').checked = diagramsPlain();  // as the view shows them
+    showOptionValues();
     document.getElementById("print-dialog").hidden = false;
     renderPrintPreview();
 }
@@ -1319,23 +1591,96 @@ window.addEventListener("pywebviewready", async () => {
         for (const view of document.querySelectorAll(".preview-body .view")) view.hidden = view.dataset.view !== btn.dataset.view;
     });
     segmented(document.getElementById("text-kind"), renderTextBox);
+    segmented(document.getElementById("diagram-kind"), renderVizBox);
     document.getElementById("text-box").addEventListener("click", (e) => {
+        if (fieldsPaneOpen()) {
+            const word = e.target.closest("[data-d]");
+            if (word) fieldColours.toggle(word.dataset.d.split(" "));
+            return;
+        }
         const word = e.target.closest(".w");
         if (word) rootColours.toggle(word.dataset.g);
     });
     document.getElementById("roots-list").addEventListener("click", (e) => {
         const item = e.target.closest("li[data-root]");
-        if (item) rootColours.toggle(item.dataset.root);
+        if (!item) return;
+        const spark = e.target.closest(".spark");
+        if (spark) {  // go to the nearest pasuq with the root, and flash its words there
+            const g = item.dataset.root, v = sparklinePasuq(spark, e.clientX);
+            const first = (currentShorashim.verses[v] || []).findIndex((word) => String(word[2]) === g);
+            showInText(v, first < 0 ? undefined : first, (box) => flashElements(box,
+                box.querySelectorAll(`.tv-line[data-i="${v}"] [data-g="${g}"]`)));
+            return;
+        }
+        rootColours.toggle(item.dataset.root);
     });
-    addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g]);
+    addRootTooltips(document.getElementById("text-box"), (g) => currentShorashim && currentShorashim.groups[g],
+        wordSensesText);
     document.getElementById("btn-clear-roots").addEventListener("click", () => {
         rootColours.clear();
         phraseMarks.clear();
+        fieldColours.clear();
+    });
+    document.getElementById("fields-list").addEventListener("click", (e) => {
+        const item = e.target.closest("li[data-field]");
+        if (!item) return;
+        const f = item.dataset.field;
+        const spark = e.target.closest(".spark");
+        if (spark) {  // go to the nearest pasuq with the field, and flash its words there
+            const v = sparklinePasuq(spark, e.clientX);
+            const first = (currentFields.verses[v] || []).findIndex(([fields]) => fields.includes(f));
+            showInText(v, first < 0 ? undefined : first, (box) => flashElements(box,
+                box.querySelectorAll(`.tv-line[data-i="${v}"] [data-d~="${f}"]`)));
+            return;
+        }
+        fieldColours.toggle([f]);
+    });
+    for (const id of ["fields-reference", "fields-particles"]) {
+        document.getElementById(id).addEventListener("change", loadFields);
+    }
+    segmented(document.getElementById("fields-sort"), renderFieldsList);
+    document.getElementById("btn-field-settings").addEventListener("click", openFieldSettings);
+    const fieldDialog = document.getElementById("field-settings-dialog");
+    fieldDialog.addEventListener("click", (e) => {
+        if (e.target === fieldDialog || e.target.closest("[data-close]")) closeFieldSettings();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !fieldDialog.hidden) closeFieldSettings();
+    });
+    document.getElementById("fs-reset").addEventListener("click", () => showFieldLevel(fieldSettings.default));
+    document.getElementById("field-settings-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveFieldSettings();
     });
     segmented(document.getElementById("panel-kind"), (btn) => {
         for (const pane of document.querySelectorAll("#roots-panel .panel-pane")) pane.hidden = pane.dataset.pane !== btn.dataset.pane;
-        document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane === "phrases");
+        document.getElementById("roots-panel").classList.toggle("wide", btn.dataset.pane !== "roots");
         if (btn.dataset.pane === "phrases") renderPhrasesList();
+        renderVerbsPane();  // colours the verbs, or takes their colours off
+        setFieldsMode();
+    });
+    const verbsAll = document.getElementById("verbs-all");
+    try { verbsAll.checked = localStorage.getItem(VERBS_ALL_KEY) === "1"; } catch (e) { /* none kept */ }
+    verbsAll.addEventListener("change", () => {
+        try { localStorage.setItem(VERBS_ALL_KEY, verbsAll.checked ? "1" : ""); } catch (e) { /* not kept */ }
+        verbsHidden = new Set();
+        renderVerbsPane();
+    });
+    document.getElementById("verbs-list").addEventListener("click", (e) => {
+        const item = e.target.closest("li[data-kind]");
+        if (!item) return;
+        if (verbsHidden.has(item.dataset.kind)) verbsHidden.delete(item.dataset.kind);
+        else verbsHidden.add(item.dataset.kind);
+        renderVerbsPane();
+    });
+    document.getElementById("verbs-strip").addEventListener("click", (e) => {
+        const svg = e.target.closest("svg");
+        if (!svg || !currentShorashim) return;
+        const sequence = verbSequence(currentShorashim.verses);
+        const r = svg.getBoundingClientRect();
+        const i = Math.min(sequence.length - 1, Math.max(0, Math.floor(((r.right - e.clientX) / r.width) * sequence.length)));
+        const [v, k] = sequence[i];
+        showInText(v, k, (box) => flashElements(box, box.querySelectorAll(`.tv-line[data-i="${v}"] [data-k="${k}"]`)));
     });
     document.getElementById("ph-tabs").addEventListener("click", (e) => {
         const tab = e.target.closest("button[data-kind]");
@@ -1348,11 +1693,8 @@ window.addEventListener("pywebviewready", async () => {
     // first occurrence in view, or else the first); its arrows go from one
     // occurrence to the next; a place opens its viewer.
     document.getElementById("phrases-list").addEventListener("click", (e) => {
-        if (e.target.closest(".ph-more button")) {
-            togglePhrasesAll(phraseKind);
-            renderPhrasesList();
-            return;
-        }
+        if (currentPhrases && !currentPhrases.error
+            && phrasePaneClick(e, currentPhrases, phraseKind, phraseCalls, renderPhrasesList, unpickPhrase)) return;
         const item = e.target.closest("li.ph");
         if (!item) return;
         const p = currentPhrases.phrases[Number(item.dataset.id)];
@@ -1362,6 +1704,12 @@ window.addEventListener("pywebviewready", async () => {
             openPhraseViewer(p, phraseKind, phraseCalls, Number(place.dataset.place));
             return;
         }
+        const spark = e.target.closest(".spark");
+        if (spark) {  // the occurrence in (or nearest) the pasuq clicked
+            const v = sparklinePasuq(spark, e.clientX);
+            jumpToPhrase(p, Math.max(p.spans.findIndex(([at]) => at === v), 0));
+            return;
+        }
         const jump = e.target.closest(".ph-jump button");
         if (jump) {
             jumpToPhrase(p, (phraseAt.get(p.id) || 0) + Number(jump.dataset.jump));
@@ -1369,8 +1717,12 @@ window.addEventListener("pywebviewready", async () => {
         }
         if (e.target.closest(".ph-jump")) return;
         phraseMarks.toggle(p.id);
-        if (phraseMarks.colours.has(p.id)) jumpToPhrase(p, Math.max(phraseInView(p), 0));
-        else phraseAt.delete(p.id);
+        if (phraseMarks.colours.has(p.id)) {
+            document.getElementById("phrases-list").scrollTop = 0;  // it's now at the top
+            jumpToPhrase(p, Math.max(phraseInView(p), 0));
+        } else {
+            phraseAt.delete(p.id);
+        }
     });
     document.getElementById("roots-particles").addEventListener("change", renderRootsList);
     segmented(document.getElementById("roots-sort"), renderRootsList);
