@@ -12,13 +12,13 @@ from ..settings import Settings
 
 class FieldApi:
     """Mixed into a bridge that gives its loaded pesuqim
-    (``_phrase_pesuqim``, as for the phrases) and may have the saved
+    (``_loaded_pesuqim``) and may have the saved
     settings (``_settings``)."""
 
     _field_result: tuple | None = None  # (what it was found for, ankipasuk.semantics.passage)
     _settings: Settings | None = None
 
-    def _phrase_pesuqim(self) -> list[dict]:
+    def _loaded_pesuqim(self) -> list[dict]:
         raise NotImplementedError
 
     def _field_level(self) -> int:
@@ -29,7 +29,7 @@ class FieldApi:
         Reference's and particles' only if asked (see
         ankipasuk.semantics.passage)."""
         try:
-            data, level = self._phrase_pesuqim(), self._field_level()
+            data, level = self._loaded_pesuqim(), self._field_level()
             key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), level, bool(reference),
                    bool(particles))
             if self._field_result is None or self._field_result[0] != key:

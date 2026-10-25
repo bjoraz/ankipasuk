@@ -183,6 +183,8 @@ def test_frames_are_listed_and_a_picked_one_goes_from_one_end_to_the_other(main_
     assert "7 sections" in bara.locator(".ph-meta").inner_text()
     bara.locator(".ph-text").click()
     assert bara.locator(".ph-pos").inner_text() == "1/2"  # its two ends, 1:1 and 2:3
+    # Picked, it's on top; its group's header (its only frame) stays, to fold.
+    assert page.locator('#phrases-list .ph-fold[data-group="runs"]').count() == 1
     bara.locator('[data-jump="1"]').click()
     assert bara.locator(".ph-pos").inner_text() == "2/2"
     page.wait_for_selector('#text-box .tv-line[data-i="33"] .ph-flash[data-k]')  # 2:3, its last pasuq
@@ -283,10 +285,14 @@ def test_each_pasuq_in_the_text_has_its_chapter_and_verse(main_window):
 
 
 def test_the_fields_pane_colours_the_words_of_a_field(main_window):
+    asked = []
+    get_fields = main_window.bridge.get_fields
+    main_window.bridge.get_fields = lambda *args: asked.append(args) or get_fields(*args)
     load(main_window, 2, 3, 34)
     page = main_window.page
     page.click('[data-view="text"]')
     page.wait_for_selector("#text-box .tv-line .w")
+    assert asked == []  # not until the pane is opened
     page.click('#panel-kind [data-pane="fields"]')
     page.wait_for_selector("#fields-list li[data-field]")
     assert page.locator("#text-hint").inner_text() == "Click a word to colour its fields"
@@ -362,6 +368,10 @@ def test_the_verbs_pane_counts_the_forms_and_colours_them(main_window):
     assert page.evaluate(colour) == plain and "off" in kinds.first.get_attribute("class")
     page.check("#verbs-all")
     assert page.locator("#verbs-list li").count() == 11
+    # A section that ends on a pasuq with no verb: its tick after the verb before.
+    ticks = page.evaluate("""verbStripHtml([[0, 0, "w"], [2, 0, "w"]], verbKinds(false), new Set(),
+        [[], ["P"], []]).match(/y="1.08"/g)""")
+    assert ticks == ['y="1.08"']
     page.click('#panel-kind [data-pane="roots"]')  # leaving the pane takes the colours off
     qatal = "getComputedStyle(document.querySelector('#text-box [data-f=\"p\"]')).color"
     assert page.evaluate(qatal) == plain

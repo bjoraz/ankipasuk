@@ -6,16 +6,16 @@ alone or in runs of up to MAX_SECTIONS, and each petuḥa section (from a
 petuḥa to the next, however many setumot it holds); a book without that
 data (the Ketuvim but the Megillot) has no frames. A frame is either
 
-- a *phrase*, one the phrase tests list in the book (not a formula), in the
-  unit's first pasuq and its last; or
+- a *phrase*, one the phrase tests list in the book (with the same
+  thresholds; not a formula), in the unit's first pasuq and its last; or
 - a rare *word* (a dictionary word, few times in the book) found only near
   the unit's two ends: in its first and its last stretch (EDGE_SHARE of its
   pesuqim, at most EDGE_MAX), at least once in each, nowhere between; or
 - a rare *field* (a semantic field, ankipasuk.semantics, in few of the
-  book's pesuqim) found only near the unit's ends, as a word is, in other
-  words at one end than at the other: the same meaning, said differently
-  (וַיִּקַּח and וַיִּתֵּן, Marry, around Shemot 2:1-22). A field's frame
-  in the same word at both ends is a word's frame.
+  book's pesuqim) found only near the unit's ends, as a word is, in no
+  word that's at both ends: the same meaning, said differently (וַיִּקַּח
+  and וַיִּתֵּן, Marry, around Shemot 2:1-22). A field whose ends share a
+  word is that word's frame.
 
 Each has its chance: how likely its occurrences in the unit would fall so,
 placed at random among the unit's pesuqim. A frame is kept if that chance,
@@ -104,6 +104,11 @@ class _Best:
         return None
 
 
+def _edge(p: int) -> int:
+    """How many pesuqim each end of a unit of ``p`` pesuqim is."""
+    return max(1, min(EDGE_MAX, round(p * EDGE_SHARE)))
+
+
 def _only_at_the_ends(in_pasuq: list[dict], runs: list[tuple], rare: int) -> dict:
     """The things (words, fields) found only near a unit's two ends, each
     with its best unit (``_Best.kept``: score, chance, unit, and the
@@ -120,7 +125,7 @@ def _only_at_the_ends(in_pasuq: list[dict], runs: list[tuple], rare: int) -> dic
         p = b - a + 1
         if p < 6:
             continue
-        e = max(1, min(EDGE_MAX, round(p * EDGE_SHARE)))
+        e = _edge(p)
         first = set().union(*(in_pasuq[x] for x in range(a, a + e)))
         last = set().union(*(in_pasuq[x] for x in range(b - e + 1, b + 1)))
         for w in first & last:
@@ -135,26 +140,36 @@ def _only_at_the_ends(in_pasuq: list[dict], runs: list[tuple], rare: int) -> dic
     return {w: kept for w, b in best.items() if (kept := b.kept())}
 
 
-@lru_cache(maxsize=8)
-def book_frames(book: str, level: int = se.DEFAULT_LEVEL) -> tuple:
-    """The frames of a whole book, each ``{"word", "field", "key",
-    "length", "first", "last", "sections", "unit", "ends", "chance",
-    "score"}``: whether a word, its field (a field's frame, at ``level``),
-    its lemmas, its length in tokens, its unit (first and last pasuq, as
-    "ch:vs", how many sections, and its kind: see :func:`units`), the
-    tokens it starts at in the unit's ends, and its chance (times the units
-    tried: score). The sections' frames first."""
+@lru_cache(maxsize=40)
+def _book(book: str) -> tuple[list[str], list[tuple]] | None:
+    """A book's pesuqim (as "ch:vs", in order) and its units, or None
+    where there are no sections."""
     c = ph.corpus()
     keys = sorted((k for (b, k) in c.verses if b == book), key=_key)
     if not keys or book not in _sections():
-        return ()
-    pos = {k: i for i, k in enumerate(keys)}
-    runs = units(book, keys)
-    out = []
+        return None
+    return keys, units(book, keys)
 
-    # Phrases: in the unit's first pasuq and its last.
+
+def _content(book: str, key: str) -> list[int]:
+    """A pasuq's content words' tokens (God's names aside): what words and
+    fields frame."""
+    c = ph.corpus()
+    a, z = c.verses[(book, key)]
+    return [t for t in range(a, z)
+            if c.lem[t] >= 0 and c.bits[t] & ph._CONTENT and c.strong[t] not in ph.GOD_NAMES]
+
+
+@lru_cache(maxsize=8)
+def _phrase_and_word_frames(book: str, thresholds: ph.Thresholds) -> tuple:
+    c = ph.corpus()
+    keys, runs = _book(book)
+    pos = {k: i for i, k in enumerate(keys)}
+    out = []
+    # Phrases (as the phrase tests find them in the whole book, with the
+    # same thresholds): in the unit's first pasuq and its last.
     data = [{"book": book, "ch": _key(k)[0], "vs": _key(k)[1]} for k in keys]
-    for r in ph._classify(c, ph._segments(c, data)):
+    for r in ph._classify(c, ph._segments(c, data), thresholds):
         if r["formula"]:
             continue
         at: dict[int, list[int]] = defaultdict(list)
@@ -172,46 +187,71 @@ def book_frames(book: str, level: int = se.DEFAULT_LEVEL) -> tuple:
             out.append({"word": False, "field": None, "key": r["key"], "length": r["length"],
                         "first": keys[a], "last": keys[b], "sections": n_sec, "unit": kind,
                         "ends": sorted(at[a] + at[b]), "chance": chance, "score": score})
-
-    # Rare words, and rare fields, only near the unit's two ends: each
-    # pasuq's content words (God's names aside), by lemma and by field.
+    # Rare words, only near the unit's two ends.
     words: list[dict[int, list[int]]] = []
-    fields: list[dict[str, list[int]]] = []
     for k in keys:
-        a, z = c.verses[(book, k)]
         words.append(defaultdict(list))
-        fields.append(defaultdict(list))
-        for t in range(a, z):
-            if c.lem[t] >= 0 and c.bits[t] & ph._CONTENT and c.strong[t] not in ph.GOD_NAMES:
-                words[-1][c.lem[t]].append(t)
-                senses = [s for w in range(c.first[t], c.last[t] + 1) for s in se._senses_at(book, k, w)]
-                for f in se.fields_of(senses, level):
-                    fields[-1][f].append(t)
+        for t in _content(book, k):
+            words[-1][c.lem[t]].append(t)
     for w, (score, chance, (a, b, n_sec, kind), occ) in _only_at_the_ends(words, runs, RARE_IN_BOOK).items():
         ends = sorted(t for x in occ for t in words[x][w])
         out.append({"word": True, "field": None, "key": (w,), "length": 1, "first": keys[a], "last": keys[b],
                     "sections": n_sec, "unit": kind, "ends": ends, "chance": chance, "score": score})
-    rare_fields = _only_at_the_ends(fields, runs, FIELD_RARE_IN_BOOK)
-    for f, (score, chance, (a, b, n_sec, kind), occ) in rare_fields.items():
-        e = max(1, min(EDGE_MAX, round((b - a + 1) * EDGE_SHARE)))
+    return tuple(out)
+
+
+@lru_cache(maxsize=8)
+def _field_frames(book: str, level: int) -> tuple:
+    """Rare fields only near the unit's two ends, in no word at one end
+    that's at the other (else it's a word's frame)."""
+    c = ph.corpus()
+    keys, runs = _book(book)
+    fields: list[dict[str, list[int]]] = []
+    for k in keys:
+        fields.append(defaultdict(list))
+        for t in _content(book, k):
+            senses = [s for w in range(c.first[t], c.last[t] + 1) for s in se._senses_at(book, k, w)]
+            for f in se.fields_of(senses, level):
+                fields[-1][f].append(t)
+    out = []
+    rare = _only_at_the_ends(fields, runs, FIELD_RARE_IN_BOOK)
+    for f, (score, chance, (a, b, n_sec, kind), occ) in rare.items():
+        e = _edge(b - a + 1)
         opening = {c.lem[t] for x in occ if x < a + e for t in fields[x][f]}
         closing = {c.lem[t] for x in occ if x > b - e for t in fields[x][f]}
-        if opening == closing:
-            continue  # the same word: a word's frame
+        if opening & closing:
+            continue  # the same word at both ends
         ends = sorted(t for x in occ for t in fields[x][f])
         out.append({"word": False, "field": f, "key": (f,), "length": 1, "first": keys[a], "last": keys[b],
                     "sections": n_sec, "unit": kind, "ends": ends, "chance": chance, "score": score})
-    return tuple(sorted(out, key=lambda f: (f["unit"] == "run", f["score"])))
+    return tuple(out)
 
 
-def add_to(result: dict, verse_data: list[dict], level: int = se.DEFAULT_LEVEL) -> dict:
+def book_frames(book: str, level: int = se.DEFAULT_LEVEL, thresholds: ph.Thresholds = ph.DEFAULTS) -> tuple:
+    """The frames of a whole book, each ``{"word", "field", "key",
+    "length", "first", "last", "sections", "unit", "ends", "chance",
+    "score"}``: whether a word, its field (a field's frame, at ``level``),
+    its lemmas, its length in tokens, its unit (first and last pasuq, as
+    "ch:vs", how many sections, and its kind: see :func:`units`), the
+    tokens it starts at in the unit's ends, and its chance (times the units
+    tried: score). The phrases are those the phrase tests find with
+    ``thresholds``. The sections' frames first."""
+    if _book(book) is None:
+        return ()
+    found = _phrase_and_word_frames(book, thresholds) + _field_frames(book, level)
+    return tuple(sorted(found, key=lambda f: (f["unit"] == "run", f["score"])))
+
+
+def add_to(result: dict, verse_data: list[dict], level: int = se.DEFAULT_LEVEL,
+           thresholds: ph.Thresholds = ph.DEFAULTS) -> dict:
     """``result`` (:func:`ankipasuk.phrases.passage`) with the frames whose
     unit overlaps the loaded pesuqim, as phrase entries of the section
     "frame": ``[["sections", ids], ["runs", ids], ["words", ids],
     ["fields", ids]]``, the phrases framing a section, those framing a run
     of them, the words and the fields (at ``level``). Each has ``kinds``
-    ["frame"], a ``key`` ("frame", its book and its words or field: one a
-    book) and a ``frame`` ``{"word", "field", "first", "last", "sections",
+    ["frame"], a ``key`` ("frame", its book and its words: one a book;
+    for a field's, "field" and the words at its ends, whatever the level)
+    and a ``frame`` ``{"word", "field", "first", "last", "sections",
     "unit", "chance"}`` (the unit's first and last pasuq as references; a
     field's path); its ``text`` is a field's words at the ends, its
     ``marks``, ``spans`` and ``verses`` its ends' words that are loaded,
@@ -223,31 +263,32 @@ def add_to(result: dict, verse_data: list[dict], level: int = se.DEFAULT_LEVEL) 
     place = ph.Placer(c, verse_data) if verse_data else None
     entries, groups = result["phrases"], {"sections": [], "runs": [], "words": [], "fields": []}
     for book in loaded:
-        for f in book_frames(book, level):
+        for f in book_frames(book, level, thresholds):
             lo, hi = _key(f["first"]), _key(f["last"])
             if not any(lo <= at <= hi for at in loaded[book]):
                 continue
             n = f["length"]
-            occ_marks = [m for m in (place.marks(j, n) for j in f["ends"]) if m]
-            outside = [j for j in f["ends"] if not place.marks(j, n)]
+            marks = {j: place.marks(j, n) for j in f["ends"]}  # each end's loaded words, if it's loaded
+            occ_marks = [m for m in marks.values() if m]
             places, seen = [], set()  # one a pasuq
-            for j in outside:
-                if c.where[j] not in seen:
+            for j in f["ends"]:
+                if not marks[j] and c.where[j] not in seen:
                     seen.add(c.where[j])
                     places.append({"ref": ph.ref(c, j, n), "at": j, "length": n})
+
             def text_at(j):
-                marks = place.marks(j, n)
-                return place.text(marks) if marks else " ".join(ph.letters(c, j, n))
+                return place.text(marks[j]) if marks[j] else " ".join(ph.letters(c, j, n))
 
             if f["field"]:  # its words at either end, each once
                 text = " · ".join(dict.fromkeys(text_at(j) for j in f["ends"]))
+                key = "field " + " ".join(sorted({ph.phrase_key(c, j, 1) for j in f["ends"]}))
             else:
-                text = place.text(occ_marks[0]) if occ_marks else text_at(f["ends"][0])
+                text = text_at(next((j for j in f["ends"] if marks[j]), f["ends"][0]))
+                key = ph.phrase_key(c, f["ends"][0], n)
             eid = len(entries)
             entries.append({
                 "id": eid, "kinds": ["frame"],
-                "key": f"frame {book} "
-                       + (f"field {f['field']}" if f["field"] else ph.phrase_key(c, f["ends"][0], n)),
+                "key": f"frame {book} {key}",
                 "formula": None, "exceptional": None, "text": text,
                 "here": len(occ_marks), "total": len(f["ends"]), "elsewhere": len(places), "places": places,
                 "chapters": 0, "books": 1,

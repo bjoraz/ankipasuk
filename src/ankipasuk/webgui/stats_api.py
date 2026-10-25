@@ -185,7 +185,7 @@ class StatsApi(PhraseApi):
             if any(w[2] == g for w in words)
         ]
 
-    def _phrase_pesuqim(self) -> list[dict]:
+    def _loaded_pesuqim(self) -> list[dict]:
         return self.verse_data
 
     def get_structure_summary(self) -> list:

@@ -422,7 +422,7 @@ async function loadShorashim() {
     renderTextBox();
     renderVerbsPane();
     loadPhrases();
-    loadFields();
+    if (fieldsPaneOpen()) loadFields();  // (else when the pane is opened)
 }
 
 // =============================================================
@@ -431,14 +431,18 @@ async function loadShorashim() {
 //  than the shorashim's, and a click on a word colours its fields.
 // =============================================================
 // Also when the names or particles are switched, or the level changes.
+let fieldsFor = null; // the pesuqim the fields were last asked for
+let fieldsAsked = 0; // so an earlier answer coming late is set aside
 async function loadFields() {
     const verses = currentVerseData;
+    const asked = ++fieldsAsked;
+    fieldsFor = verses;
     currentFields = null;
     renderFieldsList();  // "Finding fields…"
     if (!verses.length) return;
     const result = await api().get_fields(document.getElementById("fields-reference").checked,
         document.getElementById("fields-particles").checked);
-    if (verses !== currentVerseData) return;  // other pesuqim were loaded meanwhile
+    if (asked !== fieldsAsked || verses !== currentVerseData) return;  // asked again meanwhile
     currentFields = result.ok ? result : { error: result.error };
     applyFields();
     renderFieldsList();
@@ -518,7 +522,8 @@ function setFieldsMode() {
     const on = fieldsPaneOpen();
     document.getElementById("text-box").classList.toggle("fields-mode", on);
     document.getElementById("text-hint").textContent = `Click a word to colour its ${on ? "fields" : "shoresh"}`;
-    if (on) renderFieldsList();
+    if (on && fieldsFor !== currentVerseData && currentShorashim) loadFields();
+    else if (on) renderFieldsList();
 }
 
 // A word's senses, in its tooltip while the fields are shown.

@@ -921,6 +921,8 @@ def test_an_archived_phrase_is_kept_until_restored(tmp_path, genesis_1_1, genesi
     assert Settings(cache_dir=tmp_path).get("phrase_archive") == out["archive"]
     assert api.get_phrases()["archive"] == out["archive"]
     assert api.restore_phrases([key]) == {"ok": True, "archive": []}
+    # A phrase that's gone (the phrases found again meanwhile) is said, not raised.
+    assert api.archive_phrase(10_000, "echo")["ok"] is False
     assert Settings(cache_dir=tmp_path).get("phrase_archive") == []
 
 
@@ -934,7 +936,16 @@ def test_fields_and_their_level(tmp_path, genesis_1_1):
     shown = api.get_field_settings()
     assert shown["level"] == shown["default"] == 4 and shown["choices"] == [3, 4, 5]
     assert api.save_field_settings({"level": 7})["ok"] is False
+
+    told = []
+
+    class Window:  # an open statistics window: its frames change with the level
+        def evaluate_js(self, script):
+            told.append(script)
+
+    api._stats_windows = [Window()]
     assert api.save_field_settings({"level": 3}) == {"ok": True, "level": 3}
+    assert told == ["loadPhrases()"]
     assert Settings(cache_dir=tmp_path).get("fields") == {"level": 3}
     assert api.get_fields()["level"] == 3
     api.save_field_settings({"level": 4})

@@ -24,26 +24,31 @@ ARCHIVE = "phrase_archive"
 
 class PhraseApi:
     """Mixed into a bridge that gives its loaded pesuqim
-    (``_phrase_pesuqim``) and may have a Sefaria cache (``_cache``) and
+    (``_loaded_pesuqim``) and may have a Sefaria cache (``_cache``) and
     the saved settings (``_settings``)."""
 
-    _phrase_result: tuple | None = None  # (the pesuqim's refs and thresholds, ankipasuk.phrases.passage)
+    _phrase_base: tuple | None = None  # (the pesuqim's refs and thresholds, ankipasuk.phrases.passage)
+    _phrase_result: tuple | None = None  # (likewise, and the fields' level: with the frames added)
     _cache: SefariaCache | None = None
     _settings: Settings | None = None
     _on_archive = None  # called with this bridge when the archive changes, to tell the other windows
 
-    def _phrase_pesuqim(self) -> list[dict]:
+    def _loaded_pesuqim(self) -> list[dict]:
         raise NotImplementedError
 
     def _phrase_thresholds(self) -> Thresholds:
         return Thresholds.from_settings(self._settings.get("phrases") if self._settings else None)
 
     def _phrase_data(self) -> dict:
-        data, thresholds = self._phrase_pesuqim(), self._phrase_thresholds()
+        data, thresholds = self._loaded_pesuqim(), self._phrase_thresholds()
         level = saved_level(self._settings.get("fields") if self._settings else None)  # (fields' frames)
-        key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds, level)
-        if self._phrase_result is None or self._phrase_result[0] != key:
-            self._phrase_result = (key, add_frames(passage(data, thresholds), data, level))
+        key = (tuple((item["book"], item["ch"], item["vs"]) for item in data), thresholds)
+        if self._phrase_base is None or self._phrase_base[0] != key:
+            self._phrase_base = (key, passage(data, thresholds))
+        if self._phrase_result is None or self._phrase_result[0] != (*key, level):
+            base = self._phrase_base[1]  # (left as it is: a new level adds other frames to it)
+            result = {**base, "phrases": list(base["phrases"]), "sections": dict(base["sections"])}
+            self._phrase_result = ((*key, level), add_frames(result, data, level, thresholds))
         return self._phrase_result[1]
 
     def get_phrases(self) -> dict:
@@ -60,7 +65,7 @@ class PhraseApi:
     def get_phrase_verses(self, pid: int) -> list:
         """The loaded pesuqim phrase ``pid`` is in, its words marked:
         ``[{"ref", "words": [[text, separator, marked]]}]``."""
-        data = self._phrase_pesuqim()
+        data = self._loaded_pesuqim()
         return here_verses(self._phrase_data()["phrases"][pid], data, lined_up(data))
 
     def get_phrase_context(self, pid: int, place: int) -> dict:
@@ -93,12 +98,22 @@ class PhraseApi:
     def archive_phrase(self, pid: int, kind: str) -> dict:
         """Puts phrase ``pid`` (archived from section ``kind``) in the
         archive: ``{"ok", "archive"}``, or ``{"ok": False, "error"}``."""
-        p = self._phrase_data()["phrases"][pid]
+        try:
+            return self._archive_phrase(pid, kind)
+        except Exception as e:  # noqa: BLE001 -- said, not raised into the page
+            traceback.print_exc()
+            return {"ok": False, "error": f"Couldn't archive it: {e}"}
+
+    def _archive_phrase(self, pid: int, kind: str) -> dict:
+        phrases = self._phrase_data()["phrases"]
+        if not 0 <= pid < len(phrases):
+            return {"ok": False, "error": "That phrase is gone: the phrases were found again. Try once more."}
+        p = phrases[pid]
         if p.get("frame"):
             f = p["frame"]
             where = f"{f['first']}–{f['last'].rpartition(' ')[2]}"
         else:
-            item = self._phrase_pesuqim()[p["verses"][0]] if p["verses"] else None
+            item = self._loaded_pesuqim()[p["verses"][0]] if p["verses"] else None
             where = f"{_name(item['book'])} {item['ch']}:{item['vs']}" if item else ""
         entry = {"key": p["key"], "text": p["text"], "kind": kind, "where": where,
                  "date": date.today().isoformat()}
@@ -107,8 +122,12 @@ class PhraseApi:
 
     def restore_phrases(self, keys: list[str]) -> dict:
         """Takes the phrases ``keys`` out of the archive (as archive_phrase)."""
-        keys = set(keys)
-        return self._save_archive([e for e in self.get_phrase_archive() if e.get("key") not in keys])
+        try:
+            keys = set(keys)
+            return self._save_archive([e for e in self.get_phrase_archive() if e.get("key") not in keys])
+        except Exception as e:  # noqa: BLE001 -- said, not raised into the page
+            traceback.print_exc()
+            return {"ok": False, "error": f"Couldn't restore them: {e}"}
 
     def _save_archive(self, archive: list[dict]) -> dict:
         if self._settings is None:

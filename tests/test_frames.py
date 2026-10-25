@@ -54,6 +54,13 @@ def test_bereshit_1_is_framed_by_bara_elohim():
     assert f["chance"] == 4 * 3 / (34 * 33)
 
 
+def test_the_phrase_frames_follow_the_phrase_settings():
+    # ברא אלהים has two content words: with three needed, it isn't a phrase.
+    strict = ph.Thresholds(**{**ph.DEFAULTS.__dict__, "content_words": 3})
+    assert not [f for f in fr.book_frames("Genesis", thresholds=strict)
+                if (f["first"], f["last"]) == ("1:1", "2:3") and words(f) == [CREATE, GOD]]
+
+
 def test_the_sections_frames_come_first():
     # Eikha 2 opens and closes with בְּיוֹם אַפּוֹ (2:1, 2:22); each camp of
     # Bemidbar 2 with its מַחֲנֵה; Bemidbar 30's vows with what YHWH commanded.
@@ -124,7 +131,9 @@ def test_a_field_frames_a_unit_in_other_words():
     found = {f["field"]: f for f in fr.book_frames("Exodus") if f["field"] and f["first"] == "2:1"}
     marry = next(f for code, f in found.items() if se.field_path(code, 4)[-1] == "Marry")
     assert (marry["last"], marry["unit"]) == ("2:22", "petuha") and marry["word"] is False
-    assert len({c.lem[t] for t in marry["ends"]}) == 2
+    opening = {c.lem[t] for t in marry["ends"] if c.where[t][1] == "2:1"}
+    closing = {c.lem[t] for t in marry["ends"] if c.where[t][1] == "2:21"}
+    assert opening and closing and not opening & closing  # no word at both ends
     assert all(se.field_path(code, 4)[-1] != "Birth" for code in found)
 
 
@@ -134,4 +143,9 @@ def test_field_frames_are_listed_with_the_words():
     groups = dict(out["sections"]["frame"])
     marry = next(p for p in (out["phrases"][i] for i in groups["fields"]) if "Marry" in p["frame"]["field"])
     assert marry["frame"]["field"].endswith("Association › Marry") and " · " in marry["text"]
-    assert marry["key"].startswith("frame Exodus field ") and len(marry["spans"]) == 2
+    assert len(marry["spans"]) == 2
+    # Archived by its words, which a level doesn't change (its field's code does).
+    c = ph.corpus()
+    ends = [t for t in range(*c.verses[("Exodus", "2:1")]) if c.strong[t] == "3947"]  # וַיִּקַּח
+    assert marry["key"].startswith("frame Exodus field ") and "3947" in marry["key"].split() and ends
+    assert "001" not in marry["key"].split()[3:]

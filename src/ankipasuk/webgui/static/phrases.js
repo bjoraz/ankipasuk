@@ -210,14 +210,15 @@ function renderPhrasePane(result, kind, els, first = []) {
         room -= taken.length;
         return taken;
     };
-    // Rows that could show: those of the open groups.
-    const n = grouped ? groups.filter(([name]) => phraseGroupOpen(kind, name)).reduce((m, [, ids]) => m + ids.length, 0)
-        : section.length;
+    // Rows that could show below the picked ones: those of the open groups.
+    const below = (ids) => ids.filter((id) => !shown.has(id)).length;
+    const n = grouped ? groups.filter(([name]) => phraseGroupOpen(kind, name)).reduce((m, [, ids]) => m + below(ids), 0)
+        : below(section);
     const rows = grouped
         ? groups.map(([name, ids]) => {
             const open = phraseGroupOpen(kind, name);
             const taken = open ? take(ids) : [];
-            if (open && !taken.length) return "";  // (no room: Show all)
+            if (open && !taken.length && below(ids)) return "";  // (no room: Show all)
             return `<li class="ph-class ph-fold${open ? " open" : ""}" data-group="${diagramEscape(name)}" `
                 + `title="${open ? "Fold" : "Show"} them">${diagramEscape(PHRASE_GROUPS[name] || name)}`
                 + ` <span class="ph-class-n">${ids.length}</span></li>`
@@ -226,7 +227,7 @@ function renderPhrasePane(result, kind, els, first = []) {
         : take(groups).map((id) => phraseRowHtml(P[id], kind)).join("");
     const more = n <= PHRASES_SHOWN ? ""
         : `<li class="ph-more"><button type="button" class="link">${phrasesAll.has(kind)
-            ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n}`}</button></li>`;
+            ? `Show the first ${PHRASES_SHOWN}` : `Show all ${n + top.length}`}</button></li>`;
     const all = result.sections[kind] || [];
     const here = (grouped ? all.flatMap(([, ids]) => ids) : all).filter((id) => archived.has(P[id].key)).length;
     const archive = archived.size
@@ -265,7 +266,7 @@ function phrasePaneClick(e, result, kind, calls, redraw, archived = () => {}) {
         result.archive = r.archive;
         archived(p);
         redraw();
-    });
+    }).catch((e) => phraseArchiveError(`Couldn't archive it: ${e}`));
     return true;
 }
 
@@ -311,7 +312,7 @@ function openPhraseArchive(result, calls, redraw) {
         dialog.result.archive = r.archive;
         render();
         redraw();
-    });
+    }).catch((e) => phraseArchiveError(`Couldn't restore it: ${e}`));
     const onKey = (e) => { if (e.key === "Escape") close(); };
     const close = () => {
         overlay.remove();

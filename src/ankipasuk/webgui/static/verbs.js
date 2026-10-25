@@ -72,11 +72,20 @@ function verbStripHtml(sequence, kinds, hidden, breaks) {
     const colourOf = {};
     for (const [key, , colour, forms] of kinds) for (const f of forms) colourOf[f] = hidden.has(key) ? "#e3e7ea" : colour;
     const blocks = sequence.map(([, , f], i) => `<rect x="${n - 1 - i}" y="0" width="1" height="1" fill="${colourOf[f]}"/>`);
+    // A section's end goes after the last verb before it: between a verb
+    // and the next, the strongest end of the pesuqim from the verb's on
+    // (a pasuq without verbs can end a section too).
     const w = Math.max(0.6, n / 260);
+    const endOf = (v) => (breaks[v] || []).filter((b) => !Array.isArray(b)).pop();
     sequence.forEach(([v], i) => {
-        const next = sequence[i + 1];
-        const end = (breaks[v] || []).filter((b) => !Array.isArray(b)).pop();
-        if (end && (!next || next[0] !== v)) {
+        const next = i + 1 < n ? sequence[i + 1][0] : breaks.length;  // the next verb's pasuq
+        if (next === v) return;
+        let end = null;
+        for (let u = v; u < next; u++) {
+            const e = endOf(u);
+            if (e === "P" || (e && !end)) end = e;
+        }
+        if (end) {
             blocks.push(`<rect x="${n - 1 - i - w / 2}" y="${end === "P" ? 1.08 : 1.2}" width="${w}" height="${end === "P" ? 0.32 : 0.2}" fill="#5d4037"/>`);
         }
     });

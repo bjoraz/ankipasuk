@@ -446,8 +446,8 @@ class Api(PhraseApi, FieldApi):
             traceback.print_exc()
             return {"ok": False, "error": str(e)}
 
-    def _phrase_pesuqim(self) -> list[dict]:
-        """The loaded pesuqim, for the Text view's phrases (PhraseApi)."""
+    def _loaded_pesuqim(self) -> list[dict]:
+        """The loaded pesuqim, for the Text view's phrases and fields (PhraseApi, FieldApi)."""
         return self._current_verse_data
 
     # =============================================================
@@ -561,6 +561,14 @@ class Api(PhraseApi, FieldApi):
                 window.evaluate_js(script)
             except Exception:  # noqa: BLE001 -- closing as we speak
                 traceback.print_exc()
+
+    def save_field_settings(self, values: dict) -> dict:
+        """As FieldApi's, and the open statistics windows find their phrases
+        again (the fields' frames change with the level)."""
+        out = FieldApi.save_field_settings(self, values)
+        if out["ok"]:
+            self._run_in_windows("loadPhrases()", self._stats_windows)
+        return out
 
     def _on_archive(self, source: PhraseApi) -> None:
         """The phrase archive changed in ``source``'s window (this one's or
