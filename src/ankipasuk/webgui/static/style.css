@@ -210,7 +210,7 @@ body.sidebar-collapsed .sidebar { display: none; }
 .w[class*="hl-"] { padding: 0 1px; }
 .text-split { flex: 1; min-height: 0; display: flex; }
 .text-split .pane { flex: 1; min-width: 0; }
-.roots-panel { width: 210px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #eee; }
+.roots-panel { width: 224px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #eee; }
 .roots-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 8px;
               font-size: 12px; font-weight: 600; color: #455a64; border-bottom: 1px solid #f0f0f0; }
 .roots-head label { font-weight: normal; gap: 3px; }
@@ -242,7 +242,10 @@ body.sidebar-collapsed .sidebar { display: none; }
 .roots-panel.wide { width: 320px; }
 .panel-switch { padding: 6px 8px 4px; border-bottom: 1px solid #f0f0f0; }
 .panel-switch .seg { display: flex; }
-.panel-switch .seg button { flex: 1; font-size: 12px; padding: 2px 6px; }
+/* Four panes' buttons in the narrow panel: each may shrink to fit (its
+   name cut short, in the worst case), never past the panel's edge. */
+.panel-switch .seg button { flex: 1 1 auto; min-width: 0; font-size: 11.5px; padding: 2px 4px; overflow: hidden;
+                            text-overflow: ellipsis; white-space: nowrap; }
 .panel-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .panel-pane[hidden] { display: none; }
 /* Phrases (phrases.js): a section's tabs, a line on what it holds, its

@@ -262,6 +262,17 @@ def test_a_phrase_archived_is_gone_until_restored(main_window):
     assert page.locator(".ph-archive-open").count() == 0
 
 
+def test_the_panes_buttons_fit_in_the_narrow_panel(main_window):
+    load(main_window, 1, 5, 5)
+    page = main_window.page
+    page.click('[data-view="text"]')
+    fits = page.evaluate("""(() => {
+        const panel = document.getElementById('roots-panel').getBoundingClientRect();
+        return [...document.querySelectorAll('#panel-kind button')]
+            .map((b) => b.getBoundingClientRect().right <= panel.right + 0.5); })()""")
+    assert fits == [True] * 4
+
+
 def test_the_text_marks_the_masoretic_breaks(main_window):
     load(main_window, 1, 8, 8)
     page = main_window.page
