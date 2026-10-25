@@ -11,4 +11,4 @@ core has no GUI dependency, so it can be imported, tested, or scripted
 without a display.
 """
 
-__version__ = "0.2.0"  # also the package's (pyproject.toml reads it); see CHANGELOG.md
+__version__ = "0.3.0"  # also the package's (pyproject.toml reads it); see CHANGELOG.md

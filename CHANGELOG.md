@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-25
 
 More ways of studying the text: where things are in the passage, its
 Masoretic sections, its verb forms, the frames of a book's sections, and
-each word's meaning.
+each word's meaning. Phrases now follow the ta'amim's division.
 
 ### Added
 
@@ -47,7 +47,6 @@ each word's meaning.
 - A picked phrase moves to the top of its section, as a coloured shoresh
   does. A section's groups (the formula classes, the frames' kinds) fold
   by their header, and stay folded or open.
-
 - Phrases follow the ta'amim's division: a phrase that crosses a sof
   pasuq, an etnaḥta or a king (segolta, shalshelet, zaqef, tifḥa) starts
   and ends on breaks at most one step weaker (an etnaḥta, a king, a
