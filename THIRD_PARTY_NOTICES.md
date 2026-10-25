@@ -96,3 +96,24 @@ own spelling. Some common words, whose BDB gloss is more an etymology
 than a meaning, also have a plain meaning added beside it (`MEANINGS` in
 `src/ankipasuk/shorashim_build.py`); their BDB gloss is kept.
 
+## Semantic domains
+
+`src/ankipasuk/data/semantics/` was made by `scripts/build_semantics.py`
+from the **UBS Dictionary of Biblical Hebrew**, version 0.9.4
+([ubsicap/ubs-open-license](https://github.com/ubsicap/ubs-open-license),
+`dictionaries/hebrew`): UBS Dictionary of Biblical Hebrew © United Bible
+Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew ©
+2000-2023 United Bible Societies. It is licensed under the
+[Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/)
+(CC BY-SA 4.0).
+
+What's bundled is adapted from it: the senses that have places in the
+Tanakh, each with its lemma (in Unicode's NFC), English glosses, short
+definition and lexical domain codes, and the English labels and
+descriptions of the lexical domains. The places themselves were lined up
+with the words of the Open Scriptures Hebrew Bible (see "Shorashim"
+above), so each of its words has its senses; the method is in
+`docs/semantics.md`, and a few places whose Strong's numbers differ were
+put where their neighbours place them. The other languages, the
+contextual domains, footnotes and the rest of each entry are left out.
+These files are shared under the same license, CC BY-SA 4.0.

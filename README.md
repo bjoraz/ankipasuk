@@ -751,6 +751,8 @@ src/ankipasuk/
 ├── phrases.py           a passage's refrains, echoes and idioms (docs/phrases.md)
 ├── sections.py          the Masoretic sections (scripts/build_sections.py makes their data)
 ├── frames.py            frames: sections that open and close with the same words (docs/phrases.md)
+├── semantics.py         each word's sense and semantic domains, from SDBH (docs/semantics.md)
+├── semantics_build.py   making that data: SDBH's places lined up with OSHB's words (scripts/build_semantics.py)
 ├── transliterate.py     pointed Hebrew in the app's spelling (docs/transliteration.md)
 ├── sefaria.py           Sefaria API
 ├── tikkun.py            tikkun.io line layout and font
@@ -758,11 +760,11 @@ src/ankipasuk/
 ├── lpcg.py              tiqqun-card note type, templates, line-mode cards
 ├── verse_cards.py       pasuq-mode cards and the word alignment
 ├── anki_connect/        AnkiConnect client, scheduling, tagging, CLI
-├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases
+├── data/                bundled maftir lengths, holiday readings, haftarot, shorashim, phrases, sections, senses
 └── webgui/              the app: pywebview bridges (api.py, stats_api.py, phrase_api.py, …)
     └── static/          its pages, styles and scripts (diagram.js, shorashim.js, phrases.js, verbs.js, app.js)
-scripts/                 double-clickable wrappers for the Anki tools; build_shorashim.py
-docs/                    scheduling, tagging, the transliteration rules, phrases, screenshots
+scripts/                 double-clickable wrappers for the Anki tools; the data's builds (build_*.py)
+docs/                    scheduling, tagging, the transliteration rules, phrases, semantics, screenshots
 ```
 
 Only `webgui/` touches anything graphical. The AnkiConnect client
@@ -812,6 +814,11 @@ pytest tests/test_frontend
   (CC BY 4.0, on the public-domain Westminster Leningrad Codex) and its
   [HebrewLexicon](https://github.com/openscriptures/HebrewLexicon), after
   Brown–Driver–Briggs; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- Each word's sense and semantic domains come from the UBS Dictionary of
+  Biblical Hebrew, the open release of the
+  [Semantic Dictionary of Biblical Hebrew](https://github.com/ubsicap/ubs-open-license)
+  (© United Bible Societies; CC BY-SA 4.0), lined up with OSHB's words;
+  see [`docs/semantics.md`](docs/semantics.md).
 - The 'ammud layout and the Shlomo semiStam font from
   [tikkun.io](https://github.com/akivajgordon/tikkun.io) (MIT; the font is
   by Shlomo Orbach under the SIL Open Font License).
